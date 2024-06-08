@@ -1,0 +1,23 @@
+[tool.poetry]
+name = "CookieBlock-consent-crawler"
+version = "0.1-dev"
+description = "Classification service for privacy policies and terms and conditions"
+authors = ["Karel Kubicek", "Dino Bollinger"]
+readme = "README.md"
+
+[tool.poetry.scripts]
+presence_crawl = "service:main"
+consent_crawl = "service:main"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+docopt = "^0.6.2"
+tqdm = "^4.66.4"
+tblib = "^3.0.0"
+scikit-learn = "^1.5.0"
+requests = "^2.32.2"
+pebble = "^5.0.7"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
