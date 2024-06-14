@@ -10,8 +10,10 @@ package-mode = false
 presence_crawl = "service:main"
 consent_crawl = "service:main"
 
+# ATTENTION: python 3.11.9 is needed as 3.12 is not supported by js2py as of 14.06.2024
+# Due to: https://github.com/tsukumijima/tweepy-authlib/issues/5
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "3.11.9"
 docopt = "^0.6.2"
 tqdm = "^4.66.4"
 tblib = "^3.0.0"
