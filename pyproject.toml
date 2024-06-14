@@ -18,6 +18,13 @@ tblib = "^3.0.0"
 scikit-learn = "^1.5.0"
 requests = "^2.32.2"
 pebble = "^5.0.7"
+psutil = "^5.9.8"
+multiprocess = "^0.70.16"
+selenium = "^4.21.0"
+pillow = "^10.3.0"
+domain-utils = "^0.7.1"
+bs4 = "^0.0.2"
+js2py = "0.70"
 
 [build-system]
 requires = ["poetry-core"]
