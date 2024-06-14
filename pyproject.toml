@@ -4,6 +4,7 @@ version = "0.1-dev"
 description = "Classification service for privacy policies and terms and conditions"
 authors = ["Karel Kubicek", "Dino Bollinger"]
 readme = "README.md"
+package-mode = false
 
 [tool.poetry.scripts]
 presence_crawl = "service:main"
