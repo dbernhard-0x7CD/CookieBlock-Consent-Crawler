@@ -5,6 +5,14 @@ import os
 import sys
 import logging
 from datetime import datetime
+from pathlib import Path
+from importlib.metadata import version
+import time
+
+from hyperlink import URL
+
+
+from crawler.browser import Chrome
 
 logger = logging.getLogger("cookieblock-consent-crawler")
 
@@ -86,6 +94,36 @@ def run_crawler() -> None:
     os.makedirs(data_path, exist_ok=True)
 
     logger.info("Using data_path %s and file %s", data_path, database_file)
+
+    chrome_profile_path = "./chrome_profile/"
+    chromedriver_path = Path("./chromedriver/chromedriver")
+    chrome_path = Path("./chrome/")
+
+    with open(file, "r", encoding="utf-8") as fo:
+        lines = fo.readlines()
+
+        for l in [x.strip() for x in lines]:
+            logging.info("working on %s", l)
+
+            with Chrome(
+                seconds_before_processing_page=1,
+                headless=False,
+                use_temp=False,
+                chrome_profile_path=chrome_profile_path,
+                chromedriver_path=chromedriver_path,
+                chrome_path=chrome_path,
+            ) as browser:
+                u = URL.from_text(l)
+
+                browser.load_page(u)
+
+                time.sleep(1)
+
+                browser.collect_cookies()
+
+                time.sleep(60)
+
+                logging.info("Loaded url %s", u)
 
     logger.info("Finished")
 
