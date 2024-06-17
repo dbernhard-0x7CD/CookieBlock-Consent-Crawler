@@ -4,6 +4,7 @@ import argparse
 import os
 import sys
 import logging
+from datetime import datetime
 
 logger = logging.getLogger("cookieblock-consent-crawler")
 
@@ -54,6 +55,12 @@ def run_crawler() -> None:
         help="Number of browsers to use in parallel",
         dest="num_browsers",
     )
+    parser.add_argument(
+        "-d",
+        "--use_db",
+        help="Use specified database file to add rows to. Format: DATA_PATH/FILENAME.sqlite",
+        dest="use_db",
+    )
 
     args = parser.parse_args()
 
@@ -64,6 +71,21 @@ def run_crawler() -> None:
 
     if args.num_browsers:
         raise CrawlerException("--num_browsers Not yet implemented")
+
+    if args.use_db:
+        splitted = os.path.split(args.use_db)
+        if len(splitted) != 2:
+            raise CrawlerException("--use_db is wrongly formatted")
+        data_path = splitted[0]
+        database_file = splitted[1]
+    else:
+        now = datetime.now().strftime("%Y%m%d_%H%M%S")
+        data_path = "./collected_data"
+        database_file = f"crawl_data_{now}.sqlite"
+
+    os.makedirs(data_path, exist_ok=True)
+
+    logger.info("Using data_path %s and file %s", data_path, database_file)
 
     logger.info("Finished")
 
