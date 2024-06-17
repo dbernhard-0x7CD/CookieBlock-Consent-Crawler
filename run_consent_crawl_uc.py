@@ -48,6 +48,12 @@ def run_crawler() -> None:
     parser.add_argument(
         "-f", "--file", help="Path to file containing one URL per line", required=True
     )
+    parser.add_argument(
+        "-n",
+        "--num_browsers",
+        help="Number of browsers to use in parallel",
+        dest="num_browsers",
+    )
 
     args = parser.parse_args()
 
@@ -55,6 +61,9 @@ def run_crawler() -> None:
 
     if not os.path.exists(file):
         raise CrawlerException(f"File at {file} does not exist")
+
+    if args.num_browsers:
+        raise CrawlerException("--num_browsers Not yet implemented")
 
     logger.info("Finished")
 
