@@ -13,20 +13,31 @@ consent_crawl = "service:main"
 # ATTENTION: python 3.11.9 is needed as 3.12 is not supported by js2py as of 14.06.2024
 # Due to: https://github.com/tsukumijima/tweepy-authlib/issues/5
 [tool.poetry.dependencies]
-python = "3.11.9"
-docopt = "^0.6.2"
 tqdm = "^4.66.4"
 tblib = "^3.0.0"
+python = "3.11.9"
 scikit-learn = "^1.5.0"
 requests = "^2.32.2"
 pebble = "^5.0.7"
 psutil = "^5.9.8"
-multiprocess = "^0.70.16"
-selenium = "^4.21.0"
 pillow = "^10.3.0"
 domain-utils = "^0.7.1"
+js2py = "0.74"
+easyprocess = "^1.1"
+pyvirtualdisplay = "^3.0"
+tabulate = "^0.9.0"
+plyvel = "^1.5.1"
+pandas = "^2.2.2"
+pyarrow = "^16.1.0"
+s3fs = { extras = ["boto3"], version = ">=2023.12.0" }
+boto3 = "*"
+botocore = "*"
+jsonschema = "^4.22.0"
+sentry-sdk = "^2.5.1"
+docopt = "^0.6.2"
+multiprocess = "^0.70.16"
+selenium = "3.141.0"
 bs4 = "^0.0.2"
-js2py = "0.70"
 
 [build-system]
 requires = ["poetry-core"]
