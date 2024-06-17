@@ -15,9 +15,8 @@ import tblib
 from .BrowserManager import Browser
 from .Commands.utils.webdriver_utils import parse_neterror
 from .CommandSequence import CommandSequence
-from .DataAggregator import BaseAggregator, LocalAggregator, S3Aggregator
-from .DataAggregator.BaseAggregator import (ACTION_TYPE_FINALIZE,
-                                            RECORD_TYPE_SPECIAL)
+from .DataAggregator import BaseAggregator, LocalAggregator
+from .DataAggregator.BaseAggregator import ACTION_TYPE_FINALIZE, RECORD_TYPE_SPECIAL
 from .Errors import CommandExecutionError
 from .js_instrumentation import clean_js_instrumentation_settings
 from .MPLogger import MPLogger
@@ -270,10 +269,8 @@ class TaskManager:
         self.data_aggregator: BaseAggregator.BaseAggregator
         if self.manager_params["output_format"] == "local":
             self.data_aggregator = LocalAggregator.LocalAggregator(
-                self.manager_params, self.browser_params)
-        elif self.manager_params["output_format"] == "s3":
-            self.data_aggregator = S3Aggregator.S3Aggregator(
-                self.manager_params, self.browser_params)
+                self.manager_params, self.browser_params
+            )
         else:
             raise Exception("Unrecognized output format: %s" %
                             self.manager_params["output_format"])
