@@ -9,6 +9,7 @@ from pathlib import Path
 from importlib.metadata import version
 import time
 import traceback
+import shutil
 
 from hyperlink import URL
 
@@ -38,6 +39,9 @@ def run_crawler() -> None:
     chrome_profile_path = "./chrome_profile/"
     chromedriver_path = Path("./chromedriver/chromedriver")
     chrome_path = Path("./chrome/")
+
+    if os.path.exists(chrome_profile_path):
+        shutil.rmtree(chrome_profile_path)
 
     os.makedirs(chrome_profile_path, exist_ok=True)
 
