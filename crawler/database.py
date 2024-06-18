@@ -112,6 +112,8 @@ def initialize_base_db(
     create: bool = False,
     pool_size: int = 8,
 ) -> None:
+
+    logger.info("Creating database connection to %s", db_url)
     engine = create_engine(db_url, pool_size=pool_size)
 
     SessionLocal.configure(bind=engine)
