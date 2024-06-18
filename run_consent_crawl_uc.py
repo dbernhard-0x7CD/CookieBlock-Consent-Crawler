@@ -8,6 +8,7 @@ from datetime import datetime
 from pathlib import Path
 from importlib.metadata import version
 import time
+import traceback
 
 from hyperlink import URL
 
@@ -189,8 +190,7 @@ def main() -> None:
         logger.error(e)
         sys.exit(1)
     except Exception as e:
-        logger.error("%s", str(e))
-        logger.exception(e)
+        print(traceback.format_exc())
         sys.exit(1)
 
 
