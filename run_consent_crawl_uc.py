@@ -61,9 +61,7 @@ def run_crawler() -> None:
     # Parse the input arguments
     parser = argparse.ArgumentParser()
 
-    parser.add_argument(
-        "-f", "--file", help="Path to file containing one URL per line", required=True
-    )
+    parser.add_argument("-f", "--file", help="Path to file containing one URL per line")
     parser.add_argument(
         "-n",
         "--num_browsers",
@@ -75,6 +73,11 @@ def run_crawler() -> None:
         "--use_db",
         help="Use specified database file to add rows to. Format: DATA_PATH/FILENAME.sqlite",
         dest="use_db",
+    )
+    parser.add_argument(
+        "--launch-browser",
+        help="Only launches the browser which allows modification of the current profile",
+        action="store_true",
     )
 
     args = parser.parse_args()
@@ -98,7 +101,24 @@ def run_crawler() -> None:
         data_path = "./collected_data"
         database_file = f"crawl_data_{now}.sqlite"
 
+    headless = False
+
     os.makedirs(data_path, exist_ok=True)
+
+    if args.launch_browser:
+        # Definitely start headfull
+        headless = False
+        with Chrome(
+            seconds_before_processing_page=1,
+            headless=headless,
+            use_temp=False,
+            chrome_profile_path=chrome_profile_path,
+            chromedriver_path=chromedriver_path,
+            chrome_path=chrome_path,
+        ) as browser:
+            browser.load_page(URL.from_text("about:blank"))
+            time.sleep(60 * 60)  # wait one hour
+        return
 
     logger.info("Using data_path %s and file %s", data_path, database_file)
 
