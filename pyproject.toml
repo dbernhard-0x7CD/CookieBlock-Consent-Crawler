@@ -25,6 +25,8 @@ hyperlink = "^21.0.0"
 selenium-stealth = "^1.0.6"
 selenium-wire = "^5.1.0"
 blinker = "<1.8.0"
+alembic = "^1.13.1"
+bs4 = "^0.0.2"
 
 [build-system]
 requires = ["poetry-core"]
