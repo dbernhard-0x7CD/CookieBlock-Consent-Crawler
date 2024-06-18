@@ -28,7 +28,7 @@ from sqlalchemy.orm import (
     sessionmaker,
 )
 
-logger = logging.getLogger("enfbots_crawler")
+from crawler.utils import logger
 
 """
 We do not want to use expire after commit to still have access to attributes from objects.
