@@ -1,4 +1,6 @@
 import logging
+from typing import Optional
+from pathlib import Path
 
 import alembic.config
 import alembic.command
@@ -64,7 +66,11 @@ class Cookie(Base):
 
     __tablename__ = "javascript_cookies"
 
-    extension_session_uuid: Mapped[str]
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    browser_id: Mapped[int]
+    task_id: Mapped[int]
+
+    extension_session_uuid: Mapped[Optional[str]]
 
     time_stamp = mapped_column(DateTime(timezone=True))
 
@@ -96,3 +102,27 @@ class Task(Base):
     # manager_params: Mapped[str]
     # openwpm_version: Mapped[str]
     # browser_version: Mapped[str]
+
+
+def initialize_base_db(
+    db_url: Optional[str],
+    alembic_root_dir: Path,
+    create: bool = False,
+    pool_size: int = 8,
+) -> None:
+    if not db_url:
+        raise RuntimeError("Either db_url or engine must be given")
+
+    engine = create_engine(db_url, pool_size=pool_size)
+
+    SessionLocal.configure(bind=engine)
+
+    if create:
+        logger.info("Creating initial database structure")
+        Base.metadata.create_all(bind=engine, checkfirst=True)
+        config = alembic.config.Config(file_=str(alembic_root_dir / "alembic.ini"))
+        config.set_main_option("script_location", str(alembic_root_dir / "alembic"))
+        config.attributes["configure_logger"] = False
+        alembic.command.stamp(config, "head")
+
+        logger.info("Created database.")

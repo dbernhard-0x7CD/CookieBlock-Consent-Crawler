@@ -44,7 +44,7 @@ from seleniumwire import webdriver
 from seleniumwire.request import Request, Response
 from seleniumwire.utils import decode
 
-from enums import PageState, CookieTuple
+from crawler.enums import PageState, CookieTuple
 
 logger = logging.getLogger("browser-cbcc")
 
