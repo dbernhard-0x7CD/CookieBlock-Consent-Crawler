@@ -82,10 +82,10 @@ def run_crawler() -> None:
 
     args = parser.parse_args()
 
-    file = args.file
+    file_crawllist = args.file
 
-    if not os.path.exists(file):
-        raise CrawlerException(f"File at {file} does not exist")
+    if file_crawllist and (not os.path.exists(file_crawllist)):
+        raise CrawlerException(f"File at {file_crawllist} does not exist")
 
     if args.num_browsers:
         raise CrawlerException("--num_browsers Not yet implemented")
@@ -136,8 +136,7 @@ def run_crawler() -> None:
     chrome_profile_path = "./chrome_profile/"
     chromedriver_path = Path("./chromedriver/chromedriver")
     chrome_path = Path("./chrome/")
-
-    with open(file, "r", encoding="utf-8") as fo:
+    with open(file_crawllist, "r", encoding="utf-8") as fo:
         lines = fo.readlines()
 
         for l in [x.strip() for x in lines]:
