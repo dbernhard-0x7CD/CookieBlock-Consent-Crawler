@@ -2,9 +2,10 @@
 name = "CookieBlock-consent-crawler"
 version = "0.1-dev"
 description = "Classification service for privacy policies and terms and conditions"
-authors = ["Karel Kubicek", "Dino Bollinger"]
+authors = ["Karel Kubicek", "Dino Bollinger", "David Bernhard"]
 readme = "README.md"
-package-mode = false
+
+packages = [{ include = "run_consent_crawl_uc.py" }, { include = "crawler" }]
 
 [tool.poetry.scripts]
 presence_crawl = "service:main"
