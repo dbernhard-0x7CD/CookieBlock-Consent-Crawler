@@ -32,6 +32,9 @@ def run_crawler() -> None:
     ver = version("cookieblock-consent-crawler")
     logger.info(f"Starting cookieblock-consent-crawler version {ver}")
 
+    # Has some WARNING messages that the pool is full
+    logging.getLogger("urllib3").setLevel(logging.ERROR)
+
     chrome_profile_path = "./chrome_profile/"
     chromedriver_path = Path("./chromedriver/chromedriver")
     chrome_path = Path("./chrome/")
