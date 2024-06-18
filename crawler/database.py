@@ -122,6 +122,8 @@ def initialize_base_db(
         logger.info("Creating initial database structure")
         Base.metadata.create_all(bind=engine, checkfirst=True)
         config = alembic.config.Config(file_=str(alembic_root_dir / "alembic.ini"))
+
+        config.set_main_option("sqlalchemy.url", db_url)
         config.set_main_option("script_location", str(alembic_root_dir / "alembic"))
         config.attributes["configure_logger"] = False
         alembic.command.stamp(config, "head")
