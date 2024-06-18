@@ -9,6 +9,7 @@ from pathlib import Path
 from importlib.metadata import version
 import time
 import traceback
+import tarfile
 import shutil
 
 from hyperlink import URL
