@@ -50,7 +50,9 @@ class Crawl(Base):
 
     __tablename__ = "crawl"
 
-    browser_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    browser_id: Mapped[Optional[int]] = mapped_column(
+        primary_key=True, autoincrement=True
+    )
     task_id: Mapped[int]
     task: Mapped["Task"] = relationship(
         back_populates="crawl", uselist=False, lazy="select"
