@@ -107,14 +107,11 @@ class Task(Base):
 
 
 def initialize_base_db(
-    db_url: Optional[str],
+    db_url: str,
     alembic_root_dir: Path,
     create: bool = False,
     pool_size: int = 8,
 ) -> None:
-    if not db_url:
-        raise RuntimeError("Either db_url or engine must be given")
-
     engine = create_engine(db_url, pool_size=pool_size)
 
     SessionLocal.configure(bind=engine)
