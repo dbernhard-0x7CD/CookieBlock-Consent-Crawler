@@ -14,8 +14,7 @@ from hyperlink import URL
 
 from crawler.browser import Chrome
 from crawler.database import initialize_base_db
-
-logger = logging.getLogger("cookieblock-consent-crawler")
+from crawler.utils import logger
 
 
 class CrawlerException(Exception):
