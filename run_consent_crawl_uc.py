@@ -49,7 +49,14 @@ def run_crawler() -> None:
     This file contains all the main functionality and the entry point.
     """
 
-    # ver = version("cookieblock-consent-crawler")
+    ver = version("cookieblock-consent-crawler")
+    logger.info(f"Starting cookieblock-consent-crawler version {ver}")
+
+    chrome_profile_path = "./chrome_profile/"
+    chromedriver_path = Path("./chromedriver/chromedriver")
+    chrome_path = Path("./chrome/")
+
+    os.makedirs(chrome_profile_path, exist_ok=True)
 
     # Parse the input arguments
     parser = argparse.ArgumentParser()
