@@ -24,27 +24,6 @@ class CrawlerException(Exception):
     """
 
 
-def set_log_formatter(fmt: str, date_format: str) -> None:
-    """
-    Sets the given format for the root logger and all its handlers.
-    The handlers may be to a file or to console. It also ensures that
-    at least one console handler exists.
-    """
-    root_logger = logging.getLogger()
-    log_formatter = logging.Formatter(
-        fmt=fmt,
-        datefmt=date_format,
-    )
-    # Set the log_formatter from above for all and ensure
-    # that at lest one handler is present
-    for handler in root_logger.handlers:
-        handler.setFormatter(log_formatter)
-    if len(root_logger.handlers) == 0:
-        console_handler = logging.StreamHandler()
-        console_handler.setFormatter(log_formatter)
-        root_logger.addHandler(console_handler)
-
-
 def run_crawler() -> None:
     """
     This file contains all the main functionality and the entry point.
@@ -172,15 +151,6 @@ def main() -> None:
     Exit code 1 means that there is something fundamentally wrong and
     cb-cc should not be called again.
     """
-
-    set_log_formatter(
-        "%(asctime)s %(levelname)s %(name)s: %(message)s", "%Y-%m-%d:%H:%M:%S"
-    )
-    root_logger = logging.getLogger()
-    root_logger.setLevel(
-        logging.INFO
-    )  # Only until we've loaded the config and set the desired LOG_LEVEL
-    logger.setLevel(logging.INFO)
 
     try:
         run_crawler()
