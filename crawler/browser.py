@@ -45,8 +45,7 @@ from seleniumwire.request import Request, Response
 from seleniumwire.utils import decode
 
 from crawler.enums import PageState, CookieTuple
-
-logger = logging.getLogger("browser-cbcc")
+from crawler.utils import logger
 
 FuncT = TypeVar("FuncT", bound=Callable[..., Any])
 
