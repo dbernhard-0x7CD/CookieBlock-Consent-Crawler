@@ -13,6 +13,7 @@ from hyperlink import URL
 
 
 from crawler.browser import Chrome
+from crawler.database import initialize_base_db
 
 logger = logging.getLogger("cookieblock-consent-crawler")
 
@@ -94,6 +95,17 @@ def run_crawler() -> None:
     os.makedirs(data_path, exist_ok=True)
 
     logger.info("Using data_path %s and file %s", data_path, database_file)
+
+    # Connect to sqlite
+    db_file = Path(data_path) / database_file
+    create = not db_file.exists()
+    initialize_base_db(
+        db_url="sqlite:///" + str(db_file),
+        create=create,
+        alembic_root_dir=Path(__file__).parent / "crawler",
+    )
+
+    logger.info("finished database setup")
 
     chrome_profile_path = "./chrome_profile/"
     chromedriver_path = Path("./chromedriver/chromedriver")
