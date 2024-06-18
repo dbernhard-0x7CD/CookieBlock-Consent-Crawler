@@ -163,3 +163,6 @@ cython_debug/
 
 # Project specific stuff
 chromedriver/
+chrome/
+chrome_profile/
+collected_data/
