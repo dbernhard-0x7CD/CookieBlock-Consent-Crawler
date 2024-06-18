@@ -58,6 +58,8 @@ def run_crawler() -> None:
         "--launch-browser",
         help="Only launches the browser which allows modification of the current profile",
         action="store_true",
+    )
+    run_group.add_argument("--url", help="Url to crawl once")
 
     parser.add_argument(
         "-n",
@@ -135,38 +137,37 @@ def run_crawler() -> None:
     )
     logger.info("Finished database setup")
 
-    logger.info("finished database setup")
+    if file_crawllist:
+        with open(file_crawllist, "r", encoding="utf-8") as fo:
+            urls = [x.strip() for x in fo.readlines()]
+    else:
+        assert args.url
+        urls = [args.url]
 
-    chrome_profile_path = "./chrome_profile/"
-    chromedriver_path = Path("./chromedriver/chromedriver")
-    chrome_path = Path("./chrome/")
-    with open(file_crawllist, "r", encoding="utf-8") as fo:
-        lines = fo.readlines()
+    for l in urls:
+        logger.info("Working on %s", l)
 
-        for l in [x.strip() for x in lines]:
-            logging.info("working on %s", l)
+        with Chrome(
+            seconds_before_processing_page=1,
+            headless=headless,
+            use_temp=True,
+            chrome_profile_path=chrome_profile_path,
+            chromedriver_path=chromedriver_path,
+            chrome_path=chrome_path,
+        ) as browser:
+            u = URL.from_text(l)
 
-            with Chrome(
-                seconds_before_processing_page=1,
-                headless=False,
-                use_temp=False,
-                chrome_profile_path=chrome_profile_path,
-                chromedriver_path=chromedriver_path,
-                chrome_path=chrome_path,
-            ) as browser:
-                u = URL.from_text(l)
+            browser.load_page(u)
 
-                browser.load_page(u)
+            time.sleep(1)
 
-                time.sleep(1)
+            browser.collect_cookies()
 
-                browser.collect_cookies()
+            time.sleep(60)
 
-                time.sleep(60)
+            logger.info("Loaded url %s", u)
 
-                logging.info("Loaded url %s", u)
-
-    logger.info("Finished")
+    logger.info("CB-CCrawler has finished.")
 
 
 def main() -> None:
