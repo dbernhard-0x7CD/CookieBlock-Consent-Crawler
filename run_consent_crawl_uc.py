@@ -48,7 +48,16 @@ def run_crawler() -> None:
     # Parse the input arguments
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("-f", "--file", help="Path to file containing one URL per line")
+    run_group = parser.add_mutually_exclusive_group(required=True)
+
+    run_group.add_argument(
+        "-f", "--file", help="Path to file containing one URL per line"
+    )
+    run_group.add_argument(
+        "--launch-browser",
+        help="Only launches the browser which allows modification of the current profile",
+        action="store_true",
+
     parser.add_argument(
         "-n",
         "--num_browsers",
@@ -62,9 +71,7 @@ def run_crawler() -> None:
         dest="use_db",
     )
     parser.add_argument(
-        "--launch-browser",
-        help="Only launches the browser which allows modification of the current profile",
-        action="store_true",
+        "--profile_tar", help="Location of a tar file containing the browser profile"
     )
 
     args = parser.parse_args()
@@ -125,6 +132,7 @@ def run_crawler() -> None:
         create=create,
         alembic_root_dir=Path(__file__).parent / "crawler",
     )
+    logger.info("Finished database setup")
 
     logger.info("finished database setup")
 
