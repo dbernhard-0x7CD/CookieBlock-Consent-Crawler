@@ -86,14 +86,22 @@ def run_crawler() -> None:
 
     headless = False
 
+    if args.profile_tar:
+        if not os.path.exists(args.profile_tar):
+            raise CrawlerException(f"File at {args.profile_tar} does not exist")
+        with tarfile.open(args.profile_tar) as tfile:
+            tfile.extractall(".", filter="data")
+    else:
+        # Simply use existing
+        pass
+
     os.makedirs(data_path, exist_ok=True)
 
     if args.launch_browser:
         # Definitely start headfull
-        headless = False
         with Chrome(
             seconds_before_processing_page=1,
-            headless=headless,
+            headless=False,
             use_temp=False,
             chrome_profile_path=chrome_profile_path,
             chromedriver_path=chromedriver_path,
