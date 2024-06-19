@@ -136,7 +136,8 @@ def load_profile(browser_profile_folder: str, manager_params, browser_params,
     """
     try:
         # ensures that folder paths end with slashes
-        if browser_profile_folder[-1] != '/':
+        logger.info("profile_tar location: %s", tar_location)
+        if browser_profile_folder[-1] != "/":
             browser_profile_folder = browser_profile_folder + "/"
         if tar_location[-1] != '/':
             tar_location = tar_location + "/"
