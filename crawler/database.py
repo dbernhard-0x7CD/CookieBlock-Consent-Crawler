@@ -122,6 +122,24 @@ class Task(Base):
     # openwpm_version: Mapped[str]
     # browser_version: Mapped[str]
 
+class ConsentData(Base):
+    """ """
+    __tablename__ = "consent_data"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    browser_id: Mapped[int]
+    visit_id: Mapped[int]
+    name: Mapped[str]
+    domain: Mapped[str]
+    
+    cat_id: Mapped[int]
+    cat_name: Mapped[str]
+    
+    purpose: Mapped[Optional[str]]
+    expiry: Mapped[Optional[str]]
+    type_name: Mapped[Optional[str]]
+    type_id: Mapped[int]
+    
 class ConsentCrawlResult(Base):
     """ """
 
