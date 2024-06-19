@@ -58,7 +58,7 @@ class Crawl(Base):
         back_populates="crawl", uselist=False, lazy="select"
     )
 
-    browser_params = mapped_column(JSON)
+    browser_params: Mapped[str]
 
     start_time = mapped_column(DateTime(timezone=True), server_default=func.now())
 
