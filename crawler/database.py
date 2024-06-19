@@ -14,7 +14,6 @@ from sqlalchemy import (
     func,
     ForeignKey,
     DateTime,
-    JSON,
     select,
     desc,
     text,
