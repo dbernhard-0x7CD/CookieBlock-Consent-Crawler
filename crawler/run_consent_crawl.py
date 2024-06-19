@@ -67,7 +67,7 @@ def setup_browser_config(cargs: Dict, browser_param: Dict) -> None:
     ## Firefox profile dated 24. November 2020. May need to be replaced in the future.
     ## Comes with Consent-O-Matic preinstalled and preconfigured.
     if cargs["--profile_tar"]:
-        browser_param['profile_tar'] = cargs["--profile_tar"]
+        browser_param["profile_tar"] = cargs["--profile_tar"][0]
     else:
         browser_param['profile_tar'] = "./crawler_profile_consentomatic_accept_all/"
 
