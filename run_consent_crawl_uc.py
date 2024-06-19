@@ -103,7 +103,7 @@ def run_crawler() -> None:
     if args.profile_tar:
         if not os.path.exists(args.profile_tar):
             raise CrawlerException(f"File at {args.profile_tar} does not exist")
-        with tarfile.open(args.profile_tar) as tfile:
+        with tarfile.open(args.profile_tar, errorlevel=0) as tfile:
             tfile.extractall(".", filter="data")
     else:
         # Simply use existing
