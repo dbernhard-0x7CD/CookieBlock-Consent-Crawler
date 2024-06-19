@@ -394,6 +394,7 @@ class CBConsentCrawlerBrowser(Browser):
         cookies = self.driver.get_cookies()
 
         if cookies is None:
+            logger.info("NO cookies")
             return
 
         for cookie in cookies:
@@ -407,6 +408,7 @@ class CBConsentCrawlerBrowser(Browser):
                 cookie.get("expiry"),
                 cookie.get("sameSite"),
             )
+            logger.info("Cookie: %s", cookie)
             # the tuple is  hashable nicely so the set should work
             if my_cookie not in self.cookie_tracker:
                 self.cookie_tracker.add(my_cookie)
