@@ -352,7 +352,7 @@ class Browser(ABC):
         logger.debug("Executing JS code in selenium: %s", script)
         try:
             res = self.driver.execute_script(script, *args)
-            logger.debug("> Result was: %s", res)
+            logger.info("> Result was: %s", res)
             return res
         except JavascriptException as e:
             if raise_exception:
