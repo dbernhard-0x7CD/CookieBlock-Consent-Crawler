@@ -499,6 +499,13 @@ class Chrome(CBConsentCrawlerBrowser):
 
         options.page_load_strategy = "normal"
 
+        logger.info(
+            "Instantiating chrome %s using %s with profile_path %s",
+            self.chrome_path,
+            self.driver_path,
+            self.profile_path,
+        )
+
         self.driver = uc.Chrome(
             options=options,
             driver_executable_path=str(self.driver_path),
