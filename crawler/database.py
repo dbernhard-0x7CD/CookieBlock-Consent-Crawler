@@ -70,9 +70,27 @@ class Cookie(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     browser_id: Mapped[int]
-    task_id: Mapped[int]
-
+    visit_id: Mapped[int]
     extension_session_uuid: Mapped[Optional[str]]
+
+    event_ordinal: Mapped[Optional[int]]
+    record_type: Mapped[Optional[str]]
+    change_cause: Mapped[Optional[str]]
+    
+    expiry = mapped_column(DateTime(timezone=True))
+    is_http_only: Mapped[Optional[int]]
+    is_host_only: Mapped[Optional[int]]
+    is_session: Mapped[Optional[int]]
+ 
+    host: Mapped[Optional[str]]
+    is_secure: Mapped[Optional[int]]
+
+    name: Mapped[Optional[str]]
+    path: Mapped[Optional[str]]
+    value: Mapped[Optional[str]]
+    same_site: Mapped[Optional[str]]
+    first_party_domain: Mapped[Optional[str]]
+    store_id: Mapped[Optional[str]]
 
     time_stamp = mapped_column(DateTime(timezone=True))
 
@@ -105,6 +123,19 @@ class Task(Base):
     # openwpm_version: Mapped[str]
     # browser_version: Mapped[str]
 
+class ConsentCrawlResult(Base):
+    """ """
+
+    __tablename__ = "consent_crawl_results"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    
+    browser_id: Mapped[int]
+    visit_id: Mapped[int]
+    cmp_type: Mapped[int]
+    crawl_state: Mapped[int]
+
+    report: Mapped[Optional[str]]
 
 def initialize_base_db(
     db_url: str,
