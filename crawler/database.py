@@ -103,7 +103,6 @@ class SiteVisit(Base):
 
     browser_id: Mapped[int]
     browser: Mapped["Crawl"] = relationship(back_populates="site_visits", lazy="select")
-    # TODO: browser_id
 
     site_url: Mapped[str]
     site_rank: Mapped[int]
