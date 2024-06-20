@@ -14,7 +14,7 @@ import shutil
 import tempfile
 from pathlib import Path
 from types import TracebackType
-from typing import Optional, NamedTuple, Any, List, TypeVar, Callable, cast, Generator
+from typing import Optional, NamedTuple, Any, List, TypeVar, Callable, cast, Generator, Dict
 from urllib.parse import urldefrag
 
 from bs4 import BeautifulSoup
@@ -47,17 +47,23 @@ from seleniumwire.utils import decode
 from crawler.enums import PageState, CookieTuple, CrawlerType
 from crawler.utils import logger
 
-from crawler.cmps.cookiebot import check_cookiebot_presence
+from crawler.cmps.cookiebot import check_cookiebot_presence, internal_cookiebot_scrape
 from crawler.cmps.termly import check_termly_presence
 
 FuncT = TypeVar("FuncT", bound=Callable[..., Any])
 
-# presence check before full crawl process
+# Presence check before full crawl process
 presence_check_methods = {
     CrawlerType.COOKIEBOT: check_cookiebot_presence,
     # CrawlerType.ONETRUST: check_onetrust_presence,
     CrawlerType.TERMLY: check_termly_presence
 }
+
+# All supported crawl methods
+crawl_methods: Dict = {
+    CrawlerType.COOKIEBOT: internal_cookiebot_scrape,
+    # CrawlerType.ONETRUST: internal_onetrust_scrape,
+    # CrawlerType.TERMLY: internal_termly_scrape,
 }
 
 
@@ -403,10 +409,21 @@ class CBConsentCrawlerBrowser(Browser):
 
     def check_cmps(self) -> None:
         logger.info("checking for CMPs")
-        
-        for (type, y) in presence_check_methods.items():
+
+        results: Dict[Any, Any] = dict()
+
+        for t, y in presence_check_methods.items():
             x = y(self.driver)
-            logger.info("%s: %s", type.name, x)
+            logger.info("%s: %s", t.name, x)
+            results[t] = x
+
+        for t, found in results.items():
+            if found:
+                logger.info("Crawling for %s", t.name)
+                crawl_state, message = crawl_methods[t](str(self.current_url), -1, -1, self.driver)
+                
+                logger.info("\tResult %s, %s", crawl_state, message)
+                break # original crawler only crawls first one
 
     def collect_cookies(self) -> None:
         cookies = self.driver.get_cookies()
