@@ -1,4 +1,4 @@
-from enum import Enum
+from enum import Enum, IntEnum
 from typing import NamedTuple
 
 
@@ -40,3 +40,10 @@ class CookieCategory(IntEnum):
     ADVERTISING = 3    # Cookies for Advertising/Tracking/Social Media/Marketing/Personal Data Sale etc.
     UNCLASSIFIED = 4   # Cookies that have been explicitly labelled as unclassified
     SOCIAL_MEDIA = 5   # Not used for training, but still interesting to know
+
+class CrawlerType(IntEnum):
+    """ Identify the CMP crawler type """
+    FAILED = -1
+    COOKIEBOT = 0
+    ONETRUST = 1
+    TERMLY = 2
