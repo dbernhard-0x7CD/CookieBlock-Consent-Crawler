@@ -46,16 +46,20 @@ from seleniumwire.utils import decode
 
 from crawler.enums import PageState, CookieTuple, CrawlerType
 from crawler.utils import logger
+
 from crawler.cmps.cookiebot import check_cookiebot_presence
+from crawler.cmps.termly import check_termly_presence
 
 FuncT = TypeVar("FuncT", bound=Callable[..., Any])
 
 # presence check before full crawl process
 presence_check_methods = {
-        CrawlerType.COOKIEBOT: check_cookiebot_presence,
-        # CrawlerType.ONETRUST: check_onetrust_presence,
-        # CrawlerType.TERMLY: check_termly_presence
+    CrawlerType.COOKIEBOT: check_cookiebot_presence,
+    # CrawlerType.ONETRUST: check_onetrust_presence,
+    CrawlerType.TERMLY: check_termly_presence
 }
+}
+
 
 def post_load_routine(func: FuncT, browser_init: Optional["Browser"] = None) -> FuncT:
     """
