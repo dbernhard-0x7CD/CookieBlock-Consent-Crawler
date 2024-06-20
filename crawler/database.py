@@ -112,6 +112,8 @@ class IncompleteVisits(Base):
     """ """
     __tablename__ = "incomplete_visits"
     
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+
     visit_id: Mapped[int]
 
 class Task(Base):
