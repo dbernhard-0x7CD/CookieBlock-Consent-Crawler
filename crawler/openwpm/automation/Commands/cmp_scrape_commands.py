@@ -142,6 +142,7 @@ def run_generic_scrape(url: str, sleep: float, visit_id: int, browser_id: int, n
         if state == CrawlState.SUCCESS:
             # perform CMP call
             scrape_call = crawl_methods[cmp_type]
+            logging.getLogger('openwpm').info("scraping url %s, browser_id %s, visit_id %s", url, browser_id, visit_id)
             state, msg = scrape_call(url, browser_id, visit_id, sock, webdriver)
 
             send_crawlstate_to_db(sock, browser_id, visit_id, state, msg, cmp_type)
