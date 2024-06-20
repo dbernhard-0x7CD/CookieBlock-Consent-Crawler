@@ -29,3 +29,14 @@ class CookieTuple(NamedTuple):
     http_only: bool
     expiry: int
     same_site: str
+
+
+class CookieCategory(IntEnum):
+    """ ICC categories """
+    UNRECOGNIZED = -1  # A class that is not unclassified but which the crawler cannot identify.
+    ESSENTIAL = 0      # Cookie necessary for the site to function.
+    FUNCTIONAL = 1     # Functional and Preferences. Change website options etc.
+    ANALYTICAL = 2     # Includes performance and statistics.
+    ADVERTISING = 3    # Cookies for Advertising/Tracking/Social Media/Marketing/Personal Data Sale etc.
+    UNCLASSIFIED = 4   # Cookies that have been explicitly labelled as unclassified
+    SOCIAL_MEDIA = 5   # Not used for training, but still interesting to know
