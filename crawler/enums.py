@@ -47,3 +47,20 @@ class CrawlerType(IntEnum):
     COOKIEBOT = 0
     ONETRUST = 1
     TERMLY = 2
+
+
+class CrawlState(IntEnum):
+    """ resulting end states of the crawler """
+    SUCCESS = 0                # Everything went fine
+    CONN_FAILED = 1            # Connection to server could not be established.
+    HTTP_ERROR = 2             # Server returned an HTTP Error response.
+    PARSE_ERROR = 3            # Could not find expected data in retrieved file.
+    CMP_NOT_FOUND = 4          # Could not find desired Cookie Consent library.
+    # BOT_DETECTION = 5          # Could not access site due to anti-bot measures (e.g. Captcha) // UNUSED
+    MALFORMED_URL = 6          # URL to browse was improperly formatted.
+    SSL_ERROR = 7              # Server has invalid SSL certificates.
+    LIBRARY_ERROR = 8          # Cookie consent library returned an error response. (may be set up incorrectly)
+    REGION_BLOCK = 9           # IP region was prevented access.
+    MALFORM_RESP = 10          # Response did not have expected format.
+    NO_COOKIES = 11            # Website didn't have any cookies recorded, despite correct response
+    UNKNOWN = -1               # Unaccounted for Error. If this occurs, need to extend script to handle it.
