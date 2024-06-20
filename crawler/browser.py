@@ -46,6 +46,7 @@ from seleniumwire.utils import decode
 
 from crawler.enums import PageState, CookieTuple
 from crawler.utils import logger
+from crawler.cmps.cookiebot import check_cookiebot_presence
 
 FuncT = TypeVar("FuncT", bound=Callable[..., Any])
 
@@ -389,6 +390,12 @@ class CBConsentCrawlerBrowser(Browser):
         if str(url) in self._load_status:
             self.collect_cookies()
         return ps
+
+    def check_cmps(self) -> None:
+        logger.info("checking for CMPs")
+        
+        x = check_cookiebot_presence(self.driver)
+        logger.info("cookiebot: %s", x)
 
     def collect_cookies(self) -> None:
         cookies = self.driver.get_cookies()
