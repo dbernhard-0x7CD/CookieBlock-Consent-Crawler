@@ -49,13 +49,14 @@ from crawler.utils import logger
 
 from crawler.cmps.cookiebot import check_cookiebot_presence, internal_cookiebot_scrape
 from crawler.cmps.termly import check_termly_presence
+from crawler.cmps.onetrust import check_onetrust_presence
 
 FuncT = TypeVar("FuncT", bound=Callable[..., Any])
 
 # Presence check before full crawl process
 presence_check_methods = {
     CrawlerType.COOKIEBOT: check_cookiebot_presence,
-    # CrawlerType.ONETRUST: check_onetrust_presence,
+    CrawlerType.ONETRUST: check_onetrust_presence,
     CrawlerType.TERMLY: check_termly_presence
 }
 
