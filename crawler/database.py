@@ -108,6 +108,12 @@ class SiteVisit(Base):
     site_rank: Mapped[int]
 
 
+class IncompleteVisits(Base):
+    """ """
+    __tablename__ = "incomplete_visits"
+    
+    visit_id: Mapped[int]
+
 class Task(Base):
     """ """
 
