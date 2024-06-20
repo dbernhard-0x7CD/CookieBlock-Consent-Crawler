@@ -43,6 +43,7 @@ def bot_mitigation(webdriver: WebDriver) -> None:
     num_moves = 0
     num_fails = 0
     while num_moves < NUM_MOUSE_MOVES + 1 and num_fails < NUM_MOUSE_MOVES:
+        logger.info("Moving mouse")
         try:
             if num_moves == 0:  # move to the center of the screen
                 x = int(round(window_size['height'] / 2))
@@ -70,6 +71,7 @@ def close_other_windows(webdriver: WebDriver) -> None:
     """
     close all open pop-up windows and tabs other than the current one
     """
+    logger.info("closing all other windows")
     main_handle = webdriver.current_window_handle
     windows = webdriver.window_handles
     if len(windows) > 1:
@@ -156,6 +158,7 @@ def _visit_subpages(url:str, num_links:int, webdriver:WebDriver, seen_links: set
         logger.warning("BROWSER %i: Subpage was slow and failed to load fully. "
                        "Continuing anyways..." % browser_params['browser_id'])
 
+    logger.info("Visiting num_links: %i", num_links)
     for _ in range(num_links):
         try:
             links = [x for x in get_intra_links(webdriver, url)
