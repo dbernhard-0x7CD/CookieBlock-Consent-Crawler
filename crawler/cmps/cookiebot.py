@@ -1,5 +1,5 @@
 import re
-from typing import Tuple, Optional, Tuple
+from typing import Tuple, Optional
 
 from ast import literal_eval
 
@@ -46,7 +46,6 @@ def internal_cookiebot_scrape(url: str, browser_id: int, visit_id: int, webdrive
     @param url: URL to crawl for the category data
     @param browser_id: identifies the browser that is performing the crawl
     @param visit_id: uniquely identifies the url being crawled
-    @param sock: Socket connection to the database aggregator.
     @param webdriver: driver instance used to perform the crawl
     @return: A tuple consisting of 2 values:
         1. Resulting crawl state.
@@ -104,7 +103,7 @@ def internal_cookiebot_scrape(url: str, browser_id: int, visit_id: int, webdrive
 
             for c in cookies:
                 cookie_count += 1
-                send_cookiedat_to_db(sock, c[0], c[1], cat_id, cat_name, browser_id, visit_id, c[2], c[3], c[4], c[5])
+                send_cookiedat_to_db(c[0], c[1], cat_id, cat_name, browser_id, visit_id, c[2], c[3], c[4], c[5])
 
     # format of the cookiebot data should be uniform, but in case this happens
     # to be violated, this try-except block catches it
