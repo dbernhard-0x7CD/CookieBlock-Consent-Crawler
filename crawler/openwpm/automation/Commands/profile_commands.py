@@ -170,6 +170,7 @@ def load_profile(browser_profile_folder: str, manager_params, browser_params,
         # load the browser settings
         browser_settings = load_browser_settings(tar_location)
     except Exception as ex:
+        print(traceback.format_exc())
         logger.critical(
             "BROWSER %i: Error: %s while attempting to load profile" %
             (browser_params['browser_id'], str(ex)))
