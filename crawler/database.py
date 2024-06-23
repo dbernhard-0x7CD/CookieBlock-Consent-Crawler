@@ -107,6 +107,8 @@ class SiteVisit(Base):
     site_url: Mapped[str]
     site_rank: Mapped[int]
 
+    def __repr__(self) -> str:
+        return f"[SiteVisit visit_id={self.task_id} browser_id={self.browser_id} site_url={self.site_url}]"
 
 class IncompleteVisits(Base):
     """ """
@@ -115,6 +117,9 @@ class IncompleteVisits(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
 
     visit_id: Mapped[int]
+
+    def __repr__(self) -> str:
+        return f"[IncompleteVisit visit_id={self.task_id}]"
 
 class Task(Base):
     """ """
@@ -128,6 +133,9 @@ class Task(Base):
     manager_params: Mapped[str]
     openwpm_version: Mapped[str]
     browser_version: Mapped[str]
+
+    def __repr__(self) -> str:
+        return f"[Task task_id={self.task_id}, start_time={self.start_time}]"
 
 class ConsentData(Base):
     """ """
