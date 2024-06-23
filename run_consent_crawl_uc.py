@@ -16,7 +16,7 @@ from hyperlink import URL
 
 
 from crawler.browser import Chrome
-from crawler.database import initialize_base_db
+from crawler.database import initialize_base_db, SiteVisit, SessionLocal, start_task
 from crawler.utils import logger
 
 
@@ -143,6 +143,9 @@ def run_crawler() -> None:
     else:
         assert args.url
         urls = [args.url]
+
+    # Start
+    task = start_task()
 
     for l in urls:
         logger.info("Working on %s", l)

@@ -44,7 +44,7 @@ class Base(DeclarativeBase):
 
 class Crawl(Base):
     """
-    Basically one invokation of the crawler.
+    Basically one browser instance crawling.
     """
 
     __tablename__ = "crawl"
@@ -52,9 +52,9 @@ class Crawl(Base):
     browser_id: Mapped[Optional[int]] = mapped_column(
         primary_key=True, autoincrement=True
     )
-    task_id: Mapped[int]
+    task_id: Mapped[int] = mapped_column(ForeignKey("task.task_id"))
     task: Mapped["Task"] = relationship(
-        back_populates="crawl", uselist=False, lazy="select"
+        uselist=False, lazy="select"
     )
 
     browser_params: Mapped[str]
@@ -101,8 +101,8 @@ class SiteVisit(Base):
 
     visit_id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
 
-    browser_id: Mapped[int]
-    browser: Mapped["Crawl"] = relationship(back_populates="site_visits", lazy="select")
+    browser_id: Mapped[int] = mapped_column(ForeignKey("crawl.browser_id"))
+    browser: Mapped["Crawl"] = relationship(lazy="select")
 
     site_url: Mapped[str]
     site_rank: Mapped[int]
@@ -125,9 +125,9 @@ class Task(Base):
 
     start_time = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    # manager_params: Mapped[str]
-    # openwpm_version: Mapped[str]
-    # browser_version: Mapped[str]
+    manager_params: Mapped[str]
+    openwpm_version: Mapped[str]
+    browser_version: Mapped[str]
 
 class ConsentData(Base):
     """ """
@@ -184,3 +184,10 @@ def initialize_base_db(
         alembic.command.stamp(config, "head")
 
         logger.info("Created database.")
+
+def start_task() -> Task:
+    with SessionLocal.begin() as session:
+        t = Task(manager_params="TODO", openwpm_version="-1", browser_version="chrome 122")
+        session.add(t)
+    return t
+
