@@ -199,3 +199,8 @@ def start_task(browser_version: str) -> Task:
         session.add(t)
     return t
 
+def register_browser(task: Task, browser_params: str):
+    with SessionLocal.begin() as session:
+        c = Crawl(task=task, browser_params=browser_params)
+        session.add(c)
+    return c
