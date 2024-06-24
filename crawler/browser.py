@@ -414,8 +414,6 @@ class CBConsentCrawlerBrowser(Browser):
     def load_page(self, url: URL, timeout: Optional[float] = None) -> PageState:
         ps = super().load_page(url, timeout)
 
-        if str(url) in self._load_status:
-            self.collect_cookies()
         return ps
 
     def check_cmps(self, visit: SiteVisit) -> None:
