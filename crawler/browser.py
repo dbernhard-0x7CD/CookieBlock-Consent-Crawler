@@ -439,7 +439,9 @@ class CBConsentCrawlerBrowser(Browser):
                     browser=self.crawl, cmp_type=t, report=message, visit=visit, crawlState=crawl_state
                 )
                 break  # original crawler only crawls first one
-        store_result(browser=self.crawl, visit=visit, report="No known Consent Management Platform found on the given URL.", cmp_type=-1, crawlState=CrawlState.CMP_NOT_FOUND)
+        store_result(browser=self.crawl, visit=visit, report="No known Consent Management Platform found on the given URL.", cmp_type=CrawlerType.FAILED, crawlState=CrawlState.CMP_NOT_FOUND)
+
+
 
     def collect_cookies(self) -> None:
         cookies = self.driver.get_cookies()
