@@ -16,7 +16,7 @@ from hyperlink import URL
 
 
 from crawler.browser import Chrome
-from crawler.database import initialize_base_db, SiteVisit, SessionLocal, start_task, Crawl, register_browser
+from crawler.database import initialize_base_db, SiteVisit, SessionLocal, start_task, Crawl, start_crawl
 from crawler.utils import logger
 
 
@@ -120,6 +120,7 @@ def run_crawler() -> None:
             chrome_profile_path=chrome_profile_path,
             chromedriver_path=chromedriver_path,
             chrome_path=chrome_path,
+            crawl=None
         ) as browser:
             browser.load_page(URL.from_text("about:blank"))
             time.sleep(60 * 60)  # wait one hour
@@ -151,6 +152,7 @@ def run_crawler() -> None:
 
     for l in urls:
         logger.info("Working on %s", l)
+        crawl, visit = start_crawl(task=task, browser_params="TODO", url=l)
 
         with Chrome(
             seconds_before_processing_page=1,
@@ -159,19 +161,18 @@ def run_crawler() -> None:
             chrome_profile_path=chrome_profile_path,
             chromedriver_path=chromedriver_path,
             chrome_path=chrome_path,
+            crawl=crawl,
         ) as browser:
             u = URL.from_text(l)
-
-            register_browser(task=task, browser_params="TODO")
 
             browser.load_page(u)
 
             time.sleep(1)
-            browser.check_cmps()
+            browser.check_cmps(visit=visit)
 
             browser.collect_cookies()
 
-            time.sleep(60)
+            time.sleep(10)
 
             logger.info("Loaded url %s", u)
 
