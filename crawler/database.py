@@ -53,9 +53,7 @@ class Crawl(Base):
         primary_key=True, autoincrement=True
     )
     task_id: Mapped[int] = mapped_column(ForeignKey("task.task_id"))
-    task: Mapped["Task"] = relationship(
-        uselist=False, lazy="select"
-    )
+    task: Mapped["Task"] = relationship(uselist=False, lazy="select")
 
     browser_params: Mapped[str]
 
@@ -110,16 +108,19 @@ class SiteVisit(Base):
     def __repr__(self) -> str:
         return f"[SiteVisit visit_id={self.task_id} browser_id={self.browser_id} site_url={self.site_url}]"
 
+
 class IncompleteVisits(Base):
     """ """
+
     __tablename__ = "incomplete_visits"
-    
+
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
 
     visit_id: Mapped[int]
 
     def __repr__(self) -> str:
         return f"[IncompleteVisit visit_id={self.visit_id}]"
+
 
 class Task(Base):
     """ """
@@ -137,8 +138,10 @@ class Task(Base):
     def __repr__(self) -> str:
         return f"[Task task_id={self.task_id}, start_time={self.start_time}]"
 
+
 class ConsentData(Base):
     """ """
+
     __tablename__ = "consent_data"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -146,15 +149,16 @@ class ConsentData(Base):
     visit_id: Mapped[int]
     name: Mapped[str]
     domain: Mapped[str]
-    
+
     cat_id: Mapped[int]
     cat_name: Mapped[str]
-    
+
     purpose: Mapped[Optional[str]]
     expiry: Mapped[Optional[str]]
     type_name: Mapped[Optional[str]]
     type_id: Mapped[int]
-    
+
+
 class ConsentCrawlResult(Base):
     """ """
 
@@ -168,6 +172,7 @@ class ConsentCrawlResult(Base):
     crawl_state: Mapped[int]
 
     report: Mapped[Optional[str]]
+
 
 def initialize_base_db(
     db_url: str,
