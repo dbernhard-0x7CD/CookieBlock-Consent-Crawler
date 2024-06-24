@@ -16,7 +16,7 @@ from hyperlink import URL
 
 
 from crawler.browser import Chrome
-from crawler.database import initialize_base_db, SiteVisit, SessionLocal, start_task
+from crawler.database import initialize_base_db, SiteVisit, SessionLocal, start_task, Crawl, register_browser
 from crawler.utils import logger
 
 
@@ -161,6 +161,8 @@ def run_crawler() -> None:
             chrome_path=chrome_path,
         ) as browser:
             u = URL.from_text(l)
+
+            register_browser(task=task, browser_params="TODO")
 
             browser.load_page(u)
 
