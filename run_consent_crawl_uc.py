@@ -76,6 +76,11 @@ def run_crawler() -> None:
     parser.add_argument(
         "--profile_tar", help="Location of a tar file containing the browser profile"
     )
+    parser.add_argument(
+        "--no-headless",
+        help="Start the browser with GUI (headless disabled)",
+        action="store_true",
+    )
 
     args = parser.parse_args()
 
@@ -98,7 +103,9 @@ def run_crawler() -> None:
         data_path = "./collected_data"
         database_file = f"crawl_data_{now}.sqlite"
 
-    headless = False
+    headless = True
+    if args.no_headless:
+        headless = False
 
     if args.profile_tar:
         if not os.path.exists(args.profile_tar):
