@@ -193,9 +193,9 @@ def initialize_base_db(
 
         logger.info("Created database.")
 
-def start_task() -> Task:
+def start_task(browser_version: str) -> Task:
     with SessionLocal.begin() as session:
-        t = Task(manager_params="TODO", openwpm_version="-1", browser_version="chrome 122")
+        t = Task(manager_params="TODO", openwpm_version="-1", browser_version=browser_version)
         session.add(t)
     return t
 

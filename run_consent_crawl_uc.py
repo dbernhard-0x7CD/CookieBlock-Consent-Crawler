@@ -145,7 +145,9 @@ def run_crawler() -> None:
         urls = [args.url]
 
     # Start
-    task = start_task()
+    task = start_task(browser_version="Chrome 122")
+
+    logger.info("Task: %s", task)
 
     for l in urls:
         logger.info("Working on %s", l)
