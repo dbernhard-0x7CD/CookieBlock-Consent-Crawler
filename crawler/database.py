@@ -150,7 +150,9 @@ class ConsentData(Base):
     __tablename__ = "consent_data"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    browser_id: Mapped[int]
+
+    browser_id: Mapped[int] = mapped_column(ForeignKey("crawl.browser_id"))
+    browser: Mapped["Crawl"] = relationship(lazy="select")
 
     visit_id: Mapped[int] = mapped_column(ForeignKey("site_visits.visit_id"))
     visit: Mapped["SiteVisit"] = relationship(lazy="select")
