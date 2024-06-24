@@ -430,7 +430,7 @@ class CBConsentCrawlerBrowser(Browser):
             if found:
                 logger.info("Crawling for %s", t.name)
                 crawl_state, message = crawl_methods[t](
-                    str(self.current_url), -1, -1, self.driver
+                    str(self.current_url), browser_id=visit.browser_id, visit_id=visit.visit_id, webdriver=self.driver
                 )
 
                 logger.info("\tResult %s, %s", crawl_state, message)
