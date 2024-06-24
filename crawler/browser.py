@@ -14,7 +14,17 @@ import shutil
 import tempfile
 from pathlib import Path
 from types import TracebackType
-from typing import Optional, NamedTuple, Any, List, TypeVar, Callable, cast, Generator, Dict
+from typing import (
+    Optional,
+    NamedTuple,
+    Any,
+    List,
+    TypeVar,
+    Callable,
+    cast,
+    Generator,
+    Dict,
+)
 from urllib.parse import urldefrag
 
 from bs4 import BeautifulSoup
@@ -57,7 +67,7 @@ FuncT = TypeVar("FuncT", bound=Callable[..., Any])
 presence_check_methods = {
     CrawlerType.COOKIEBOT: check_cookiebot_presence,
     CrawlerType.ONETRUST: check_onetrust_presence,
-    CrawlerType.TERMLY: check_termly_presence
+    CrawlerType.TERMLY: check_termly_presence,
 }
 
 # All supported crawl methods
