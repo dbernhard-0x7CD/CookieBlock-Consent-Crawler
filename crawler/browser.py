@@ -50,7 +50,7 @@ from seleniumwire.request import Request, Response
 from seleniumwire.utils import decode
 
 from crawler.database import store_result, Crawl, SiteVisit
-from crawler.enums import PageState, CookieTuple, CrawlerType
+from crawler.enums import PageState, CookieTuple, CrawlerType, CrawlState
 from crawler.utils import logger
 
 from crawler.cmps.cookiebot import check_cookiebot_presence, internal_cookiebot_scrape
@@ -441,6 +441,7 @@ class CBConsentCrawlerBrowser(Browser):
                     browser=self.crawl, cmp_type=t, report=message, visit=visit, crawlState=crawl_state
                 )
                 break  # original crawler only crawls first one
+        store_result(browser=self.crawl, visit=visit, report="No known Consent Management Platform found on the given URL.", cmp_type=-1, crawlState=CrawlState.CMP_NOT_FOUND)
 
     def collect_cookies(self) -> None:
         cookies = self.driver.get_cookies()
