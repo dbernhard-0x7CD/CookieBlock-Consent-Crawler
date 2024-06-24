@@ -119,7 +119,7 @@ class IncompleteVisits(Base):
     visit_id: Mapped[int]
 
     def __repr__(self) -> str:
-        return f"[IncompleteVisit visit_id={self.task_id}]"
+        return f"[IncompleteVisit visit_id={self.visit_id}]"
 
 class Task(Base):
     """ """
