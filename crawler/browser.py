@@ -54,6 +54,7 @@ from seleniumwire import webdriver
 from seleniumwire.request import Request, Response
 from seleniumwire.utils import decode
 
+from crawler.database import store_result, Crawl, SiteVisit
 from crawler.enums import PageState, CookieTuple, CrawlerType
 from crawler.utils import logger
 
@@ -401,7 +402,10 @@ class Browser(ABC):
 
 class CBConsentCrawlerBrowser(Browser):
     def __init__(
-        self, seconds_before_processing_page: float, proxy: Optional[str] = None
+        self,
+        seconds_before_processing_page: float,
+        crawl: Optional[Crawl],
+        proxy: Optional[str] = None,
     ) -> None:
         super().__init__(
             timeout=7,
@@ -410,6 +414,7 @@ class CBConsentCrawlerBrowser(Browser):
         )
 
         self.cookie_tracker: set[CookieTuple] = set()
+        self.crawl = crawl
 
     def load_page(self, url: URL, timeout: Optional[float] = None) -> PageState:
         ps = super().load_page(url, timeout)
@@ -418,10 +423,10 @@ class CBConsentCrawlerBrowser(Browser):
             self.collect_cookies()
         return ps
 
-    def check_cmps(self) -> None:
+    def check_cmps(self, visit: SiteVisit) -> None:
         logger.info("checking for CMPs")
 
-        results: Dict[Any, Any] = dict()
+        results: Dict[CrawlerType, Any] = dict()
 
         for t, y in presence_check_methods.items():
             x = y(self.driver)
@@ -431,10 +436,16 @@ class CBConsentCrawlerBrowser(Browser):
         for t, found in results.items():
             if found:
                 logger.info("Crawling for %s", t.name)
-                crawl_state, message = crawl_methods[t](str(self.current_url), -1, -1, self.driver)
-                
+                crawl_state, message = crawl_methods[t](
+                    str(self.current_url), -1, -1, self.driver
+                )
+
                 logger.info("\tResult %s, %s", crawl_state, message)
-                break # original crawler only crawls first one
+
+                store_result(
+                    browser=self.crawl, cmp_type=t, report=message, visit=visit, crawlState=crawl_state
+                )
+                break  # original crawler only crawls first one
 
     def collect_cookies(self) -> None:
         cookies = self.driver.get_cookies()
@@ -470,6 +481,7 @@ class Chrome(CBConsentCrawlerBrowser):
         use_temp: bool = True,
         intercept_network: bool = True,
         headless: bool = True,
+        crawl: Optional[Crawl] = None,
         *args: Any,
         **kwargs: Any,
     ) -> None:
@@ -479,7 +491,9 @@ class Chrome(CBConsentCrawlerBrowser):
         Args:
             use_temp (bool, optional): If a temporary directory should be used for the profile data which will be altered. Defaults to True.
         """
-        super().__init__(seconds_before_processing_page=seconds_before_processing_page)
+        super().__init__(
+            seconds_before_processing_page=seconds_before_processing_page, crawl=crawl
+        )
         self._requests: list[Any] = []
         self.use_temp = use_temp
 

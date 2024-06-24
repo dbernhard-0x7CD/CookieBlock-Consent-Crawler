@@ -1,5 +1,5 @@
 import logging
-from typing import Optional
+from typing import Optional, Tuple
 from pathlib import Path
 
 import alembic.config
@@ -27,6 +27,7 @@ from sqlalchemy.orm import (
     sessionmaker,
 )
 
+from crawler.enums import CrawlState, CrawlerType
 from crawler.utils import logger
 
 """
@@ -67,18 +68,21 @@ class Cookie(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     browser_id: Mapped[int]
-    visit_id: Mapped[int]
+
+    visit_id: Mapped[int] = mapped_column(ForeignKey("site_visits.visit_id"))
+    visit: Mapped["SiteVisit"] = relationship(lazy="select")
+
     extension_session_uuid: Mapped[Optional[str]]
 
     event_ordinal: Mapped[Optional[int]]
     record_type: Mapped[Optional[str]]
     change_cause: Mapped[Optional[str]]
-    
+
     expiry = mapped_column(DateTime(timezone=True))
     is_http_only: Mapped[Optional[int]]
     is_host_only: Mapped[Optional[int]]
     is_session: Mapped[Optional[int]]
- 
+
     host: Mapped[Optional[str]]
     is_secure: Mapped[Optional[int]]
 
@@ -116,7 +120,8 @@ class IncompleteVisits(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
 
-    visit_id: Mapped[int]
+    visit_id: Mapped[int] = mapped_column(ForeignKey("site_visits.visit_id"))
+    visit: Mapped["SiteVisit"] = relationship(lazy="select")
 
     def __repr__(self) -> str:
         return f"[IncompleteVisit visit_id={self.visit_id}]"
@@ -146,7 +151,10 @@ class ConsentData(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     browser_id: Mapped[int]
-    visit_id: Mapped[int]
+
+    visit_id: Mapped[int] = mapped_column(ForeignKey("site_visits.visit_id"))
+    visit: Mapped["SiteVisit"] = relationship(lazy="select")
+
     name: Mapped[str]
     domain: Mapped[str]
 
@@ -165,9 +173,13 @@ class ConsentCrawlResult(Base):
     __tablename__ = "consent_crawl_results"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    
-    browser_id: Mapped[int]
-    visit_id: Mapped[int]
+
+    browser_id: Mapped[int] = mapped_column(ForeignKey("crawl.browser_id"))
+    browser: Mapped["Crawl"] = relationship(lazy="select")
+
+    visit_id: Mapped[int] = mapped_column(ForeignKey("site_visits.visit_id"))
+    visit: Mapped["SiteVisit"] = relationship(lazy="select")
+
     cmp_type: Mapped[int]
     crawl_state: Mapped[int]
 
@@ -198,14 +210,40 @@ def initialize_base_db(
 
         logger.info("Created database.")
 
+
 def start_task(browser_version: str) -> Task:
     with SessionLocal.begin() as session:
-        t = Task(manager_params="TODO", openwpm_version="-1", browser_version=browser_version)
+        t = Task(
+            manager_params="TODO", openwpm_version="-1", browser_version=browser_version
+        )
         session.add(t)
     return t
 
-def register_browser(task: Task, browser_params: str):
+
+def start_crawl(task: Task, browser_params: str, url: str) -> Tuple[Crawl, SiteVisit]:
     with SessionLocal.begin() as session:
         c = Crawl(task=task, browser_params=browser_params)
         session.add(c)
-    return c
+
+        visit = SiteVisit(browser=c, site_url=url, site_rank=-1)
+        session.add(visit)
+
+    return (c, visit)
+
+
+def store_result(
+    browser: Crawl,
+    visit: SiteVisit,
+    cmp_type: CrawlerType,
+    report: str,
+    crawlState: CrawlState,
+) -> None:
+    with SessionLocal.begin() as session:
+        result = ConsentCrawlResult(
+            browser=browser,
+            visit=visit,
+            crawl_state=crawlState.value,
+            cmp_type=cmp_type.value,
+            report=report,
+        )
+        session.add(result)
