@@ -69,7 +69,7 @@ presence_check_methods = {
 # All supported crawl methods
 crawl_methods: Dict = {
     CrawlerType.COOKIEBOT: internal_cookiebot_scrape,
-    # CrawlerType.ONETRUST: internal_onetrust_scrape,
+    CrawlerType.ONETRUST: internal_onetrust_scrape,
     # CrawlerType.TERMLY: internal_termly_scrape,
 }
 
