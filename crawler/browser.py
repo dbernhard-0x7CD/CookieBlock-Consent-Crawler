@@ -55,7 +55,7 @@ from crawler.utils import logger
 
 from crawler.cmps.cookiebot import check_cookiebot_presence, internal_cookiebot_scrape
 from crawler.cmps.termly import check_termly_presence
-from crawler.cmps.onetrust import check_onetrust_presence
+from crawler.cmps.onetrust import check_onetrust_presence, internal_onetrust_scrape
 
 FuncT = TypeVar("FuncT", bound=Callable[..., Any])
 
