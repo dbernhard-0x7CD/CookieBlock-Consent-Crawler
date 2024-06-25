@@ -44,7 +44,7 @@ def internal_cookiebot_scrape(url: str, browser_id: int, visit_id: int, webdrive
     Cookiebot stores its cookie category data in a javascript file called cc.js
     The crawling process attempts to obtain this file and read the data from it.
     @param url: URL to crawl for the category data
-    @param browser_id: identifies the browser that is performing the crawl
+    @param browser_id: identifies the browser that is performing the crawl. Only used for log messages
     @param visit_id: uniquely identifies the url being crawled
     @param webdriver: driver instance used to perform the crawl
     @return: A tuple consisting of 2 values:
