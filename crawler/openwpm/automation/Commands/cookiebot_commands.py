@@ -38,6 +38,7 @@ name_to_cat = {"Necessary": CookieCategory.ESSENTIAL,
                "Advertising": CookieCategory.ADVERTISING,
                "Unclassified": CookieCategory.UNCLASSIFIED}
 
+logger = logging.getLogger('openwpm.consentcrawler')
 
 # patterns to parse the final cc.js file, which is where the actual category data is stored
 category_patterns = {CookieCategory.ESSENTIAL: re.compile("CookieConsentDialog\\.cookieTableNecessary = (.*);"),
@@ -219,6 +220,8 @@ def internal_cookiebot_scrape(url: str, browser_id: int, visit_id: int, sock: cl
             if not matchobj:
                 c_logmsg(f"COOKIEBOT: Could not find array for category {cat_name}", browser_id, logging.WARN)
                 continue
+
+            logger.info("matchobj: %s", matchobj)
 
             # transform the string arrays to python arrays
             cookies = literal_eval(matchobj.group(1))
