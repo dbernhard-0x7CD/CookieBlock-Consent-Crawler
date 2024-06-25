@@ -167,6 +167,7 @@ class ConsentData(Base):
 
     purpose: Mapped[Optional[str]]
     expiry: Mapped[Optional[str]]
+
     type_name: Mapped[Optional[str]]
     type_id: Mapped[int]
 
