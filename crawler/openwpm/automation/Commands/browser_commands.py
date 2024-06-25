@@ -62,9 +62,11 @@ def bot_mitigation(webdriver: WebDriver) -> None:
 
     # bot mitigation 2: scroll in random intervals down page
     scroll_down(webdriver)
+    logger.info("Scrolled down")
 
     # bot mitigation 3: randomly wait so page visits happen with irregularity
     time.sleep(random.randrange(RANDOM_SLEEP_LOW, RANDOM_SLEEP_HIGH))
+    logger.info("Random sleep")
 
 
 def close_other_windows(webdriver: WebDriver) -> None:
@@ -158,7 +160,7 @@ def _visit_subpages(url:str, num_links:int, webdriver:WebDriver, seen_links: set
         logger.warning("BROWSER %i: Subpage was slow and failed to load fully. "
                        "Continuing anyways..." % browser_params['browser_id'])
 
-    logger.info("Visiting num_links: %i", num_links)
+    logger.info("Visiting subpages num_links: %i", num_links)
     for _ in range(num_links):
         try:
             links = [x for x in get_intra_links(webdriver, url)
@@ -216,6 +218,7 @@ def browse_website(url:str, num_links:int, sleep:float, visit_id, webdriver:WebD
     get_website(url, sleep, visit_id, webdriver, browser_params, extension_socket)
 
     # Then visit a few subpages
+    logger.info("visiting some subpages")
     _visit_subpages(url, num_links, webdriver, set(), subpage_timeout, browser_params)
 
 
