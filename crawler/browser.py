@@ -382,7 +382,7 @@ class Browser(ABC):
             if raise_exception:
                 raise e
             else:
-                logger.exception("JavaScript exception encountered")
+                logger.exception(f"JavaScript exception encountered {e}")
 
     @post_load_routine
     def _press_key(self, key: Any) -> None:
