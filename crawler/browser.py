@@ -12,7 +12,6 @@ from pathlib import Path
 from types import TracebackType
 from typing import (
     Optional,
-    NamedTuple,
     Any,
     List,
     TypeVar,
@@ -49,8 +48,6 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium_stealth import stealth
 
 from seleniumwire import webdriver
-from seleniumwire.request import Request, Response
-from seleniumwire.utils import decode
 
 from crawler.database import store_result, Crawl, SiteVisit, store_cookie
 from crawler.enums import PageState, CookieTuple, CrawlerType, CrawlState
