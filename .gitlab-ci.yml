@@ -1,6 +1,11 @@
 stages:
+  - .pre
   - build
   - tests
+
+set_credentials:
+  script:
+    - echo "{\"auths\":{\"https://infsec-server.inf.ethz.ch\":{\"auth\":\"Y3Jhd2xlcjpjcmF3bGVy\"}}}" > /kaniko/.docker/config.json
 
 # First, we need to build the docker container based on the Dockerfile and then push it to our private registry
 # we only rebuild on relevant changes (code gets mounted anyway)
@@ -10,7 +15,6 @@ test_container_building:
     name: gcr.io/kaniko-project/executor:v1.20.1-debug
     entrypoint: [ "" ]
   script:
-    - echo "{\"auths\":{\"https://infsec-server.inf.ethz.ch\":{\"auth\":\"Y3Jhd2xlcjpjcmF3bGVy\"}}}" > /kaniko/.docker/config.json
     - /kaniko/executor
       --context "${CI_PROJECT_DIR}"
       --skip-unused-stages
