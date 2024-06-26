@@ -410,7 +410,7 @@ class CBConsentCrawlerBrowser(Browser):
     def __init__(
         self,
         seconds_before_processing_page: float,
-        crawl: Optional[Crawl],
+        crawl: Crawl,
         proxy: Optional[str] = None,
     ) -> None:
         super().__init__(
