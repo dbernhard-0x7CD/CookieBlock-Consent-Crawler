@@ -37,6 +37,7 @@ tests:
     - rm -f coverage.xml
     - echo "Static type checking"
     - mypy --install-types
+      run_consent_crawl_uc.py
     - mypy --config=pyproject.toml
       --ignore-missing-imports
       run_consent_crawl_uc.py
