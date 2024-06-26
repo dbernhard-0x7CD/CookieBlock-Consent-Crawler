@@ -1,42 +1,49 @@
+from __future__ import annotations
+
 import re
-from typing import Tuple, Optional, Dict, List, Any
+import json
+from typing import Tuple, TYPE_CHECKING
 
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException, StaleElementReferenceException
 
-from crawler.enums import CookieCategory, CrawlState
-from crawler.utils import execute_in_IFrames, uuid_pattern, simple_get_request, logger
+from crawler.enums import CookieCategory, CrawlState, PageState
+from crawler.utils import uuid_pattern, logger
+from crawler.database import store_consent_data, Crawl, SiteVisit
+
+if TYPE_CHECKING:
+    from crawler.browser import CBConsentCrawlerBrowser
 
 # Base URL patterns required for Variant A
-onetrust_pattern_A = re.compile("(https://cdn-apac\\.onetrust\\.com)")
-onetrust_pattern_B = re.compile("(https://cdn-ukwest\\.onetrust\\.com)")
-cookielaw_base_pattern = re.compile("(https://cdn\\.cookielaw\\.org)")
-cmp_cookielaw_base_pattern = re.compile("(https://cmp-cdn\\.cookielaw\\.org)")
-optanon_base_pattern = re.compile("(https://optanon\\.blob\\.core\\.windows\\.net)")
-cookiecdn_base_pattern = re.compile("(https://cookie-cdn\\.cookiepro\\.com)")
-cookiepro_base_pattern = re.compile("(https://cookiepro\\.blob\\.core\\.windows\\.net)")
+onetrust_pattern_A = re.compile(r"(https://cdn-apac\.onetrust\.com)")
+onetrust_pattern_B = re.compile(r"(https://cdn-ukwest\.onetrust\.com)")
+cookielaw_base_pattern = re.compile(r"(https://cdn\.cookielaw\.org)")
+cmp_cookielaw_base_pattern = re.compile(r"(https://cmp-cdn\.cookielaw\.org)")
+optanon_base_pattern = re.compile(r"(https://optanon\.blob\.core\.windows\.net)")
+cookiecdn_base_pattern = re.compile(r"(https://cookie-cdn\.cookiepro\.com)")
+cookiepro_base_pattern = re.compile(r"(https://cookiepro\.blob\.core\.windows\.net)")
 
 base_patterns = [onetrust_pattern_A, onetrust_pattern_B,
                  cookielaw_base_pattern, cmp_cookielaw_base_pattern, optanon_base_pattern,
                  cookiecdn_base_pattern, cookiepro_base_pattern]
 
 # Javascript direct links, required for Variant B
-v2_onetrust_pattern_A = re.compile("https://cdn-apac\\.onetrust\\.com/consent/"
-                                  + uuid_pattern.pattern + "[a-zA-Z0-9_-]*\\.js")
-v2_onetrust_pattern_B = re.compile("https://cdn-ukwest\\.onetrust\\.com/consent/"
-                                  + uuid_pattern.pattern + "[a-zA-Z0-9_-]*\\.js")
-v2_cookielaw_pattern = re.compile("https://cdn\\.cookielaw\\.org/consent/"
-                                  + uuid_pattern.pattern + "[a-zA-Z0-9_-]*\\.js")
-v2_cmp_cookielaw_pattern = re.compile("https://cmp-cdn\\.cookielaw\\.org/consent/"
-                                      + uuid_pattern.pattern + "[a-zA-Z0-9_-]*\\.js")
-v2_optanon_pattern = re.compile("https://optanon\\.blob\\.core\\.windows\\.net/consent/"
-                                + uuid_pattern.pattern + "[a-zA-Z0-9_-]*\\.js")
-v2_cookiepro_cdn_pattern = re.compile("https://cookie-cdn\\.cookiepro\\.com/consent/"
-                                      + uuid_pattern.pattern + "[a-zA-Z0-9_-]*\\.js")
-v2_cookiepro_blob_pattern = re.compile("https://cookiepro\\.blob\\.core\\.windows\\.net/consent/"
-                                       + uuid_pattern.pattern + "[a-zA-Z0-9_-]*\\.js")
+v2_onetrust_pattern_A = re.compile(r"https://cdn-apac\.onetrust\.com/consent/"
+                                  + uuid_pattern.pattern + r"[a-zA-Z0-9_-]*\.js")
+v2_onetrust_pattern_B = re.compile(r"https://cdn-ukwest\.onetrust\.com/consent/"
+                                  + uuid_pattern.pattern + r"[a-zA-Z0-9_-]*\.js")
+v2_cookielaw_pattern = re.compile(r"https://cdn\.cookielaw\.org/consent/"
+                                  + uuid_pattern.pattern + r"[a-zA-Z0-9_-]*\.js")
+v2_cmp_cookielaw_pattern = re.compile(r"https://cmp-cdn\.cookielaw\.org/consent/"
+                                      + uuid_pattern.pattern + r"[a-zA-Z0-9_-]*\.js")
+v2_optanon_pattern = re.compile(r"https://optanon\.blob\.core\.windows\.net/consent/"
+                                + uuid_pattern.pattern + r"[a-zA-Z0-9_-]*\.js")
+v2_cookiepro_cdn_pattern = re.compile(r"https://cookie-cdn\.cookiepro\.com/consent/"
+                                      + uuid_pattern.pattern + r"[a-zA-Z0-9_-]*\.js")
+v2_cookiepro_blob_pattern = re.compile(r"https://cookiepro\.blob\.core\.windows\.net/consent/"
+                                       + uuid_pattern.pattern + r"[a-zA-Z0-9_-]*\.js")
 
 variantB_patterns = [v2_onetrust_pattern_A, v2_onetrust_pattern_B,
                      v2_cookielaw_pattern, v2_cmp_cookielaw_pattern, v2_optanon_pattern,
@@ -44,26 +51,26 @@ variantB_patterns = [v2_onetrust_pattern_A, v2_onetrust_pattern_B,
 
 # OneTrust does not have uniform category names.
 # To that end, we use regex keyword patterns to map a category name to the internally defined categories.
-en_necessary_pattern = re.compile("(mandatory|necessary|essential|required)", re.IGNORECASE)
-en_analytical_pattern = re.compile("(measurement|analytic|anonym|research|performance|statistic)", re.IGNORECASE)
-en_functional_pattern = re.compile("(functional|preference|security|secure|video)", re.IGNORECASE)
-en_targeting_pattern = re.compile("(^ads.*|.*\s+ads.*|Ad Selection|advertising|advertise|targeting"
-                               "|personali[sz]ed|personali[sz]ation|sale of personal data|marketing"
-                                  "|tracking|tracker|fingerprint|geolocation|personal info)", re.IGNORECASE)
-en_uncat_pattern = re.compile("(uncategori[zs]e|unclassified|unknown)", re.IGNORECASE)
+en_necessary_pattern = re.compile(r"(mandatory|necessary|essential|required)", re.IGNORECASE)
+en_analytical_pattern = re.compile(r"(measurement|analytic|anonym|research|performance|statistic)", re.IGNORECASE)
+en_functional_pattern = re.compile(r"(functional|preference|security|secure|video)", re.IGNORECASE)
+en_targeting_pattern = re.compile(r"(^ads.*|.*\s+ads.*|Ad Selection|advertising|advertise|targeting"
+                               r"|personali[sz]ed|personali[sz]ation|sale of personal data|marketing"
+                                  r"|tracking|tracker|fingerprint|geolocation|personal info)", re.IGNORECASE)
+en_uncat_pattern = re.compile(r"(uncategori[zs]e|unclassified|unknown)", re.IGNORECASE)
 
 
 # german patterns
-de_necessary_pattern = re.compile("(notwendig|nötig|erforderlich)", re.IGNORECASE)
-de_analytical_pattern = re.compile("(analyse|analytisch|leistung|statistik|performance)", re.IGNORECASE)
-de_functional_pattern = re.compile("(funktional|funktionel|sicherheit|video)", re.IGNORECASE)
-de_targeting_pattern = re.compile("(werbung|werbe|marketing|anzeigen|reklame|personalisiert|tracking)", re.IGNORECASE)
-de_uncat_pattern = re.compile("(unkategorisiert|unklassifiziert|unbekannt)", re.IGNORECASE)
+de_necessary_pattern = re.compile(r"(notwendig|nötig|erforderlich)", re.IGNORECASE)
+de_analytical_pattern = re.compile(r"(analyse|analytisch|leistung|statistik|performance)", re.IGNORECASE)
+de_functional_pattern = re.compile(r"(funktional|funktionel|sicherheit|video)", re.IGNORECASE)
+de_targeting_pattern = re.compile(r"(werbung|werbe|marketing|anzeigen|reklame|personalisiert|tracking)", re.IGNORECASE)
+de_uncat_pattern = re.compile(r"(unkategorisiert|unklassifiziert|unbekannt)", re.IGNORECASE)
 
 # social media pattern
-social_media_pattern = re.compile("(social.media|social.network|soziales.netzwerk|soziale.medien"
-                                  "|facebook|youtube|twitter|instagram|linkedin|whatsapp|pinterest"
-                                  "|\s+xing|\s+reddit|tumblr)", re.IGNORECASE)
+social_media_pattern = re.compile(r"(social.media|social.network|soziales.netzwerk|soziale.medien"
+                                  r"|facebook|youtube|twitter|instagram|linkedin|whatsapp|pinterest"
+                                  r"|\s+xing|\s+reddit|tumblr)", re.IGNORECASE)
 
 def check_onetrust_presence(webdriver: WebDriver) -> bool:
     """ Check whether a OneTrust pattern is referenced on the website """
@@ -73,20 +80,20 @@ def check_onetrust_presence(webdriver: WebDriver) -> bool:
     try:
         while not found:
             pattern = next(ot_iters)
-            found = pattern.search(psource, re.IGNORECASE) is not None
+            if pattern.search(psource, re.IGNORECASE) is not None:
+                return True
     except StopIteration:
         found = False
 
-    return found
+    return False
 
-def internal_onetrust_scrape(url: str, browser_id: int, visit_id: int, webdriver: WebDriver) -> Tuple[CrawlState, str]:
+def internal_onetrust_scrape(url: str, visit: SiteVisit, webdriver: CBConsentCrawlerBrowser) -> Tuple[CrawlState, str]:
     """
     Extract cookie category data from the variants of the OneTrust Cookie Consent Platform.
     The category data is found in json, either separate or as an inline document inside javascript.
     The crawling process attempts to obtain this data and read the data from it.
     @param url: The website we are trying to crawl. (performs a GET request)
-    @param browser_id: Browser ID as specified by the Browser Manager. Will be recorded in the database.
-    @param visit_id: Visit ID as specified by the Task Manager. Will be recorded in the database.
+    @param visit: Visit 
     @param webdriver: The Selenium webdriver we use to request the page.
     @return: A tuple consisting of 2 values:
         1. Resulting crawl state.
@@ -94,24 +101,27 @@ def internal_onetrust_scrape(url: str, browser_id: int, visit_id: int, webdriver
     """
 
     # Variant A, Part 1: Try to retrieve data domain id
-    # c_logmsg(f"ONETRUST: Attempting Variant A", browser_id, logging.INFO)
-    result = execute_in_IFrames(_variantA_try_retrieve_ddid, webdriver, browser_id, timeout=5)
+    browser = visit.browser
+    logger.info("ONETRUST: Attempting Variant A (browser_id: %s)", browser.browser_id)
+
+    result = webdriver.execute_in_IFrames(_variantA_try_retrieve_ddid, timeout=5)
 
     if result:
         domain_url = result[0]
         dd_id = result[1]
-        # c_logmsg(f"ONETRUST: VARIANT A: OneTrust data domain url = {domain_url}/{dd_id}", browser_id, logging.INFO)
+        logger.info("ONETRUST: VARIANT A: OneTrust data domain url = %s, %s (browser_id: %s)", domain_url, dd_id, browser.browser_id)
 
         # Variant A, Part 2: Using the data domain ID, retrieve ruleset ID list
-        rs_ids, state, report = _variantA_try_retrieve_ruleset_id(domain_url, dd_id, browser_id)
+        rs_ids, state, report = _variantA_try_retrieve_ruleset_id(domain_url, dd_id, webdriver)
         if state != CrawlState.SUCCESS:
-            # c_logmsg(report, browser_id, logging.ERROR)
+            logger.error("FAILED to retrieve ruleset_id: %s (browser_id: %s)", state, browser.browser_id)
             return state, report
+
         # c_logmsg(f"ONETRUST: VARIANT A: Found {len(rs_ids)} ruleset ids", browser_id, logging.INFO)
         # c_logmsg(f"ONETRUST: VARIANT A: Retrieved ruleset ids {rs_ids}", browser_id, logging.DEBUG)
 
         # Variant A, Part 3: For each ruleset id, retrieve cookie json
-        cookie_count, state, report = _variantA_get_and_parse_json(domain_url, dd_id, rs_ids, browser_id, visit_id, sock)
+        cookie_count, state, report = _variantA_get_and_parse_json(domain_url, dd_id, rs_ids, webdriver, visit)
         if state != CrawlState.SUCCESS:
             # c_logmsg(report, browser_id, logging.ERROR)
             return state, report
@@ -119,34 +129,39 @@ def internal_onetrust_scrape(url: str, browser_id: int, visit_id: int, webdriver
         # c_logmsg(f"ONETRUST: VARIANT A: Retrieved {cookie_count} cookies", browser_id, logging.INFO)
     else:
         # Variant B, Part 1: Obtain the javascript URL
-        # c_logmsg(f"ONETRUST: Attempting Variant B", browser_id, logging.INFO)
-        script_url = execute_in_IFrames(_variantB_try_retrieve_jsurl, webdriver, browser_id, timeout=5)
+
+        logger.info("ONETRUST: Attempting Variant B (browser_id: %s)", browser_id)
+
+        script_url = webdriver.execute_in_IFrames(_variantB_try_retrieve_jsurl, timeout=5)
         if not script_url:
             report = "ONETRUST: Could not find a valid OneTrust CMP Variant on this URL."
             # c_logmsg(report, browser_id, logging.ERROR)
+            logging.error("%s (browser_id: %s)", report, browser.browser_id)
+
             return CrawlState.CMP_NOT_FOUND, report
         # c_logmsg(f"ONETRUST: VARIANT B: Onetrust Javascript URL = {script_url}", browser_id, logging.INFO)
 
         # Variant B, Part 2: Access the script and retrieve raw data from it
-        data_dict, state, report = _variantB_parse_script_for_object(script_url, browser_id)
+        data_dict, state, report = _variantB_parse_script_for_object(script_url, webdriver)
         if state != CrawlState.SUCCESS:
             # c_logmsg(report, browser_id, logging.ERROR)
+            logger.error("HERE TODO")
             return state, report
         # c_logmsg(f"ONETRUST: VARIANT B: Successfully retrieved OneTrust Consent javascript object data.",
-                 # browser_id, logging.INFO)
+            # browser_id, logging.INFO)
 
         # Variant B, Part 3: Extract the cookie values from raw data
-        cookie_count, state, report = _variantB_extract_cookies_from_dict(data_dict, browser_id, visit_id, sock)
+        cookie_count, state, report = _variantB_extract_cookies_from_dict(data_dict, browser.browser_id, visit.visit_id, sock)
         if state != CrawlState.SUCCESS:
-            # c_logmsg(report, browser_id, logging.ERROR)
+            # c_logmsg(report, browser.browser_id, logging.ERROR)
             return state, report
 
-        # c_logmsg(f"ONETRUST: VARIANT B: Retrieved {cookie_count} cookies", browser_id, logging.INFO)
+        # c_logmsg(f"ONETRUST: VARIANT B: Retrieved {cookie_count} cookies", browser.browser_id, logging.INFO)
 
     return CrawlState.SUCCESS, f"Extracted {cookie_count} cookie entries."
 
 
-def category_lookup_en(browser_id: int, cat_name: str) -> CookieCategory:
+def category_lookup_en(browser: Crawl, cat_name: str) -> CookieCategory:
     """
     Map english category name defined in the CMP to the internal representation.
     """
@@ -157,11 +172,12 @@ def category_lookup_en(browser_id: int, cat_name: str) -> CookieCategory:
     elif en_uncat_pattern.search(cat_name): return CookieCategory.UNCLASSIFIED
     elif social_media_pattern.search(cat_name): return CookieCategory.SOCIAL_MEDIA
     else:
-        c_logmsg(f"ONETRUST: {cat_name} not recognized by English patterns", browser_id, logging.WARN)
+        # c_logmsg(f"ONETRUST: {cat_name} not recognized by English patterns", browser_id, logging.WARN)
+        logger.warning("TODO")
         return CookieCategory.UNRECOGNIZED
 
 
-def category_lookup_de(browser_id: int, cat_name: str) -> CookieCategory:
+def category_lookup_de(browser: Crawl, cat_name: str) -> CookieCategory:
     """
     Map english category name defined in the CMP to the internal representation.
     """
@@ -172,9 +188,9 @@ def category_lookup_de(browser_id: int, cat_name: str) -> CookieCategory:
     elif de_uncat_pattern.search(cat_name): return CookieCategory.UNCLASSIFIED
     elif social_media_pattern.search(cat_name): return CookieCategory.SOCIAL_MEDIA
     else:
-        c_logmsg(f"ONETRUST: '{cat_name}' not recognized by German patterns", browser_id, logging.WARN)
+        # c_logmsg(f"ONETRUST: '{cat_name}' not recognized by German patterns", browser_id, logging.WARN)
+        logger.warning("TODO")
         return CookieCategory.UNRECOGNIZED
-
 
 
 class _exists_script_tag_with_ddid():
@@ -184,8 +200,8 @@ class _exists_script_tag_with_ddid():
     @return: data domain id string, or False if not found
     """
 
-    def __init__(self, browser_id):
-        self.browser_id = browser_id
+    def __init__(self, browser):
+        self.browser= browser
 
     def __call__(self, driver):
         elems = driver.find_elements(By.TAG_NAME, "script")
@@ -196,8 +212,9 @@ class _exists_script_tag_with_ddid():
                 if (dd_id is not None) and (uuid_pattern.match(str(dd_id)) or str(dd_id) == "center-center-default-stack-global-ot"):
                     source_stub = e.get_attribute("src")
                     if source_stub is None:
-                        c_logmsg(f"ONETRUST: VARIANT A: Found a script tag with the data-domain attribute, "
-                                 f"but no URL? Script ID: {dd_id}", self.browser_id, logging.WARN)
+                        # c_logmsg(f"ONETRUST: VARIANT A: Found a script tag with the data-domain attribute, "
+                                 # f"but no URL? Script ID: {dd_id}", self.browser_id, logging.WARN)
+                        logger.warning("TODO")
                         continue
                     else:
                         for pat in base_patterns:
@@ -205,8 +222,9 @@ class _exists_script_tag_with_ddid():
                             if m:
                                 return m.group(1), dd_id
                         else:
-                            c_logmsg(f"ONETRUST: VARIANT A: Found a data-domain-script tag with unknown source "
-                                     f"URL: {source_stub}. Script ID: {dd_id}", self.browser_id, logging.WARN)
+                            # c_logmsg(f"ONETRUST: VARIANT A: Found a data-domain-script tag with unknown source "
+                                     # f"URL: {source_stub}. Script ID: {dd_id}", self.browser_id, logging.WARN)
+                            logger.warning("TODO")
 
             except StaleElementReferenceException:
                 continue
@@ -220,8 +238,8 @@ class _exists_script_tag_with_jsurl():
     @return: (base url, data domain id) or False if not found
     """
 
-    def __init__(self, browser_id):
-        self.browser_id = browser_id
+    def __init__(self, browser):
+        self.browser = browser
 
     def __call__(self, driver):
         elems = driver.find_elements(By.Tag_NAME, "script")
@@ -233,7 +251,8 @@ class _exists_script_tag_with_jsurl():
                     for p in variantB_patterns:
                         matchobj = p.match(source)
                         if matchobj:
-                            c_logmsg(f"ONETRUST: VARIANT B: Pattern found: {p.pattern}", self.browser_id, logging.INFO)
+                            # c_logmsg(f"ONETRUST: VARIANT B: Pattern found: {p.pattern}", self.browser_id, logging.INFO)
+                            logger.info("TODO")
                             return matchobj.group(0)
 
             except StaleElementReferenceException:
@@ -242,7 +261,7 @@ class _exists_script_tag_with_jsurl():
         return False
 
 
-def _variantA_try_retrieve_ddid(driver: WebDriver, browser_id: int, timeout: int = 5) -> Optional[Tuple[str, str]]:
+def _variantA_try_retrieve_ddid(driver: WebDriver, browser: Crawl, timeout: int = 5) -> Optional[Tuple[str, str]]:
     """
     Variant A involves the Data Domain ID we need being stored inside a script tag attribute.
     Additionally, it retrieves the OneTrust URL used for storing the cookie categories.
@@ -256,15 +275,15 @@ def _variantA_try_retrieve_ddid(driver: WebDriver, browser_id: int, timeout: int
     """
     try:
         wait = WebDriverWait(driver, timeout)
-        base_domain, dd_id = wait.until(_exists_script_tag_with_ddid(browser_id))
+        base_domain, dd_id = wait.until(_exists_script_tag_with_ddid(browser.browser_id))
         return base_domain, dd_id
     except TimeoutException:
-        c_logmsg("ONETRUST: VARIANT A: Timeout on trying to retrieve data domain id value.", browser_id, logging.DEBUG)
+        # c_logmsg("ONETRUST: VARIANT A: Timeout on trying to retrieve data domain id value.", browser_id, logging.DEBUG)
         return None
 
 
 def _variantA_try_retrieve_ruleset_id(domain_url: str, dd_id: str,
-                                      browser_id: int) -> Tuple[List[Tuple[str,str]], CrawlState, str]:
+                                      browser: CBConsentCrawlerBrowser) -> Tuple[List[Tuple[str,str]], CrawlState, str]:
     """
     Using the data-domain id, parse a list of rulesets from a json file stored on the domain url, and
     extract IDs that are essential for retrieving the json files storing the actual cookie category data.
@@ -274,17 +293,21 @@ def _variantA_try_retrieve_ruleset_id(domain_url: str, dd_id: str,
     @return: (cookie json ids, crawl state, report). List of ids may be empty if none found.
     """
     target_url = f"{domain_url}/consent/{dd_id}/{dd_id}.json"
-    ruleset_json, state, report = simple_get_request(target_url, browser_id)
 
-    if state != CrawlState.SUCCESS:
-        return [], state, report
+    # ruleset_json, state, report = simple_get_request(target_url)
+    state, ruleset_json = browser.get_content(target_url)
+
+    if state != PageState.OK:
+        return [], state, f"PageState of {target_url} is {state}"
 
     ids = []
-    rs_dict = json.loads(ruleset_json.text)
+    # logger.debug("ruleset_json: %s", ruleset_json)
+    rs_dict = json.loads(ruleset_json)
 
     try:
         rulesets = rs_dict["RuleSet"]
         if rulesets is None:
+            logger.error(f"ONETRUST: VARIANT A: No valid 'RuleSet' element found on {target_url}")
             return [], CrawlState.PARSE_ERROR, f"ONETRUST: VARIANT A: No valid 'RuleSet' element found on {target_url}"
         else:
             for r in rulesets:
@@ -300,73 +323,83 @@ def _variantA_try_retrieve_ruleset_id(domain_url: str, dd_id: str,
                 elif "de" in languageset.values():
                     ids.append(("de", r["Id"]))
                 else:
-                    c_logmsg("ONETRUST: VARIANT A: Ruleset did not have a recognized language, defaulting to english.", browser_id, logging.WARN)
+                    logger.warning("ONETRUST: VARIANT A: Ruleset did not have a recognized language, defaulting to english. (browser_id: %s)", browser.browser_id)
                     ids.append(("en", r["Id"]))
 
         if len(ids) == 0:
+            logger.error(f"ONETRUST: VARIANT A: No valid language ruleset found on {target_url}")
             return [], CrawlState.PARSE_ERROR, f"ONETRUST: VARIANT A: No valid language ruleset found on {target_url}"
 
         return ids, CrawlState.SUCCESS, f"ONETRUST: Found {len(ids)} ruleset ids"
     except (AttributeError, KeyError) as kex:
+        logger.error(f"ONETRUST: VARIANT A: Key Error on {target_url} -- Details: {kex}")
         return [], CrawlState.PARSE_ERROR, f"ONETRUST: VARIANT A: Key Error on {target_url} -- Details: {kex}"
 
 
-def _variantA_get_and_parse_json(domain_url: str, dd_id: str, ruleset_ids: List[Tuple[str, str]], browser_id: int,
-                                 visit_id: int) -> Tuple[int, CrawlState, str]:
+def _variantA_get_and_parse_json(domain_url: str, dd_id: str, ruleset_ids: List[Tuple[str, str]], webdriver: CBConsentCrawlerBrowser, visit: SiteVisit) -> Tuple[int, CrawlState, str]:
     """
     Retrieve and parse the json files from the domain URL storing the cookie categories.
     The raw cookie data will be stored internally and can later be persisted to disk.
     @param domain_url: Domain on which to access the consent data json
     @param dd_id: Data domain ID, previously extracted before retrieving the ruleset ids.
     @param ruleset_ids: List of ids extracted from the ruleset json.
-    @param browser_id: identifier for the browser that performs the action
     @return: number of cookies extracted, crawl state, report
     """
+    browser = webdriver.crawl
+    browser_id = browser.browser_id
+
     cookie_count = 0
+    
+    logger.info("RULESET IDS: %s", ruleset_ids)
     for lang, i in ruleset_ids:
         curr_ruleset_url = f"{domain_url}/consent/{dd_id}/{i}/{lang}.json"
-        cc_json, state, report = simple_get_request(curr_ruleset_url, browser_id=browser_id)
+        # cc_json, state, report = simple_get_request(curr_ruleset_url)
+        state, cc_json = webdriver.get_content(curr_ruleset_url)
 
-        if state != CrawlState.SUCCESS:
-            c_logmsg(f"ONETRUST: VARIANT A: Failed to retrieve ruleset at: {curr_ruleset_url}", browser_id, logging.WARN)
-            c_logmsg(f"ONETRUST: VARIANT A: Details: {state} -- {report}", browser_id, logging.DEBUG)
+        if state != PageState.OK:
+            logger.error("ONETRUST: VARIANT A: Failed to retrieve ruleset at: %s, (browser_id: %s)", curr_ruleset_url, browser.browser_id)
+            # c_logmsg(f"ONETRUST: VARIANT A: Details: {state} -- {report}", browser.browser_id, logging.DEBUG)
+            logger.error("ONETRUST: VARIANT A: Details: %s -- %s (browser_id: %s)", state, report, browser.browser_id)
             continue
 
         try:
-            json_data = json.loads(cc_json.text)
+            json_data = json.loads(cc_json)
+
             if "DomainData" not in json_data:
-                c_logmsg(f"ONETRUST: VARIANT A: Could not find \"DomainData\" attribute inside decoded JSON.", browser_id, logging.WARN)
+                # c_logmsg(f"ONETRUST: VARIANT A: Could not find \"DomainData\" attribute inside decoded JSON.", browser.browser_id, logging.WARN)
+                logger.warning("ONETRUST: VARIANT A: Could not find \"DomainData\" attribute inside decoded JSON. (browser_id: %s)", browser.browser_id)
                 continue
             json_body = json_data["DomainData"]
 
             ## Language Detection
             if "Language" not in json_body:
-                c_logmsg(f"ONETRUST: VARIANT A: Could not find \"Language\" attribute inside decoded JSON.", browser_id, logging.WARN)
+                # c_logmsg(f"ONETRUST: VARIANT A: Could not find \"Language\" attribute inside decoded JSON.", browser.browser_id, logging.WARN)
                 continue
             elif "Culture" not in json_body["Language"]:
-                c_logmsg(f"ONETRUST: VARIANT A: Could not find \"Culture\" attribute inside decoded JSON.", browser_id, logging.WARN)
+                logger.warning("ONETRUST: VARIANT A: Could not find \"Culture\" attribute inside decoded JSON. (browser_id: %s)", browser.browser_id)
                 continue
             elif any(lstring in json_body["Language"]["Culture"] for lstring in ["en", "en-GB", "en-US"]):
                 cat_lookup = category_lookup_en
             elif "de" in json_body["Language"]["Culture"]:
                 cat_lookup = category_lookup_de
             else:
-                c_logmsg(f"ONETRUST: VARIANT A: Unrecognized language in ruleset: {json_body['Language']['Culture']}", browser_id, logging.WARN)
-                c_logmsg(f"ONETRUST: VARIANT A: Trying english anyways...", browser_id, logging.WARN)
+                # c_logmsg(f"ONETRUST: VARIANT A: Unrecognized language in ruleset: {json_body['Language']['Culture']}", browser.browser_id, logging.WARN)
+                # c_logmsg(f"ONETRUST: VARIANT A: Trying english anyways...", browser_id, logging.WARN)
                 cat_lookup = category_lookup_en
 
             ## Cookie Data extraction
             if "Groups" not in json_data["DomainData"]:
-                c_logmsg(f"ONETRUST: VARIANT A: Could not find \"Groups\" attribute inside decoded JSON.", browser_id, logging.WARN)
+                # c_logmsg(f"ONETRUST: VARIANT A: Could not find \"Groups\" attribute inside decoded JSON.", browser_id, logging.WARN)
+                logger.warning("ONETRUST: VARIANT A: Could not find \"Groups\" attribute inside decoded JSON. (browser_id: %s)", browser_id)
                 continue
 
             group_list = json_data["DomainData"]["Groups"]
             for g_contents in group_list:
                 if "GroupName" not in g_contents:
-                    c_logmsg(f"ONETRUST: VARIANT A: Could not find Category Name for group inside decoded JSON.", browser_id, logging.WARN)
+                    logger.warning("ONETRUST: VARIANT A: Could not find Category Name for group inside decoded JSON. (browser_id: %s)", browser_id)
                     continue
                 cat_name = g_contents["GroupName"]
-                cat_id = cat_lookup(browser_id, cat_name)
+                cat_id = cat_lookup(browser, cat_name)
 
                 if "FirstPartyCookies" in g_contents:
                     firstp_cookies = g_contents["FirstPartyCookies"]
@@ -375,12 +408,13 @@ def _variantA_get_and_parse_json(domain_url: str, dd_id: str, ruleset_ids: List[
                         expiry = c["Length"] if "Length" in c else None
                         if "IsSession" in c:
                             expiry = "session" if c["IsSession"] else expiry
-                        send_cookiedat_to_db(sock, c["Name"], c["Host"], cat_id, cat_name,
-                                             browser_id, visit_id, purpose, expiry,
-                                             None, None)
+
+                        # Store to the database
+                        store_consent_data(name=c["Name"], domain=c["Host"], cat_id=cat_id, cat_name=cat_name, browser=browser, visit=visit, purpose=purpose, expiry=expiry, type_name=None, type_id=None)
+
                         cookie_count += 1
                 else:
-                    c_logmsg(f"ONETRUST: VARIANT A: No First Party Cookies inside group for decoded JSON.", browser_id, logging.WARN)
+                    logger.warning("ONETRUST: VARIANT A: No First Party Cookies inside group for decoded JSON.")
 
                 if "Hosts" in g_contents:
                     thirdp_cookies = g_contents["Hosts"]
@@ -392,18 +426,22 @@ def _variantA_get_and_parse_json(domain_url: str, dd_id: str, ruleset_ids: List[
                             expiry = c["Length"] if "Length" in c else None
                             if "IsSession" in c:
                                 expiry = "session" if c["IsSession"] else expiry
-                            send_cookiedat_to_db(sock, c["Name"], c["Host"], cat_id, cat_name,
-                                                 browser_id, visit_id, purpose, expiry,
-                                                 None, None)
+
+                            # Store to the database
+                            store_consent_data(name=c["Name"], domain=c["Host"], cat_id=cat_id, cat_name=cat_name, browser=browser, visit=visit, purpose=purpose, expiry=expiry, type_name=None, type_id=None)
                             cookie_count += 1
                 else:
-                    c_logmsg(f"ONETRUST: VARIANT A: No Third Party Cookies inside group for decoded JSON.", browser_id, logging.WARN)
+                    pass
+                    logger.warning("ONETRUST: VARIANT A: No Third Party Cookies inside group for decoded JSON.")
+                    # c_logmsg(f"ONETRUST: VARIANT A: No Third Party Cookies inside group for decoded JSON.", browser_id, logging.WARN)
         except (AttributeError, KeyError) as ex:
-            c_logmsg(f"ONETRUST: VARIANT A: Could not retrieve an expected attribute from json.", browser_id, logging.ERROR)
-            c_logmsg(f"ONETRUST: VARIANT A: Details: {type(ex)} -- {ex}", browser_id, logging.ERROR)
+            logger.error("ONETRUST: VARIANT A: Could not retrieve an expected attribute from json. (browser_id %s)", browser_id)
+            pass
+            # c_logmsg(f"ONETRUST: VARIANT A: Could not retrieve an expected attribute from json.", browser_id, logging.ERROR)
+            # c_logmsg(f"ONETRUST: VARIANT A: Details: {type(ex)} -- {ex}", browser_id, logging.ERROR)
         except json.JSONDecodeError as ex:
-            c_logmsg(f"ONETRUST: VARIANT A: Failed to decode json file for ruleset : {curr_ruleset_url}", browser_id, logging.ERROR)
-            c_logmsg(f"ONETRUST: VARIANT A: Details: {type(ex)} -- {ex}", browser_id, logging.ERROR)
+            logger.error("ONETRUST: VARIANT A: Failed to decode json file for ruleset : %s (browser_id %s)", curr_ruleset_url, browser_id)
+            # c_logmsg(f"ONETRUST: VARIANT A: Details: {type(ex)} -- {ex}", browser_id, logging.ERROR)
             continue
 
         # stop after first successful ruleset
@@ -429,26 +467,29 @@ def _variantB_try_retrieve_jsurl(driver: WebDriver, browser_id: int, timeout: in
         js_url = wait.until(_exists_script_tag_with_jsurl(browser_id))
         return js_url
     except TimeoutException:
-        c_logmsg("ONETRUST: VARIANT B: Timeout on trying to retrieve javascript link.", browser_id, logging.DEBUG)
+        logger.info("ONETRUST: VARIANT B: Timeout on trying to retrieve javascript link. (browser_id: %s)", browser_id)
         return None
 
 
-def _variantB_parse_script_for_object(script_url: str, browser_id: int) -> Tuple[Optional[Dict], CrawlState, str]:
+def _variantB_parse_script_for_object(script_url: str, webdriver: CBConsentCrawlerBrowser) -> Tuple[Optional[Dict], CrawlState, str]:
     """
     Use the requests library to retrieve the OneTrust Javascript document containing
     the cookie consent categories, and transform it into a dictionary.
     @param script_url: URL to retrieve the javascript file from
-    @param browser_id: process that performs the action
+    @param browser: process that performs the action
     @return: Tuple:
         data_dict: Dictionary of JSON data from which the cookie categories can be retrieved.
         state: Result status
         msg: Potential Error Report
     """
-    r, state, report = simple_get_request(script_url, browser_id)
-    if state != CrawlState.SUCCESS:
+    # r, state, report = simple_get_request(script_url)
+    state, content = webdriver.get_content(script_url)
+
+    if state != PageState.OK:
         return None, state, report
 
-    onetrust_script: str = r.text.strip()
+    # TODO
+    onetrust_script: str = content.strip()
 
     # purge newlines
     onetrust_script = re.sub('\n', ' ', onetrust_script)
@@ -486,7 +527,7 @@ def _variantB_parse_script_for_object(script_url: str, browser_id: int) -> Tuple
         return None, CrawlState.UNKNOWN, f"ONETRUST: VARIANT B: Unexpected error while parsing OneTrust javascript: : {type(ex)} {ex}"
 
 
-def _variantB_extract_cookies_from_dict(consent_data: Dict[str, Any], browser_id: int, visit_id: int) -> Tuple[int, CrawlState, str]:
+def _variantB_extract_cookies_from_dict(consent_data: Dict[str, Any], browser: Crawl, visit: SiteVisit) -> Tuple[int, CrawlState, str]:
     """
     Using the dictionary from the previous step, extract the useful data contained within.
     @param consent_data: Cookie data dictionary retrieved from previous step.
@@ -517,7 +558,7 @@ def _variantB_extract_cookies_from_dict(consent_data: Dict[str, Any], browser_id
             except (AttributeError, KeyError):
                 cat_name = "undefined"
                 cat_id = -1
-                c_logmsg("ONETRUST: Unable to find category name. Attempting cookie retrieval anyways...", browser_id, logging.WARNING)
+                logger.warning("ONETRUST: Unable to find category name. Attempting cookie retrieval anyways... (browser_id: %s)", browser_id)
 
             for cookie_dat in g_contents["Cookies"]:
                 cname = cookie_dat["Name"]  # not null
@@ -527,15 +568,15 @@ def _variantB_extract_cookies_from_dict(consent_data: Dict[str, Any], browser_id
                 if "IsSession" in cookie_dat:
                     cexpiry = "session" if cookie_dat["IsSession"] else cexpiry
 
-                # TODO
-                # send_cookiedat_to_db(sock, cname, chost, cat_id, cat_name,
-                                     # browser_id, visit_id, cdesc, cexpiry,
-                                     # None, None)
+                store_consent_data(name=cname, domain=chost, cat_id=cat_id, cat_name=cat_name, browser=browser, visit=visit, purpose=cdesc, expiry=cexpiry, type_name=None, type_id=None)
                 cookie_count += 1
 
     except (AttributeError, KeyError) as ex:
+        logger.error(f"ONETRUST: VARIANT B: Could not retrieve an expected attribute from consent data dict. -- {type(ex)} - {ex}")
         return 0, CrawlState.PARSE_ERROR, f"ONETRUST: VARIANT B: Could not retrieve an expected attribute from consent data dict. -- {type(ex)} - {ex}"
     if cookie_count == 0:
+        logger.warning("ONETRUST: VARIANT B: Consent Platform Script contained zero cookies!")
         return 0, CrawlState.NO_COOKIES, "ONETRUST: VARIANT B: Consent Platform Script contained zero cookies!"
     else:
+        logger.info(f"ONETRUST: VARIANT B: Successfully retrieved {cookie_count} cookies.")
         return cookie_count, CrawlState.SUCCESS, f"ONETRUST: VARIANT B: Successfully retrieved {cookie_count} cookies."
