@@ -5,6 +5,8 @@ stages:
 
 set_credentials:
   stage: .pre
+  image:
+    name: gcr.io/kaniko-project/executor:v1.20.1-debug
   script:
     - echo "{\"auths\":{\"https://infsec-server.inf.ethz.ch\":{\"auth\":\"Y3Jhd2xlcjpjcmF3bGVy\"}}}" > /kaniko/.docker/config.json
 
