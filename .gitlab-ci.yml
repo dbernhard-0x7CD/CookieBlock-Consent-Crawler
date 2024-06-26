@@ -1,11 +1,7 @@
 stages:
-  - .pre
   - build
   - tests
 
-set_credentials:
-  stage: .pre
-  script:
 
 # First, we need to build the docker container based on the Dockerfile and then push it to our private registry
 # we only rebuild on relevant changes (code gets mounted anyway)
