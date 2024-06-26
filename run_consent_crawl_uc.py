@@ -37,7 +37,7 @@ def run_crawler() -> None:
     # Has some WARNING messages that the pool is full
     logging.getLogger("urllib3").setLevel(logging.ERROR)
 
-    chrome_profile_path = "./chrome_profile/"
+    chrome_profile_path = Path("./chrome_profile/")
     chromedriver_path = Path("./chromedriver/chromedriver")
     chrome_path = Path("./chrome/")
 
