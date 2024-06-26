@@ -80,7 +80,7 @@ class Cookie(Base):
     record_type: Mapped[Optional[str]]
     change_cause: Mapped[Optional[str]]
 
-    expiry = mapped_column(DateTime(timezone=True))
+    expiry: Mapped[Optional[DateTime]] = mapped_column(DateTime(timezone=True))
     is_http_only: Mapped[Optional[int]]
     is_host_only: Mapped[Optional[int]]
     is_session: Mapped[Optional[int]]
@@ -289,9 +289,19 @@ def store_cookie(
     event_ordinal: Optional[str],
     record_type: Optional[str],
     change_cause: Optional[str],
-    expiry: DateTime,
-    is_http_only: Optional[int],
-    name: Optional[str],
+    expiry: Optional[DateTime] = None,
+    is_http_only: Optional[int] = None,
+    is_host_only: Optional[int] = None,
+    is_session: Optional[int] = None,
+    host: Optional[str] = None,
+    is_secure: Optional[int] = None,
+    name: Optional[str] = None,
+    path: Optional[str] = None,
+    value: Optional[str] = None,
+    same_site: Optional[int] = None,
+    first_party_domain: Optional[int] = None,
+    store_id: Optional[str] = None,
+    time_stamp: Optional[DateTime] = None,
 ):
     with SessionLocal.begin() as session:
         js_cookie = Cookie(
@@ -303,6 +313,16 @@ def store_cookie(
             change_cause=change_cause,
             expiry=expiry,
             is_http_only=is_http_only,
+            is_host_only=is_host_only,
+            is_session=is_session,
+            host=host,
+            is_secure=is_secure,
             name=name,
+            path=path,
+            value=value,
+            same_site=same_site,
+            first_party_domain=first_party_domain,
+            store_id=store_id,
+            time_stamp=time_stamp,
         )
         session.add(js_cookie)
