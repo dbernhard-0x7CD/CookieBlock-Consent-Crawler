@@ -23,7 +23,7 @@ RUN apt-get update && \
 
 # Copy needed files
 COPY install_uc.sh poetry.lock pyproject.toml run_consent_crawl_uc.py *.tar.gz README.md /crawler/
-COPY crawler $CRAWLER_PATH/crawler/
+COPY ./crawler/ /crawler/crawler/
 
 WORKDIR /crawler/
 
