@@ -412,9 +412,7 @@ class CBConsentCrawlerBrowser(Browser):
         self.crawl = crawl
 
     def load_page(self, url: URL, timeout: Optional[float] = None) -> PageState:
-        ps = super().load_page(url, timeout)
-
-        return ps
+        return super().load_page(url, timeout)
 
     def crawl_cmps(self, visit: SiteVisit) -> None:
         logger.info("checking for CMPs")
