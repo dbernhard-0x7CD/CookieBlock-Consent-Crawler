@@ -4,6 +4,7 @@ stages:
   - tests
 
 set_credentials:
+  stage: .pre
   script:
     - echo "{\"auths\":{\"https://infsec-server.inf.ethz.ch\":{\"auth\":\"Y3Jhd2xlcjpjcmF3bGVy\"}}}" > /kaniko/.docker/config.json
 
