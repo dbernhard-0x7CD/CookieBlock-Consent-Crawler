@@ -426,13 +426,14 @@ class CBConsentCrawlerBrowser(Browser):
         return super().load_page(url, timeout)
 
     def crawl_cmps(self, visit: SiteVisit) -> None:
-        logger.info("checking for CMPs")
+        logger.info("Checking for CMPs")
 
         results: Dict[CrawlerType, Any] = dict()
 
         for t, y in presence_check_methods.items():
             x = y(self.driver)
-            logger.info("%s: %s", t.name, x)
+
+            logger.info("Result when checking for %s: %s", t.name, x)
             results[t] = x
 
         for t, found in results.items():
