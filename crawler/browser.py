@@ -436,7 +436,7 @@ class CBConsentCrawlerBrowser(Browser):
                 store_result(
                     browser=self.crawl, cmp_type=t, report=message, visit=visit, crawlState=crawl_state
                 )
-                break  # original crawler only crawls first one
+                return  # original crawler only crawls first one
         store_result(browser=self.crawl, visit=visit, report="No known Consent Management Platform found on the given URL.", cmp_type=CrawlerType.FAILED, crawlState=CrawlState.CMP_NOT_FOUND)
 
 
