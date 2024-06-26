@@ -19,6 +19,7 @@ from typing import (
     cast,
     Generator,
     Dict,
+    Tuple,
 )
 from urllib.parse import urldefrag
 
@@ -26,6 +27,7 @@ from bs4 import BeautifulSoup
 from hyperlink import URL, URLParseError
 from numpy import random
 import undetected_chromedriver as uc
+from html2text import HTML2Text
 
 from selenium.common.exceptions import (
     NoAlertPresentException,
@@ -302,6 +304,15 @@ class Browser(ABC):
         for nos in soup.find_all("noscript"):
             nos.decompose()
         return soup
+
+    def get_content(self, url: str) -> Tuple[PageState, str]:
+        status = self.load_page(URL.from_text(url))
+
+        formatter = HTML2Text()
+        formatter.ignore_images = True
+        content = formatter.handle(self.driver.page_source)
+
+        return (status, content)
 
     def get_links(self) -> list[LinkTuple]:
         """
