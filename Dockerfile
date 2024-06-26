@@ -9,7 +9,6 @@ ENV PYTHONUNBUFFERED=1 \
     POETRY_NO_INTERACTION=1 \
     DEBIAN_FRONTEND=noninteractive \
     SETUP_PATH=/opt \
-    CRAWLER_PATH=/crawler/ \
     POETRY_VIRTUALENVS_CREATE=false \
     LANG=C.UTF-8
 
@@ -23,7 +22,7 @@ RUN apt-get update && \
     apt-get install -y build-essential git pkg-config libpq-dev
 
 # Copy needed files
-COPY install_uc.sh poetry.lock pyproject.toml run_consent_crawl_uc.py *.tar.gz README.md $CRAWLER_PATH
+COPY install_uc.sh poetry.lock pyproject.toml run_consent_crawl_uc.py *.tar.gz README.md /crawler/
 COPY crawler $CRAWLER_PATH/crawler/
 
 WORKDIR $CRAWLER_PATH
