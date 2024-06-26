@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from abc import ABC, abstractmethod
 import time
+from datetime import datetime
 
 import logging
 import shutil
@@ -51,7 +52,7 @@ from seleniumwire import webdriver
 from seleniumwire.request import Request, Response
 from seleniumwire.utils import decode
 
-from crawler.database import store_result, Crawl, SiteVisit
+from crawler.database import store_result, Crawl, SiteVisit, store_cookie
 from crawler.enums import PageState, CookieTuple, CrawlerType, CrawlState
 from crawler.utils import logger
 
@@ -75,6 +76,7 @@ crawl_methods: Dict = {
     CrawlerType.TERMLY: internal_termly_scrape,
 }
 
+COOKIEBLOCK_EXTENSION_ID = "fbhiolckidkciamgcobkokpelckgnnol"
 
 def post_load_routine(func: FuncT, browser_init: Optional["Browser"] = None) -> FuncT:
     """
@@ -451,30 +453,96 @@ class CBConsentCrawlerBrowser(Browser):
                 return  # original crawler only crawls first one
         store_result(browser=self.crawl, visit=visit, report="No known Consent Management Platform found on the given URL.", cmp_type=CrawlerType.FAILED, crawlState=CrawlState.CMP_NOT_FOUND)
 
+    def collect_cookies(self, visit: SiteVisit) -> None:
+        """ Collects actual stored cookies using the CookieBlock extension """
 
+        # TODO: is record_type stored?
 
-    def collect_cookies(self) -> None:
-        cookies = self.driver.get_cookies()
+        logger.info("Collecting cookies")
+  
+        url = f"chrome-extension://{COOKIEBLOCK_EXTENSION_ID}/options/cookieblock_options.html"
 
-        if cookies is None:
-            logger.info("NO cookies")
-            return
+        self.driver.get(url)
+        
+        indexeddb_script = """
+        function getCookieBlockHistory() {
+            return new Promise((resolve, reject) => {
+                var request = window.indexedDB.open("CookieBlockHistory", 1);
+        
+                request.onerror = function(event) {
+                    reject("Error opening IndexedDB: " + event.target.errorCode);
+                };
+        
+                request.onsuccess = function(event) {
+                    var db = event.target.result;
+                    var transaction = db.transaction(["cookies"], "readonly");
+                    var objectStore = transaction.objectStore("cookies");
+                    var data = [];
+                    objectStore.openCursor().onsuccess = function(event) {
+                        var cursor = event.target.result;
+                        if (cursor) {
+                            data.push(cursor.value);
+                            cursor.continue();
+                        }
+                    };
+        
+                    transaction.oncomplete = function() {
+                        resolve(JSON.stringify(data));
+                    };
+        
+                    transaction.onerror = function(event) {
+                        reject("Transaction error: " + event.target.errorCode);
+                    };
+                };
+            });
+        }
+        
+        // Usage:
+        return getCookieBlockHistory().then(data => {
+            return data;
+        }).catch(error => {
+            return error;
+        });
+        """
+        indexeddb_data = self.execute_script(indexeddb_script)
 
-        for cookie in cookies:
-            my_cookie = CookieTuple(
-                cookie.get("name"),
-                cookie.get("value"),
-                cookie.get("path"),
-                cookie.get("domain"),
-                cookie.get("secure"),
-                cookie.get("httpOnly"),
-                cookie.get("expiry"),
-                cookie.get("sameSite"),
-            )
-            logger.info("Cookie: %s", cookie)
-            # the tuple is  hashable nicely so the set should work
-            if my_cookie not in self.cookie_tracker:
-                self.cookie_tracker.add(my_cookie)
+        cookies = json.loads(indexeddb_data)
+
+        logger.info("There are %i actual cookies stored.", len(cookies))
+
+        for x in cookies:
+            logger.info("HERE %s", x)
+            
+            if (not 'variable_data' in x) or len(x['variable_data']) == 0:
+                raise RuntimeError("Unexpected. Variable_data missing in cookie")
+
+            def host_only_fn(var_data: Dict[str, Any], prop: str) -> int:
+                if not prop in var_data:
+                    return None
+                return 1 if var_data[prop] else 0
+
+            for var_data in x['variable_data']:
+                store_cookie(
+                    visit=visit,
+                    browser=self.crawl,
+                    extension_session_uuid=None,
+                    event_ordinal=None,
+                    record_type=None,
+                    change_cause=None,
+                    expiry=None,
+                    host=x['domain'] if 'domain' in x else None,
+                    path=x['path'] if 'path' in x else None,
+                    value=var_data['value'] if 'value' in var_data else None,
+                    name=x['name'] if 'name' in x else None,
+                    is_host_only=host_only_fn(var_data, 'host_only'),
+                    is_http_only=host_only_fn(var_data, 'http_only'),
+                    is_secure=host_only_fn(var_data, 'secure'),
+                    is_session=host_only_fn(var_data, 'session'),
+                    same_site=var_data['same_site'] if 'same_site' in var_data else None,
+                    time_stamp=datetime.fromtimestamp(var_data['timestamp'] / 1000) if 'timestamp' in var_data else None,
+
+                    )
+            pass
 
 
 class Chrome(CBConsentCrawlerBrowser):
