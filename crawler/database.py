@@ -169,7 +169,7 @@ class ConsentData(Base):
     expiry: Mapped[Optional[str]]
 
     type_name: Mapped[Optional[str]]
-    type_id: Mapped[int]
+    type_id: Mapped[Optional[int]]
 
 
 class ConsentCrawlResult(Base):
