@@ -174,10 +174,14 @@ def run_crawler() -> None:
 
             browser.load_page(u)
 
+            # TODO: bot mitigation
             time.sleep(1)
             browser.crawl_cmps(visit=visit)
+            
+            # TODO: visit subpages
+            # TODO: bot mitigation
 
-            browser.collect_cookies()
+            browser.collect_cookies(visit=visit)
 
             time.sleep(10)
 
