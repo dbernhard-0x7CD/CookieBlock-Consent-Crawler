@@ -29,6 +29,7 @@ blinker = "<1.8.0"
 alembic = "^1.13.1"
 bs4 = "^0.0.2"
 psycopg2 = "^2.9.9"
+html2text = "^2024.2.26"
 
 [build-system]
 requires = ["poetry-core"]
