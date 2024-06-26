@@ -254,7 +254,7 @@ def store_result(
         session.add(result)
 
 
-def store_cookie(
+def store_consent_data(
     name: str,
     domain: str,
     cat_id: int,
@@ -269,3 +269,8 @@ def store_cookie(
     with SessionLocal.begin() as session:
         data = ConsentData(browser=browser, name=name, visit=visit, domain=domain, cat_id=cat_id, cat_name=cat_name, purpose=purpose, expiry=expiry, type_name=type_name, type_id=type_id)
         session.add(data)
+
+def store_cookie(visit: SiteVisit, browser: Crawl, extension_session_uuid: Optional[str], event_ordinal: Optional[str], record_type: Optional[str], change_cause: Optional[str], expiry: DateTime, is_http_only: Optional[int], name: Optional[str]):
+    with SessionLocal.begin() as session:
+        js_cookie = Cookie(visit=visit, browser=browser, extension_session_uuid=extension_session_uuid, event_ordinal=event_ordinal, record_type=record_type, change_cause=change_cause, expiry=expiry, is_http_only=is_http_only, name=name)
+        session.add(js_cookie)
