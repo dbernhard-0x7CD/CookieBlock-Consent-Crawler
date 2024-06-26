@@ -25,7 +25,7 @@ RUN apt-get update && \
 COPY install_uc.sh poetry.lock pyproject.toml run_consent_crawl_uc.py *.tar.gz README.md /crawler/
 COPY crawler $CRAWLER_PATH/crawler/
 
-WORKDIR $CRAWLER_PATH
+WORKDIR /crawler/
 
 RUN pip install poetry && poetry install && \
     poetry cache clear --all -n . && \
