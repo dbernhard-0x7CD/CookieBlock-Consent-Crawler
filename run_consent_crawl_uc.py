@@ -175,7 +175,7 @@ def run_crawler() -> None:
             browser.load_page(u)
 
             time.sleep(1)
-            browser.check_cmps(visit=visit)
+            browser.crawl_cmps(visit=visit)
 
             browser.collect_cookies()
 

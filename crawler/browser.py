@@ -416,7 +416,7 @@ class CBConsentCrawlerBrowser(Browser):
 
         return ps
 
-    def check_cmps(self, visit: SiteVisit) -> None:
+    def crawl_cmps(self, visit: SiteVisit) -> None:
         logger.info("checking for CMPs")
 
         results: Dict[CrawlerType, Any] = dict()
