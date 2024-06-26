@@ -13,7 +13,7 @@ logger = logging.getLogger("cookieblock-consent-crawler")
 
 # unique identifier pattern
 uuid_pattern = re.compile(
-    "[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
+    r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
 )
 
 # user agent string for requests call
