@@ -5,7 +5,7 @@ stages:
 # First, we need to build the docker container based on the Dockerfile and then push it to our private registry
 # we only rebuild on relevant changes (code gets mounted anyway)
 test_container_building:
-  stage: build
+  stage: tests
   image:
     name: gcr.io/kaniko-project/executor:v1.20.1-debug
     entrypoint: [ "" ]
