@@ -20,6 +20,7 @@ test_container_building:
     - changes:
         - .gitlab-ci.yml
         - .dockerignore
+        - Dockerfile
         - poetry.lock
 
 # Run pytests of this project
