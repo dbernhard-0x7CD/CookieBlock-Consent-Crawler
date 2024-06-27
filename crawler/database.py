@@ -112,7 +112,7 @@ class SiteVisit(Base):
     site_rank: Mapped[int]
 
     def __repr__(self) -> str:
-        return f"[SiteVisit visit_id={self.task_id} browser_id={self.browser_id} site_url={self.site_url}]"
+        return f"[SiteVisit visit_id={self.visit_id} browser_id={self.browser_id} site_url={self.site_url}]"
 
 
 class IncompleteVisits(Base):
