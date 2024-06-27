@@ -19,7 +19,10 @@ ENV VIRTUAL_ENV=$SETUP_PATH/venv \
 # Merge build env and prod for now
 RUN apt-get update && \
     apt-get install -y wget unzip python3-pip vim && \
+    apt-get install -y chromium && \
     apt-get install -y build-essential git pkg-config libpq-dev
+
+RUN apt-get remove -y chromium
 
 # Copy needed files
 COPY install_uc.sh poetry.lock pyproject.toml run_consent_crawl_uc.py *.tar.gz README.md /crawler/
@@ -30,3 +33,9 @@ WORKDIR /crawler/
 RUN pip install poetry && poetry install && \
     poetry cache clear --all -n . && \
     rm -rf /root/.cache
+
+FROM python-base as production
+
+WORKDIR /crawler/
+
+RUN ./install_uc.sh
