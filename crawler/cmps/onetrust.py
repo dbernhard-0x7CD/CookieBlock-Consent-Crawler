@@ -126,7 +126,7 @@ def internal_onetrust_scrape(url: str, visit: SiteVisit, webdriver: CBConsentCra
             # c_logmsg(report, browser_id, logging.ERROR)
             return state, report
 
-        logger.info("ONETRUST: VARIANT A: Retrieved %s cookies (browser_id: %s)", cookie_count, browser_id)
+        logger.info("ONETRUST: VARIANT A: Retrieved %s cookies (browser_id: %s)", cookie_count, browser.browser_id)
     else:
         # Variant B, Part 1: Obtain the javascript URL
 
