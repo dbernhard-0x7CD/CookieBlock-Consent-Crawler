@@ -269,8 +269,9 @@ def _variantA_try_retrieve_ddid(driver: WebDriver, browser: Crawl, timeout: int 
     """
     try:
         wait = WebDriverWait(driver, timeout)
-        base_domain, dd_id = wait.until(_exists_script_tag_with_ddid(browser.browser_id))
-        return base_domain, dd_id
+        tup = wait.until(_exists_script_tag_with_ddid(browser.browser_id))
+        # base_domain, dd_id
+        return tup[0], tup[1]
     except TimeoutException:
         logger.info("ONETRUST: VARIANT A: Timeout on trying to retrieve data domain id value. (browser_id: %s)", browser.browser_id)
         return None
