@@ -16,6 +16,7 @@ uuid_pattern = re.compile(
     r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
 )
 
+
 def set_log_formatter(fmt: str, date_format: str) -> None:
     """
     Sets the given format for the root logger and all its handlers.
