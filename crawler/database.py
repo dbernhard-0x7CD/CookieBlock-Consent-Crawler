@@ -1,6 +1,7 @@
 import logging
 from typing import Optional, Tuple
 from pathlib import Path
+from datetime import datetime
 
 import alembic.config
 import alembic.command
@@ -95,7 +96,7 @@ class Cookie(Base):
     first_party_domain: Mapped[Optional[str]]
     store_id: Mapped[Optional[str]]
 
-    time_stamp = mapped_column(DateTime(timezone=True))
+    time_stamp: Mapped[DateTime] = mapped_column(DateTime(timezone=True))
 
 
 class SiteVisit(Base):
@@ -285,6 +286,7 @@ def store_consent_data(
 def store_cookie(
     visit: SiteVisit,
     browser: Crawl,
+    time_stamp: datetime,
     extension_session_uuid: Optional[str],
     event_ordinal: Optional[str],
     record_type: Optional[str],
@@ -301,7 +303,6 @@ def store_cookie(
     same_site: Optional[int] = None,
     first_party_domain: Optional[int] = None,
     store_id: Optional[str] = None,
-    time_stamp: Optional[DateTime] = None,
 ):
     with SessionLocal.begin() as session:
         js_cookie = Cookie(
