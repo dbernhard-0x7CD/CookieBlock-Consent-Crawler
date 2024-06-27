@@ -457,6 +457,7 @@ class CBConsentCrawlerBrowser(Browser):
                 return  # original crawler only crawls first one
         store_result(browser=self.crawl, visit=visit, report="No known Consent Management Platform found on the given URL.", cmp_type=CrawlerType.FAILED, crawlState=CrawlState.CMP_NOT_FOUND)
 
+    # TODO: add type to command
     def execute_in_IFrames(self, command, timeout: int) -> Optional[Any]:
         """
         Execute the provided command in each iFrame.
