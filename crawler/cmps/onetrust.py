@@ -238,7 +238,7 @@ class _exists_script_tag_with_jsurl():
         self.browser = browser
 
     def __call__(self, driver) -> Union[bool, str]:
-        elems = driver.find_elements(By.Tag_NAME, "script")
+        elems = driver.find_elements(By.TAG_NAME, "script")
         for e in elems:
             try:
                 source = e.get_attribute("src")
