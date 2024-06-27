@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 import json
-from typing import Tuple, TYPE_CHECKING, Dict, Any, Optional, List
+from typing import Tuple, TYPE_CHECKING, Dict, Any, Optional, List, Union
 
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support.ui import WebDriverWait
@@ -201,7 +201,7 @@ class _exists_script_tag_with_ddid():
     def __init__(self, browser):
         self.browser= browser
 
-    def __call__(self, driver):
+    def __call__(self, driver) -> Union[bool, Tuple[str, str]]:
         elems = driver.find_elements(By.TAG_NAME, "script")
         for e in elems:
             try:
@@ -237,7 +237,7 @@ class _exists_script_tag_with_jsurl():
     def __init__(self, browser):
         self.browser = browser
 
-    def __call__(self, driver):
+    def __call__(self, driver) -> Union[bool, str]:
         elems = driver.find_elements(By.Tag_NAME, "script")
         for e in elems:
             try:
