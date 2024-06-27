@@ -170,7 +170,7 @@ def category_lookup_en(browser: Crawl, cat_name: str) -> CookieCategory:
     elif en_uncat_pattern.search(cat_name): return CookieCategory.UNCLASSIFIED
     elif social_media_pattern.search(cat_name): return CookieCategory.SOCIAL_MEDIA
     else:
-        logger.warning("ONETRUST: %s not recognized by English patterns", cat_name)
+        logger.warning("ONETRUST: %s not recognized by English patterns (browser_id: %s)", cat_name, browser.browser_id)
         return CookieCategory.UNRECOGNIZED
 
 
@@ -185,8 +185,7 @@ def category_lookup_de(browser: Crawl, cat_name: str) -> CookieCategory:
     elif de_uncat_pattern.search(cat_name): return CookieCategory.UNCLASSIFIED
     elif social_media_pattern.search(cat_name): return CookieCategory.SOCIAL_MEDIA
     else:
-        # c_logmsg(f"ONETRUST: '{cat_name}' not recognized by German patterns", browser_id, logging.WARN)
-        logger.warning("TODO")
+        logger.warning("ONETRUST: '%s' not recognized by German patterns (browser_id: %s)", cat_name, browser.browser_id)
         return CookieCategory.UNRECOGNIZED
 
 
@@ -209,9 +208,7 @@ class _exists_script_tag_with_ddid():
                 if (dd_id is not None) and (uuid_pattern.match(str(dd_id)) or str(dd_id) == "center-center-default-stack-global-ot"):
                     source_stub = e.get_attribute("src")
                     if source_stub is None:
-                        # c_logmsg(f"ONETRUST: VARIANT A: Found a script tag with the data-domain attribute, "
-                                 # f"but no URL? Script ID: {dd_id}", self.browser_id, logging.WARN)
-                        logger.warning("TODO")
+                        logger.warning("ONETRUST: VARIANT A: Found a script tag with the data-domain attribute, but no URL? Script ID: %s (browser_id %s)", dd_id, self.browser.browser_id)
                         continue
                     else:
                         for pat in base_patterns:
