@@ -567,6 +567,8 @@ class CBConsentCrawlerBrowser(Browser):
                 return 1 if var_data[prop] else 0
 
             for var_data in x['variable_data']:
+                time_stamp = datetime.fromtimestamp(var_data['timestamp'] / 1000) if 'timestamp' in var_data else datetime.now()
+
                 store_cookie(
                     visit=visit,
                     browser=self.crawl,
@@ -584,9 +586,12 @@ class CBConsentCrawlerBrowser(Browser):
                     is_secure=host_only_fn(var_data, 'secure'),
                     is_session=host_only_fn(var_data, 'session'),
                     same_site=var_data['same_site'] if 'same_site' in var_data else None,
-                    time_stamp=datetime.fromtimestamp(var_data['timestamp'] / 1000) if 'timestamp' in var_data else None,
-
+                    time_stamp=time_stamp,
                     )
+                
+                # TODO warning if timestamp was generated
+                if not 'timestamp' in var_data:
+                    logger.error("timestamp missing in cookie: %s on %s", x, visit.site_url)
 
 
 class Chrome(CBConsentCrawlerBrowser):
