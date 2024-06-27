@@ -470,13 +470,13 @@ class CBConsentCrawlerBrowser(Browser):
             return result
         else:
             self.driver.switch_to.default_content()
-            iframes = driver.find_elements_by_tag_name("iframe")
+            iframes = self.driver.find_elements_by_tag_name("iframe")
     
             for iframe in iframes:
                 try:
                     self.driver.switch_to.default_content()
                     self.driver.switch_to.frame(iframe)
-                    result = command(self.driver, browser, timeout=0)
+                    result = command(self.driver, self.crawl, timeout=0)
                     if result:
                         self.driver.switch_to.default_content()
                         return result
