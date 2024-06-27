@@ -145,8 +145,8 @@ def internal_onetrust_scrape(url: str, visit: SiteVisit, webdriver: CBConsentCra
 
         # Variant B, Part 2: Access the script and retrieve raw data from it
         data_dict, state, report = _variantB_parse_script_for_object(script_url, webdriver)
-        if state != CrawlState.SUCCESS:
-            logger.error("Failed with state %s: %s", state, report)
+        if state != CrawlState.SUCCESS or data_dict is None:
+            logger.error("Failed with state %s: %s and data_dict %s", state, report, data_dict)
             return state, report
         logger.info("ONETRUST: VARIANT B: Successfully retrieved OneTrust Consent javascript object data. (browser_id %s)", browser.browser_id)
 
@@ -466,7 +466,7 @@ def _variantB_try_retrieve_jsurl(driver: WebDriver, browser_id: int, timeout: in
         return None
 
 
-def _variantB_parse_script_for_object(script_url: str, webdriver: CBConsentCrawlerBrowser) -> Tuple[Optional[Dict], CrawlState, str]:
+def _variantB_parse_script_for_object(script_url: str, webdriver: CBConsentCrawlerBrowser) -> Tuple[Optional[Dict[str, Any]], CrawlState, str]:
     """
     Use the requests library to retrieve the OneTrust Javascript document containing
     the cookie consent categories, and transform it into a dictionary.
