@@ -177,7 +177,7 @@ def run_crawler() -> None:
             # TODO: bot mitigation
             time.sleep(1)
             browser.crawl_cmps(visit=visit)
-            
+
             # TODO: visit subpages
             # TODO: bot mitigation
 
