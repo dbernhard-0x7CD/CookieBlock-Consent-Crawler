@@ -450,6 +450,37 @@ class CBConsentCrawlerBrowser(Browser):
                 return  # original crawler only crawls first one
         store_result(browser=self.crawl, visit=visit, report="No known Consent Management Platform found on the given URL.", cmp_type=CrawlerType.FAILED, crawlState=CrawlState.CMP_NOT_FOUND)
 
+    def execute_in_IFrames(self, command, timeout: int) -> Optional[Any]:
+        """
+        Execute the provided command in each iFrame.
+        @param command: command to execute, as an executable class
+        @param driver: webdriver that performs the browsing
+        @param timeout: how long to wait for the result until timeout
+        @return: None if not found, Any if found
+        """
+        result = command(self.driver, self.crawl, timeout)
+        if result:
+            return result
+        else:
+            self.driver.switch_to.default_content()
+            iframes = driver.find_elements_by_tag_name("iframe")
+    
+            for iframe in iframes:
+                try:
+                    self.driver.switch_to.default_content()
+                    self.driver.switch_to.frame(iframe)
+                    result = command(self.driver, browser, timeout=0)
+                    if result:
+                        self.driver.switch_to.default_content()
+                        return result
+                except StaleElementReferenceException:
+                    logger.warning("iframe turned stale, trying next one (browser_id %s)")
+                    continue
+    
+            # If we get here, search also fails in iframes
+            self.driver.switch_to.default_content()
+            return None
+
     def collect_cookies(self, visit: SiteVisit) -> None:
         """ Collects actual stored cookies using the CookieBlock extension """
 
