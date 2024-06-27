@@ -551,7 +551,7 @@ def _variantB_extract_cookies_from_dict(consent_data: Dict[str, Any], browser: C
                     raise AttributeError("Empty Group")
             except (AttributeError, KeyError):
                 cat_name = "undefined"
-                cat_id = -1
+                cat_id = CookieCategory.UNRECOGNIZED
                 logger.warning("ONETRUST: Unable to find category name. Attempting cookie retrieval anyways... (browser_id: %s)", browser.browser_id)
 
             for cookie_dat in g_contents["Cookies"]:
