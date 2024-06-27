@@ -501,6 +501,9 @@ class CBConsentCrawlerBrowser(Browser):
         # TODO: is record_type stored?
 
         logger.info("Collecting cookies")
+
+        if self.crawl is None:
+            raise RuntimeError("This instance cannot be used to crawl as 'crawl' was not set when initializing this browser")
   
         url = f"chrome-extension://{COOKIEBLOCK_EXTENSION_ID}/options/cookieblock_options.html"
 
