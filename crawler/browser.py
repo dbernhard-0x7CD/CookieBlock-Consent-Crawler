@@ -551,7 +551,7 @@ class CBConsentCrawlerBrowser(Browser):
             if (not 'variable_data' in x) or len(x['variable_data']) == 0:
                 raise RuntimeError("Unexpected. Variable_data missing in cookie")
 
-            def host_only_fn(var_data: Dict[str, Any], prop: str) -> int:
+            def host_only_fn(var_data: Dict[str, Any], prop: str) -> Optional[int]:
                 if not prop in var_data:
                     return None
                 return 1 if var_data[prop] else 0
