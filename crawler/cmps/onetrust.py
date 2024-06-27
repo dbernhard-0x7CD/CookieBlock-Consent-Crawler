@@ -364,14 +364,13 @@ def _variantA_get_and_parse_json(domain_url: str, dd_id: str, ruleset_ids: List[
             json_data = json.loads(cc_json)
 
             if "DomainData" not in json_data:
-                # c_logmsg(f"ONETRUST: VARIANT A: Could not find \"DomainData\" attribute inside decoded JSON.", browser.browser_id, logging.WARN)
                 logger.warning("ONETRUST: VARIANT A: Could not find \"DomainData\" attribute inside decoded JSON. (browser_id: %s)", browser.browser_id)
                 continue
             json_body = json_data["DomainData"]
 
             ## Language Detection
             if "Language" not in json_body:
-                # c_logmsg(f"ONETRUST: VARIANT A: Could not find \"Language\" attribute inside decoded JSON.", browser.browser_id, logging.WARN)
+                logger.warning("ONETRUST: VARIANT A: Could not find \"Language\" attribute inside decoded JSON. (browser_id: %s)", browser.browser_id)
                 continue
             elif "Culture" not in json_body["Language"]:
                 logger.warning("ONETRUST: VARIANT A: Could not find \"Culture\" attribute inside decoded JSON. (browser_id: %s)", browser.browser_id)
@@ -387,14 +386,13 @@ def _variantA_get_and_parse_json(domain_url: str, dd_id: str, ruleset_ids: List[
 
             ## Cookie Data extraction
             if "Groups" not in json_data["DomainData"]:
-                # c_logmsg(f"ONETRUST: VARIANT A: Could not find \"Groups\" attribute inside decoded JSON.", browser_id, logging.WARN)
-                logger.warning("ONETRUST: VARIANT A: Could not find \"Groups\" attribute inside decoded JSON. (browser_id: %s)", browser_id)
+                logger.warning("ONETRUST: VARIANT A: Could not find \"Groups\" attribute inside decoded JSON. (browser_id: %s)", browser.browser_id)
                 continue
 
             group_list = json_data["DomainData"]["Groups"]
             for g_contents in group_list:
                 if "GroupName" not in g_contents:
-                    logger.warning("ONETRUST: VARIANT A: Could not find Category Name for group inside decoded JSON. (browser_id: %s)", browser_id)
+                    logger.warning("ONETRUST: VARIANT A: Could not find Category Name for group inside decoded JSON. (browser_id: %s)", browser.browser_id)
                     continue
                 cat_name = g_contents["GroupName"]
                 cat_id = cat_lookup(browser, cat_name)
