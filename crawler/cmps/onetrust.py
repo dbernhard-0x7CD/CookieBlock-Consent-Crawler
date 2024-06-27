@@ -150,7 +150,7 @@ def internal_onetrust_scrape(url: str, visit: SiteVisit, webdriver: CBConsentCra
             # browser_id, logging.INFO)
 
         # Variant B, Part 3: Extract the cookie values from raw data
-        cookie_count, state, report = _variantB_extract_cookies_from_dict(data_dict, browser.browser_id, visit.visit_id, sock)
+        cookie_count, state, report = _variantB_extract_cookies_from_dict(data_dict, browser, visit, sock)
         if state != CrawlState.SUCCESS:
             logger.error("Failed in part3 with state %s: %s", state, report)
             return state, report
@@ -555,7 +555,7 @@ def _variantB_extract_cookies_from_dict(consent_data: Dict[str, Any], browser: C
             except (AttributeError, KeyError):
                 cat_name = "undefined"
                 cat_id = -1
-                logger.warning("ONETRUST: Unable to find category name. Attempting cookie retrieval anyways... (browser_id: %s)", browser_id)
+                logger.warning("ONETRUST: Unable to find category name. Attempting cookie retrieval anyways... (browser_id: %s)", browser.browser_id)
 
             for cookie_dat in g_contents["Cookies"]:
                 cname = cookie_dat["Name"]  # not null
