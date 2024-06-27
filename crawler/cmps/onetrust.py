@@ -126,26 +126,25 @@ def internal_onetrust_scrape(url: str, visit: SiteVisit, webdriver: CBConsentCra
             # c_logmsg(report, browser_id, logging.ERROR)
             return state, report
 
-        # c_logmsg(f"ONETRUST: VARIANT A: Retrieved {cookie_count} cookies", browser_id, logging.INFO)
+        logger.info("ONETRUST: VARIANT A: Retrieved %s cookies (browser_id: %s)", cookie_count, browser_id)
     else:
         # Variant B, Part 1: Obtain the javascript URL
 
-        logger.info("ONETRUST: Attempting Variant B (browser_id: %s)", browser_id)
+        logger.info("ONETRUST: Attempting Variant B (browser_id: %s)", browser.browser_id)
 
         script_url = webdriver.execute_in_IFrames(_variantB_try_retrieve_jsurl, timeout=5)
         if not script_url:
             report = "ONETRUST: Could not find a valid OneTrust CMP Variant on this URL."
-            # c_logmsg(report, browser_id, logging.ERROR)
-            logging.error("%s (browser_id: %s)", report, browser.browser_id)
+            logging.error("%s (browser_id: %s)", result, browser.browser_id)
 
             return CrawlState.CMP_NOT_FOUND, report
         # c_logmsg(f"ONETRUST: VARIANT B: Onetrust Javascript URL = {script_url}", browser_id, logging.INFO)
+        logger.info("ONETRUST: VARIANT B: Onetrust Javascript URL = %s (browser_id %s)", script_url, browser_id)
 
         # Variant B, Part 2: Access the script and retrieve raw data from it
         data_dict, state, report = _variantB_parse_script_for_object(script_url, webdriver)
         if state != CrawlState.SUCCESS:
-            # c_logmsg(report, browser_id, logging.ERROR)
-            logger.error("HERE TODO")
+            logger.error("Failed with state %s: %s", state, report)
             return state, report
         # c_logmsg(f"ONETRUST: VARIANT B: Successfully retrieved OneTrust Consent javascript object data.",
             # browser_id, logging.INFO)
@@ -153,10 +152,10 @@ def internal_onetrust_scrape(url: str, visit: SiteVisit, webdriver: CBConsentCra
         # Variant B, Part 3: Extract the cookie values from raw data
         cookie_count, state, report = _variantB_extract_cookies_from_dict(data_dict, browser.browser_id, visit.visit_id, sock)
         if state != CrawlState.SUCCESS:
-            # c_logmsg(report, browser.browser_id, logging.ERROR)
+            logger.error("Failed in part3 with state %s: %s", state, report)
             return state, report
 
-        # c_logmsg(f"ONETRUST: VARIANT B: Retrieved {cookie_count} cookies", browser.browser_id, logging.INFO)
+        logger.info("ONETRUST: VARIANT B: Retrieved %s cookies (browser_id: %s)", cookie_count, browser.browser_id)
 
     return CrawlState.SUCCESS, f"Extracted {cookie_count} cookie entries."
 
@@ -172,8 +171,7 @@ def category_lookup_en(browser: Crawl, cat_name: str) -> CookieCategory:
     elif en_uncat_pattern.search(cat_name): return CookieCategory.UNCLASSIFIED
     elif social_media_pattern.search(cat_name): return CookieCategory.SOCIAL_MEDIA
     else:
-        # c_logmsg(f"ONETRUST: {cat_name} not recognized by English patterns", browser_id, logging.WARN)
-        logger.warning("TODO")
+        logger.warning("ONETRUST: %s not recognized by English patterns", cat_name)
         return CookieCategory.UNRECOGNIZED
 
 
@@ -433,7 +431,6 @@ def _variantA_get_and_parse_json(domain_url: str, dd_id: str, ruleset_ids: List[
                 else:
                     pass
                     logger.warning("ONETRUST: VARIANT A: No Third Party Cookies inside group for decoded JSON.")
-                    # c_logmsg(f"ONETRUST: VARIANT A: No Third Party Cookies inside group for decoded JSON.", browser_id, logging.WARN)
         except (AttributeError, KeyError) as ex:
             logger.error("ONETRUST: VARIANT A: Could not retrieve an expected attribute from json. (browser_id %s)", browser_id)
             pass
