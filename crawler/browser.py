@@ -589,8 +589,8 @@ class CBConsentCrawlerBrowser(Browser):
                     same_site=var_data['same_site'] if 'same_site' in var_data else None,
                     time_stamp=time_stamp,
                     )
-                
-                # TODO warning if timestamp was generated
+
+                # Warn if timestamp was generated
                 if not 'timestamp' in var_data:
                     logger.error("timestamp missing in cookie: %s on %s", x, visit.site_url)
 
