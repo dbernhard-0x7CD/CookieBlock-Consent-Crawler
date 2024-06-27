@@ -477,13 +477,11 @@ def _variantB_parse_script_for_object(script_url: str, webdriver: CBConsentCrawl
         state: Result status
         msg: Potential Error Report
     """
-    # r, state, report = simple_get_request(script_url)
     state, content = webdriver.get_content(script_url)
 
     if state != PageState.OK:
         return None, state, report
 
-    # TODO
     onetrust_script: str = content.strip()
 
     # purge newlines
@@ -513,9 +511,12 @@ def _variantB_parse_script_for_object(script_url: str, webdriver: CBConsentCrawl
             # put the object into a javascript function, and evaluate it
             # This returns a dict of the cookie consent data we need.
             js_object_string = "function $() {return {" + group_string + "}};"
-            data_dict = js2py.eval_js(js_object_string)()
+            # TODO: parse js_object_string as something with variant B is found
+            logger.error(f"Please report this to the developer. Group string: {group_string}")
+            # data_dict = js2py.eval_js(js_object_string)()
 
-            return data_dict, CrawlState.SUCCESS, "ONETRUST: VARIANT B: Successfully extracted objects from javascript"
+            # return data_dict, CrawlState.SUCCESS, "ONETRUST: VARIANT B: Successfully extracted objects from javascript"
+            return None, CrawlState.LIBRARY_ERROR, "ONETRUST: VARIANT B is not supported right now. Please report to the developer"
         else:
             return None, CrawlState.PARSE_ERROR, "ONETRUST: VARIANT B: Failed to find desired javascript object in Onetrust consent script."
     except Exception as ex:
