@@ -777,9 +777,6 @@ class Chrome(CBConsentCrawlerBrowser):
                     )
                     logger.error("Data: %s", data)
                     self._load_status[str(url)] = PageState.HTTP_ERROR
-                elif not is_content_type_accepted(content_type):
-                    # actually block done by download_restriction parameter
-                    self._load_status[str(url)] = PageState.BAD_CONTENT_TYPE
                 else:
                     self._load_status[str(url)] = PageState.OK
                     logger.debug(
