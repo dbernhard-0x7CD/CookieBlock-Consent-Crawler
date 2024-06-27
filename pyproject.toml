@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "CookieBlock-consent-crawler"
-version = "0.1-dev"
-description = "Classification service for privacy policies and terms and conditions"
+version = "0.0.1"
+description = "A webcrawler used to gather cookie data from websites as well as their corresponding cookie notices"
 authors = ["Karel Kubicek", "Dino Bollinger", "David Bernhard"]
 readme = "README.md"
 
