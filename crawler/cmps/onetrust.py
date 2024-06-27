@@ -274,7 +274,7 @@ def _variantA_try_retrieve_ddid(driver: WebDriver, browser: Crawl, timeout: int 
         base_domain, dd_id = wait.until(_exists_script_tag_with_ddid(browser.browser_id))
         return base_domain, dd_id
     except TimeoutException:
-        # c_logmsg("ONETRUST: VARIANT A: Timeout on trying to retrieve data domain id value.", browser_id, logging.DEBUG)
+        logger.info("ONETRUST: VARIANT A: Timeout on trying to retrieve data domain id value. (browser_id: %s)", browser.browser_id)
         return None
 
 
@@ -285,19 +285,17 @@ def _variantA_try_retrieve_ruleset_id(domain_url: str, dd_id: str,
     extract IDs that are essential for retrieving the json files storing the actual cookie category data.
     @param domain_url: Domain on which to access the ruleset json
     @param dd_id: Data domain ID (UUID) that is used to retrieve the ruleset json
-    @param browser_id: identifier for the browser that performs the action
+    @param browser: Browser used to crawl the website
     @return: (cookie json ids, crawl state, report). List of ids may be empty if none found.
     """
     target_url = f"{domain_url}/consent/{dd_id}/{dd_id}.json"
 
-    # ruleset_json, state, report = simple_get_request(target_url)
     state, ruleset_json = browser.get_content(target_url)
 
     if state != PageState.OK:
         return [], state, f"PageState of {target_url} is {state}"
 
     ids = []
-    # logger.debug("ruleset_json: %s", ruleset_json)
     rs_dict = json.loads(ruleset_json)
 
     try:
@@ -319,7 +317,7 @@ def _variantA_try_retrieve_ruleset_id(domain_url: str, dd_id: str,
                 elif "de" in languageset.values():
                     ids.append(("de", r["Id"]))
                 else:
-                    logger.warning("ONETRUST: VARIANT A: Ruleset did not have a recognized language, defaulting to english. (browser_id: %s)", browser.browser_id)
+                    logger.warning("ONETRUST: VARIANT A: Ruleset did not have a recognized language, defaulting to english. (browser_id: %s)", browser.crawl.browser_id)
                     ids.append(("en", r["Id"]))
 
         if len(ids) == 0:
