@@ -342,6 +342,8 @@ def _variantA_get_and_parse_json(domain_url: str, dd_id: str, ruleset_ids: List[
     @return: number of cookies extracted, crawl state, report
     """
     browser = webdriver.crawl
+    assert browser
+
     browser_id = browser.browser_id
 
     cookie_count = 0
