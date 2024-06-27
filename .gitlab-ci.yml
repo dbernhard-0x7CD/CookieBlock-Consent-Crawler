@@ -30,8 +30,6 @@ tests:
   image:
     name: infsec-server.inf.ethz.ch/cb-cc/crawler-cicd:b-$CI_COMMIT_BRANCH
     entrypoint: [ "" ]
-  variables:
-    CRAWLER_CHROME_DISABLE_SHM: "true"
   script:
     - python --version
     - rm -f coverage.xml
