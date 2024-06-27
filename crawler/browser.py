@@ -20,6 +20,7 @@ from typing import (
     Generator,
     Dict,
     Tuple,
+    NamedTuple,
 )
 from urllib.parse import urldefrag
 
@@ -74,6 +75,15 @@ crawl_methods: Dict = {
 }
 
 COOKIEBLOCK_EXTENSION_ID = "fbhiolckidkciamgcobkokpelckgnnol"
+
+class LinkTuple(NamedTuple):
+    url: URL
+    texts: list[str]
+
+# Find all href tags
+# JavaScript efficient implementation
+GET_LINK_JS = (Path(__file__).parent / "js/get_links.js").read_text()
+
 
 def post_load_routine(func: FuncT, browser_init: Optional["Browser"] = None) -> FuncT:
     """
@@ -318,11 +328,7 @@ class Browser(ABC):
         For currently loaded page, locate all links and their accompanying text
         """
 
-        # Find all href tags
-        # JavaScript efficient implementation
-        get_links_js = (Path(__file__).parent / "js/get_links.js").read_text()
-
-        links = self.execute_script(get_links_js)
+        links = self.execute_script(GET_LINK_JS)
 
         if links is None:
             return []
