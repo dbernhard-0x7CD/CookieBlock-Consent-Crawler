@@ -146,11 +146,10 @@ def internal_onetrust_scrape(url: str, visit: SiteVisit, webdriver: CBConsentCra
         if state != CrawlState.SUCCESS:
             logger.error("Failed with state %s: %s", state, report)
             return state, report
-        # c_logmsg(f"ONETRUST: VARIANT B: Successfully retrieved OneTrust Consent javascript object data.",
-            # browser_id, logging.INFO)
+        logger.info("ONETRUST: VARIANT B: Successfully retrieved OneTrust Consent javascript object data. (browser_id %s)", browser.browser_id)
 
         # Variant B, Part 3: Extract the cookie values from raw data
-        cookie_count, state, report = _variantB_extract_cookies_from_dict(data_dict, browser, visit, sock)
+        cookie_count, state, report = _variantB_extract_cookies_from_dict(data_dict, browser, visit)
         if state != CrawlState.SUCCESS:
             logger.error("Failed in part3 with state %s: %s", state, report)
             return state, report
