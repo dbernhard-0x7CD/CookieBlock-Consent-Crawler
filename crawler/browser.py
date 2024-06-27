@@ -36,6 +36,7 @@ from selenium.common.exceptions import (
     WebDriverException,
     JavascriptException,
     UnexpectedAlertPresentException,
+    StaleElementReferenceException,
 )
 from selenium.webdriver import ActionChains
 from selenium.webdriver.common.by import By
