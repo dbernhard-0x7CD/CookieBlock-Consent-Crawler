@@ -1,5 +1,9 @@
+from __future__ import annotations
+
 import re
-from typing import Tuple, Optional
+from typing import Tuple, Optional, TYPE_CHECKING
+
+import traceback
 
 from ast import literal_eval
 
@@ -9,10 +13,13 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException, StaleElementReferenceException
 
 from crawler.enums import CookieCategory, CrawlState
-from crawler.utils import execute_in_IFrames, uuid_pattern, simple_get_request, logger
+from crawler.utils import uuid_pattern, logger
+
+if TYPE_CHECKING:
+    from crawler.browser import CBConsentCrawlerBrowser
 
 # url for the cookiebot consent CDN
-cb_base_url = "https://consent\\.cookiebot\\.(com|eu)/"
+cb_base_url = r"https://consent\.cookiebot\.(com|eu)/"
 
 name_to_cat = {"Necessary": CookieCategory.ESSENTIAL,
                "Preference": CookieCategory.FUNCTIONAL,
@@ -22,15 +29,16 @@ name_to_cat = {"Necessary": CookieCategory.ESSENTIAL,
 
 # regex patterns for cookiebot urls
 cb_base_pat = re.compile(cb_base_url)
-cbid_variant2_pat = re.compile(cb_base_url + "([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/cc\\.js")
-cbid_variant3_pat = re.compile("[&?]cbid=([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})")
+cbid_variant2_pat = re.compile(cb_base_url + r"([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})/cc\.js")
+cbid_variant3_pat = re.compile(r"[&?]cbid=([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})")
 
 # patterns to parse the final cc.js file, which is where the actual category data is stored
-category_patterns = {CookieCategory.ESSENTIAL: re.compile("CookieConsentDialog\\.cookieTableNecessary = (.*);"),
-                     CookieCategory.FUNCTIONAL: re.compile("CookieConsentDialog\\.cookieTablePreference = (.*);"),
-                     CookieCategory.ANALYTICAL: re.compile("CookieConsentDialog\\.cookieTableStatistics = (.*);"),
-                     CookieCategory.ADVERTISING: re.compile("CookieConsentDialog\\.cookieTableAdvertising = (.*);"),
-                     CookieCategory.UNCLASSIFIED: re.compile("CookieConsentDialog\\.cookieTableUnclassified = (.*);")}
+category_patterns = {CookieCategory.ESSENTIAL: re.compile(r"CookieConsentDialog\.cookieTableNecessary = (.*);"),
+                     CookieCategory.FUNCTIONAL: re.compile(r"CookieConsentDialog\.cookieTablePreference = (.*);"),
+                     CookieCategory.ANALYTICAL: re.compile(r"CookieConsentDialog\.cookieTableStatistics = (.*);"),
+                     CookieCategory.ADVERTISING: re.compile(r"CookieConsentDialog\.cookieTableAdvertising = (.*);"),
+                     CookieCategory.UNCLASSIFIED: re.compile(r"CookieConsentDialog\.cookieTableUnclassified = (.*);")}
+
 
 def check_cookiebot_presence(webdriver: WebDriver) -> bool:
     """ Check whether Cookiebot is referenced on the website """
@@ -93,24 +101,27 @@ def internal_cookiebot_scrape(url: str, browser_id: int, visit_id: int, webdrive
         for cat_name in name_to_cat.keys():
             cat_id = name_to_cat[cat_name]
             matchobj = category_patterns[cat_id].search(js_contents)
+
             if not matchobj:
-                # c_logmsg(f"COOKIEBOT: Could not find array for category {cat_name}", browser_id, logging.WARN)
-                logger.info(f"COOKIEBOT: Could not find array for category {cat_name}")
+                logger.warning(f"COOKIEBOT: Could not find array for category {cat_name}")
                 continue
 
+            logger.info("matchobj: %s", matchobj)
+
             # transform the string arrays to python arrays
-            cookies = literal_eval(matchobj.group(1))
+            # cookies = literal_eval(matchobj.group(1))
 
-            for c in cookies:
-                cookie_count += 1
+            # for c in cookies:
+            #     cookie_count += 1
 
-                # TODO
+                # TODO store_consent_data
                 # send_cookiedat_to_db(c[0], c[1], cat_id, cat_name, browser_id, visit_id, c[2], c[3], c[4], c[5])
 
     # format of the cookiebot data should be uniform, but in case this happens
     # to be violated, this try-except block catches it
     except Exception as ex:
         msg = f"COOKIEBOT: Failed to extract cookie data from {cc_url}: {type(ex)} {ex}"
+        traceback.print_exc()
         # c_logmsg(msg, browser_id, logging.ERROR)
         return CrawlState.MALFORM_RESP, msg
 
