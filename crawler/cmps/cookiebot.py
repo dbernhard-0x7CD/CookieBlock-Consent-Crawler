@@ -75,7 +75,7 @@ def internal_cookiebot_scrape(url: str, browser_id: int, visit_id: int, webdrive
     r, crawlstate, report = simple_get_request(cc_url, browser_id=browser_id, timeout=(6, 30), headers={"Referer": url})
     if r is None:
         msg = f"COOKIEBOT: Failed to retrieve cc.js for {cc_url} -- Details: {report}"
-        # c_logmsg(msg, browser_id, logging.ERROR)
+        logger.error(msg + f"(browser_id, {browser_id})")
         return crawlstate, msg
 
     # some required structural checks on the javascript file contents
