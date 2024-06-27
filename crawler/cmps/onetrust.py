@@ -288,6 +288,7 @@ def _variantA_try_retrieve_ruleset_id(domain_url: str, dd_id: str,
     @return: (cookie json ids, crawl state, report). List of ids may be empty if none found.
     """
     target_url = f"{domain_url}/consent/{dd_id}/{dd_id}.json"
+    assert browser.crawl
 
     state, ruleset_json = browser.get_content(target_url)
 
