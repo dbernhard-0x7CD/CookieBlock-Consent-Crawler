@@ -41,21 +41,19 @@ tests:
 
 # This creates a docker image from each tag with the git tagname as the container tagname
 # The built image gets published on infsec-server.inf.ethz.ch
-# build_release:
-#   only:
-#     - tags
-#   stage: build
-#   image:
-#     name: gcr.io/kaniko-project/executor:v1.20.1-debug
-#     entrypoint: [""]
-#   variables:
-#     CRAWLER_CHROME_DISABLE_SHM: "true"
-#   script:
-#     - echo "{\"auths\":{\"https://infsec-server.inf.ethz.ch\":{\"auth\":\"Y3Jhd2xlcjpjcmF3bGVy\"}}}" > /kaniko/.docker/config.json
-#     - /kaniko/executor
-#       --context "${CI_PROJECT_DIR}"
-#       --skip-tls-verify
-#       --target production
-#       --dockerfile "${CI_PROJECT_DIR}/Dockerfile"
-#       --destination "infsec-server.inf.ethz.ch/cb-cc/crawler:${CI_COMMIT_TAG}"
-# 
+build_release:
+  only:
+    - tags
+  stage: build
+  image:
+    name: gcr.io/kaniko-project/executor:v1.20.1-debug
+    entrypoint: [""]
+  script:
+    - echo "{\"auths\":{\"https://infsec-server.inf.ethz.ch\":{\"auth\":\"Y3Jhd2xlcjpjcmF3bGVy\"}}}" > /kaniko/.docker/config.json
+    - /kaniko/executor
+      --context "${CI_PROJECT_DIR}"
+      --skip-tls-verify
+      --target production
+      --dockerfile "${CI_PROJECT_DIR}/Dockerfile"
+      --destination "infsec-server.inf.ethz.ch/cb-cc/crawler:${CI_COMMIT_TAG}"
+
