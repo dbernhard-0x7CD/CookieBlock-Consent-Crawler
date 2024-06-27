@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from typing import Tuple, Optional, Dict, TYPE_CHECKING
+import json
 
 from selenium.webdriver.remote.webdriver import WebDriver
 
