@@ -247,10 +247,8 @@ class _exists_script_tag_with_jsurl():
                     for p in variantB_patterns:
                         matchobj = p.match(source)
                         if matchobj:
-                            # c_logmsg(f"ONETRUST: VARIANT B: Pattern found: {p.pattern}", self.browser_id, logging.INFO)
-                            logger.info("TODO")
+                            logger.info("ONETRUST: VARIANT B: Pattern found: %s (browser_id: %s)", p.pattern, self.browser.browser_id)
                             return matchobj.group(0)
-
             except StaleElementReferenceException:
                 continue
 
