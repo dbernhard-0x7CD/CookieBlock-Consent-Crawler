@@ -576,7 +576,6 @@ class CBConsentCrawlerBrowser(Browser):
                     time_stamp=datetime.fromtimestamp(var_data['timestamp'] / 1000) if 'timestamp' in var_data else None,
 
                     )
-            pass
 
 
 class Chrome(CBConsentCrawlerBrowser):
