@@ -480,6 +480,16 @@ test = ["certifi", "pretend", "pytest (>=6.2.0)", "pytest-benchmark", "pytest-co
 test-randomorder = ["pytest-randomly"]
 
 [[package]]
+name = "docopt"
+version = "0.6.2"
+description = "Pythonic argument parser, that will make you smile"
+optional = false
+python-versions = "*"
+files = [
+    {file = "docopt-0.6.2.tar.gz", hash = "sha256:49b3a825280bd66b3aa83585ef59c4a8c82f2c8a522dbe754a8bc8d08c85c491"},
+]
+
+[[package]]
 name = "domain-utils"
 version = "0.7.1"
 description = "A collection of util functions for extracting domains from urls."
@@ -1804,4 +1814,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "58ee717ddfe8153278ea024676234794eda2ac714f512b9571756961458c4342"
+content-hash = "9212e543deb7f73d056414e7d74b43d59c99835dd64603894ec20bc987041f00"
