@@ -135,11 +135,11 @@ def internal_onetrust_scrape(url: str, visit: SiteVisit, webdriver: CBConsentCra
         script_url = webdriver.execute_in_IFrames(_variantB_try_retrieve_jsurl, timeout=5)
         if not script_url:
             report = "ONETRUST: Could not find a valid OneTrust CMP Variant on this URL."
-            logging.error("%s (browser_id: %s)", result, browser.browser_id)
+            logger.error("%s (browser_id: %s)", result, browser.browser_id)
 
             return CrawlState.CMP_NOT_FOUND, report
         # c_logmsg(f"ONETRUST: VARIANT B: Onetrust Javascript URL = {script_url}", browser_id, logging.INFO)
-        logger.info("ONETRUST: VARIANT B: Onetrust Javascript URL = %s (browser_id %s)", script_url, browser_id)
+        logger.info("ONETRUST: VARIANT B: Onetrust Javascript URL = %s (browser_id %s)", script_url, browser.browser_id)
 
         # Variant B, Part 2: Access the script and retrieve raw data from it
         data_dict, state, report = _variantB_parse_script_for_object(script_url, webdriver)
