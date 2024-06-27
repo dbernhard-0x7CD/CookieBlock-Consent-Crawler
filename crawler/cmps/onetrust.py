@@ -543,9 +543,9 @@ def _variantB_extract_cookies_from_dict(consent_data: Dict[str, Any], browser: C
 
                 if len(langproplist) > 0:
                     cat_name = langproplist[0]["GroupName"]["Text"]
-                    cat_id = category_lookup_en(browser.browser_id, cat_name)
+                    cat_id = category_lookup_en(browser, cat_name)
                     if cat_id == CookieCategory.UNRECOGNIZED:
-                        cat_id = category_lookup_de(browser.browser_id, cat_name)
+                        cat_id = category_lookup_de(browser, cat_name)
 
                 else:
                     raise AttributeError("Empty Group")
