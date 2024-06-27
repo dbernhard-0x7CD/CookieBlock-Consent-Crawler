@@ -478,7 +478,7 @@ def _variantB_parse_script_for_object(script_url: str, webdriver: CBConsentCrawl
     state, content = webdriver.get_content(script_url)
 
     if state != PageState.OK:
-        return None, state, f"Unable to fetch {script_url} due to PageState of {state}"
+        return None, CrawlState.LIBRARY_ERROR, f"Unable to fetch {script_url} due to PageState of {state}"
 
     onetrust_script: str = content.strip()
 
