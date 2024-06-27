@@ -416,7 +416,7 @@ class CBConsentCrawlerBrowser(Browser):
     def __init__(
         self,
         seconds_before_processing_page: float,
-        crawl: Crawl,
+        crawl: Optional[Crawl],
         proxy: Optional[str] = None,
     ) -> None:
         super().__init__(
@@ -433,6 +433,9 @@ class CBConsentCrawlerBrowser(Browser):
 
     def crawl_cmps(self, visit: SiteVisit) -> None:
         logger.info("Checking for CMPs")
+
+        if self.crawl is None:
+            raise RuntimeError("This instance cannot be used to crawl as 'crawl' was not set when initializing this browser")
 
         results: Dict[CrawlerType, Any] = dict()
 
@@ -462,10 +465,13 @@ class CBConsentCrawlerBrowser(Browser):
         """
         Execute the provided command in each iFrame.
         @param command: command to execute, as an executable class
-        @param driver: webdriver that performs the browsing
         @param timeout: how long to wait for the result until timeout
         @return: None if not found, Any if found
         """
+
+        if self.crawl is None:
+            raise RuntimeError("This instance cannot be used to crawl as 'crawl' was not set when initializing this browser")
+
         result = command(self.driver, self.crawl, timeout)
         if result:
             return result
@@ -587,10 +593,10 @@ class Chrome(CBConsentCrawlerBrowser):
         chrome_path: Path,
         chromedriver_path: Path,
         chrome_profile_path: Path,
+        crawl: Optional[Crawl],
         use_temp: bool = True,
         intercept_network: bool = True,
         headless: bool = True,
-        crawl: Optional[Crawl] = None,
         *args: Any,
         **kwargs: Any,
     ) -> None:
