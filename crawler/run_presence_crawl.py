@@ -48,7 +48,7 @@ from urllib.parse import urlparse
 from typing import List, Tuple, Optional, Dict, Any
 from concurrent.futures import TimeoutError as CTimeoutError
 
-from shared_utils import retrieve_cmdline_urls
+from crawler.shared_utils import retrieve_cmdline_urls
 
 logger = logging.getLogger("presence-crawl")
 
