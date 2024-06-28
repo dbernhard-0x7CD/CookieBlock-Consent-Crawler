@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 import json
-from typing import Tuple, TYPE_CHECKING, Dict, Any, Optional, List, Union
+from typing import Tuple, TYPE_CHECKING, Dict, Any, Optional, List, Union, cast
 
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support.ui import WebDriverWait
@@ -119,13 +119,13 @@ def internal_onetrust_scrape(url: str, visit: SiteVisit, webdriver: CBConsentCra
             logger.error("FAILED to retrieve ruleset_id: %s (browser_id: %s)", state, browser.browser_id)
             return state, report
 
-        # c_logmsg(f"ONETRUST: VARIANT A: Found {len(rs_ids)} ruleset ids", browser_id, logging.INFO)
-        # c_logmsg(f"ONETRUST: VARIANT A: Retrieved ruleset ids {rs_ids}", browser_id, logging.DEBUG)
+        logger.info("ONETRUST: VARIANT A: Found %s ruleset ids (browser_id: %s)", len(rs_ids), browser.browser_id)
+        logger.debug("ONETRUST: VARIANT A: Retrieved ruleset ids %s", rs_ids, browser.browser_id)
 
         # Variant A, Part 3: For each ruleset id, retrieve cookie json
         cookie_count, state, report = _variantA_get_and_parse_json(domain_url, dd_id, rs_ids, webdriver, visit)
         if state != CrawlState.SUCCESS:
-            # c_logmsg(report, browser_id, logging.ERROR)
+            logger.error("FAILED to get and parse json with dd_id: %s (browser_id: %s)", dd_id, browser.browser_id)
             return state, report
 
         logger.info("ONETRUST: VARIANT A: Retrieved %s cookies (browser_id: %s)", cookie_count, browser.browser_id)
@@ -140,7 +140,6 @@ def internal_onetrust_scrape(url: str, visit: SiteVisit, webdriver: CBConsentCra
             logger.error("%s (browser_id: %s): %s", report, browser.browser_id, result)
 
             return CrawlState.CMP_NOT_FOUND, report
-        # c_logmsg(f"ONETRUST: VARIANT B: Onetrust Javascript URL = {script_url}", browser_id, logging.INFO)
         logger.info("ONETRUST: VARIANT B: Onetrust Javascript URL = %s (browser_id %s)", script_url, browser.browser_id)
 
         # Variant B, Part 2: Access the script and retrieve raw data from it
@@ -191,68 +190,58 @@ def category_lookup_de(browser: Crawl, cat_name: str) -> CookieCategory:
         return CookieCategory.UNRECOGNIZED
 
 
-class _exists_script_tag_with_ddid():
+def _exists_script_tag_with_ddid(driver: WebDriver, browser: Crawl) -> Union[bool, Tuple[str, str]]:
     """
     Extract "data-domain-script" attribute value from first script tag
     that contains it. This will allow us to access the OneTrust ruleset json.
     @return: data domain id string, or False if not found
     """
 
-    def __init__(self, browser):
-        self.browser= browser
-
-    def __call__(self, driver) -> Union[bool, Tuple[str, str]]:
-        elems = driver.find_elements(By.TAG_NAME, "script")
-        for e in elems:
-            try:
-                # Find a script tag with the data-domain-script attribute
-                dd_id = str(e.get_attribute("data-domain-script"))
-                if (dd_id is not None) and (uuid_pattern.match(str(dd_id)) or str(dd_id) == "center-center-default-stack-global-ot"):
-                    source_stub = e.get_attribute("src")
-                    if source_stub is None:
-                        logger.warning("ONETRUST: VARIANT A: Found a script tag with the data-domain attribute, but no URL? Script ID: %s (browser_id %s)", dd_id, self.browser.browser_id)
-                        continue
+    elems = driver.find_elements(By.TAG_NAME, "script")
+    for e in elems:
+        try:
+            # Find a script tag with the data-domain-script attribute
+            dd_id = str(e.get_attribute("data-domain-script"))
+            if (dd_id is not None) and (uuid_pattern.match(str(dd_id)) or str(dd_id) == "center-center-default-stack-global-ot"):
+                source_stub = e.get_attribute("src")
+                if source_stub is None:
+                    logger.warning("ONETRUST: VARIANT A: Found a script tag with the data-domain attribute, but no URL? Script ID: %s (browser_id %s)", dd_id, browser.browser_id)
+                    continue
+                else:
+                    for pat in base_patterns:
+                        m = pat.match(source_stub)
+                        if m:
+                            return (m.group(1), dd_id)
                     else:
-                        for pat in base_patterns:
-                            m = pat.match(source_stub)
-                            if m:
-                                return m.group(1), dd_id
-                        else:
-                            # c_logmsg(f"ONETRUST: VARIANT A: Found a data-domain-script tag with unknown source "
-                                     # f"URL: {source_stub}. Script ID: {dd_id}", self.browser_id, logging.WARN)
-                            logger.warning("TODO")
+                        logger.warning("ONETRUST: VARIANT A: Found a data-domain-script tag with unknown source URL: %s. Script ID: %s (browser_id: %s)", source_stub, dd_id, browser.browser_id)
 
-            except StaleElementReferenceException:
-                continue
-        return False
+        except StaleElementReferenceException:
+            continue
+    return False
 
 
-class _exists_script_tag_with_jsurl():
+def _exists_script_tag_with_jsurl(driver, browser) -> Union[bool, str]:
     """
     Directly retrieve the link to the javascript containing the OneTrust consent categories.
     Looks for domains of the form:  "https://<domain>/consent/<UUID>.js"
     @return: (base url, data domain id) or False if not found
     """
 
-    def __init__(self, browser):
-        self.browser = browser
+    elems = driver.find_elements(By.TAG_NAME, "script")
+    for e in elems:
+        try:
+            source = e.get_attribute("src")
+            if source:
+                # any of them match --> extract URL. otherwise, continue to next script tag
+                for p in variantB_patterns:
+                    matchobj = p.match(source)
+                    if matchobj:
+                        logger.info("ONETRUST: VARIANT B: Pattern found: %s (browser_id: %s)", p.pattern, browser.browser_id)
+                        return matchobj.group(0)
+        except StaleElementReferenceException:
+            continue
 
-    def __call__(self, driver) -> Union[bool, str]:
-        elems = driver.find_elements(By.TAG_NAME, "script")
-        for e in elems:
-            try:
-                source = e.get_attribute("src")
-                if source:
-                    # any of them match --> extract URL. otherwise, continue to next script tag
-                    for p in variantB_patterns:
-                        matchobj = p.match(source)
-                        if matchobj:
-                            logger.info("ONETRUST: VARIANT B: Pattern found: %s (browser_id: %s)", p.pattern, self.browser.browser_id)
-                            return matchobj.group(0)
-            except StaleElementReferenceException:
-                continue
-
-        return False
+    return False
 
 
 def _variantA_try_retrieve_ddid(driver: WebDriver, browser: Crawl, timeout: int = 5) -> Optional[Tuple[str, str]]:
@@ -269,7 +258,7 @@ def _variantA_try_retrieve_ddid(driver: WebDriver, browser: Crawl, timeout: int 
     """
     try:
         wait = WebDriverWait(driver, timeout)
-        tup = wait.until(_exists_script_tag_with_ddid(browser.browser_id))
+        tup = cast(Tuple[str, str], wait.until(lambda x : _exists_script_tag_with_ddid(driver=x, browser=browser)))
         # base_domain, dd_id
         return tup[0], tup[1]
     except TimeoutException:
@@ -293,7 +282,7 @@ def _variantA_try_retrieve_ruleset_id(domain_url: str, dd_id: str,
     state, ruleset_json = browser.get_content(target_url)
 
     if state != PageState.OK:
-        return [], state, f"PageState of {target_url} is {state}"
+        return [], CrawlState.LIBRARY_ERROR, f"PageState of {target_url} is {state}"
 
     ids = []
     rs_dict = json.loads(ruleset_json)
@@ -349,7 +338,6 @@ def _variantA_get_and_parse_json(domain_url: str, dd_id: str, ruleset_ids: List[
     logger.info("RULESET IDS: %s", ruleset_ids)
     for lang, i in ruleset_ids:
         curr_ruleset_url = f"{domain_url}/consent/{dd_id}/{i}/{lang}.json"
-        # cc_json, state, report = simple_get_request(curr_ruleset_url)
         state, cc_json = webdriver.get_content(curr_ruleset_url)
 
         if state != PageState.OK:
@@ -378,8 +366,8 @@ def _variantA_get_and_parse_json(domain_url: str, dd_id: str, ruleset_ids: List[
             elif "de" in json_body["Language"]["Culture"]:
                 cat_lookup = category_lookup_de
             else:
-                # c_logmsg(f"ONETRUST: VARIANT A: Unrecognized language in ruleset: {json_body['Language']['Culture']}", browser.browser_id, logging.WARN)
-                # c_logmsg(f"ONETRUST: VARIANT A: Trying english anyways...", browser_id, logging.WARN)
+                logger.warning("ONETRUST: VARIANT A: Unrecognized language in ruleset: %s", json_body['Language']['Culture'], browser.browser_id)
+                logger.warning("ONETRUST: VARIANT A: Trying english anyways...")
                 cat_lookup = category_lookup_en
 
             ## Cookie Data extraction
@@ -429,12 +417,10 @@ def _variantA_get_and_parse_json(domain_url: str, dd_id: str, ruleset_ids: List[
                     logger.warning("ONETRUST: VARIANT A: No Third Party Cookies inside group for decoded JSON.")
         except (AttributeError, KeyError) as ex:
             logger.error("ONETRUST: VARIANT A: Could not retrieve an expected attribute from json. (browser_id %s)", browser_id)
-            pass
-            # c_logmsg(f"ONETRUST: VARIANT A: Could not retrieve an expected attribute from json.", browser_id, logging.ERROR)
-            # c_logmsg(f"ONETRUST: VARIANT A: Details: {type(ex)} -- {ex}", browser_id, logging.ERROR)
+            logger.error("ONETRUST: VARIANT A: Details: %s -- %s (browser_id: %s)", type(ex), ex, browser_id)
         except json.JSONDecodeError as ex:
             logger.error("ONETRUST: VARIANT A: Failed to decode json file for ruleset : %s (browser_id %s)", curr_ruleset_url, browser_id)
-            # c_logmsg(f"ONETRUST: VARIANT A: Details: {type(ex)} -- {ex}", browser_id, logging.ERROR)
+            logger.error("ONETRUST: VARIANT A: Details: %s -- %s (browser_id: %s)", type(ex), ex, browser_id)
             continue
 
         # stop after first successful ruleset
@@ -447,20 +433,19 @@ def _variantA_get_and_parse_json(domain_url: str, dd_id: str, ruleset_ids: List[
         return cookie_count, CrawlState.SUCCESS, f"ONETRUST: VARIANT A: Cookies Extracted: {cookie_count}"
 
 
-def _variantB_try_retrieve_jsurl(driver: WebDriver, browser_id: int, timeout: int = 5) -> Optional[str]:
+def _variantB_try_retrieve_jsurl(driver: WebDriver, browser: Crawl, timeout: int = 5) -> Optional[str]:
     """
     Find OneTrust javascript URL inside the HTML of the current webdriver page.
     @param driver: Selenium webdriver currently active
-    @param browser_id: browser that performs the action
+    @param browser: browser that performs the action
     @param timeout: Time to wait in seconds.
     @return URL pattern, or None if none found.
     """
     try:
         wait = WebDriverWait(driver, timeout)
-        js_url = wait.until(_exists_script_tag_with_jsurl(browser_id))
-        return js_url
+        return cast(str, wait.until(lambda x: _exists_script_tag_with_jsurl(driver=x, browser=browser)))
     except TimeoutException:
-        logger.info("ONETRUST: VARIANT B: Timeout on trying to retrieve javascript link. (browser_id: %s)", browser_id)
+        logger.info("ONETRUST: VARIANT B: Timeout on trying to retrieve javascript link. (browser_id: %s)", browser.browser_id)
         return None
 
 
