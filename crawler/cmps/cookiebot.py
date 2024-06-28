@@ -177,8 +177,10 @@ def _find_cbid_script_tag(driver: WebDriver, browser_id: int, timeout: int = 5) 
         element = wait.until(_exists_script_tag_with_cbid(browser_id))
         cbid = element.get_attribute("data-cbid")
         src = element.get_attribute("src")
-        if cbid and src and cb_base_pat.search(src):
-            return str(cbid), cb_base_pat.search(src).group(1)
+        
+        res = cb_base_pat.search(src)
+        if cbid and src and res:
+            return str(cbid), res.group(1)
         return None
     except TimeoutException:
         return None
