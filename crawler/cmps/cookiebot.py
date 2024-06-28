@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 import re
-from typing import Tuple, Optional, TYPE_CHECKING, cast
+from typing import Tuple, Optional, TYPE_CHECKING, cast, Union
 
 import traceback
 
 from ast import literal_eval
 
 from selenium.webdriver.common.by import By
-from selenium.webdriver.remote.webdriver import WebDriver
+from selenium.webdriver.remote.webdriver import WebDriver, WebElement
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException, StaleElementReferenceException
 
@@ -143,26 +143,23 @@ def internal_cookiebot_scrape(url: str, visit: SiteVisit, webdriver: CBConsentCr
     return CrawlState.SUCCESS, f"Extracted {cookie_count} cookie entries."
 
 
-class _exists_script_tag_with_cbid():
+def _exists_script_tag_with_cbid(driver: WebDriver, browser_id: int) -> Union[bool, WebElement]:
     """
     Variant 1 Pattern: Utility class to check if there exists a script
     tag with the 'data-cbid' attribute. This attribute contains the
     desired cookiebot ID.
     :return WebElement: first matching script tag, or False otherwise
     """
-    def __init__(self, browser_id):
-        self.browser_id = browser_id
 
-    def __call__(self, driver):
-        elems = driver.find_elements(By.TAG_NAME, "script")
-        for e in elems:
-            try:
-                cbid = e.get_attribute("data-cbid")
-                if cbid and uuid_pattern.match(str(cbid)):
-                    return e
-            except StaleElementReferenceException:
-                continue
-        return False
+    elems = driver.find_elements(By.TAG_NAME, "script")
+    for e in elems:
+        try:
+            cbid = e.get_attribute("data-cbid")
+            if cbid and uuid_pattern.match(str(cbid)):
+                return e
+        except StaleElementReferenceException:
+            continue
+    return False
 
 
 def _find_cbid_script_tag(driver: WebDriver, browser_id: int, timeout: int = 5) -> Optional[Tuple[str, str]]:
@@ -174,9 +171,15 @@ def _find_cbid_script_tag(driver: WebDriver, browser_id: int, timeout: int = 5) 
     """
     try:
         wait = WebDriverWait(driver, timeout)
-        element = wait.until(_exists_script_tag_with_cbid(browser_id))
+        element: WebElement = cast(WebElement, wait.until(lambda x: _exists_script_tag_with_cbid(driver=x, browser_id=browser_id)))
+        
+        assert isinstance(element, WebElement)
+
         cbid = element.get_attribute("data-cbid")
         src = element.get_attribute("src")
+        
+        if src is None:
+            return None
         
         res = cb_base_pat.search(src)
         if cbid and src and res:
