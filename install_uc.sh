@@ -17,8 +17,8 @@ mkdir -p ${CRAWLER_CHROME_PROFILE_PATH}
 
 # Chrome version 122; Also change version in run_consent_crawl.py if upgrading
 cd /tmp/
-wget -q -O chrome.zip 'https://www.googleapis.com/download/storage/v1/b/chromium-browser-snapshots/o/Linux_x64%2F1250580%2Fchrome-linux.zip?generation=1705972829597946&alt=media'
-unzip chrome.zip
+wget -q -O chrome-linux.zip 'https://www.googleapis.com/download/storage/v1/b/chromium-browser-snapshots/o/Linux_x64%2F1250580%2Fchrome-linux.zip?generation=1705972829597946&alt=media'
+unzip chrome-linux.zip
 mv chrome-linux/* "${CRAWLER_CHROME_PATH}"
 
 wget -q -O chromedriver.zip 'https://www.googleapis.com/download/storage/v1/b/chromium-browser-snapshots/o/Linux_x64%2F1250580%2Fchromedriver_linux64.zip?generation=1705972833274207&alt=media'
