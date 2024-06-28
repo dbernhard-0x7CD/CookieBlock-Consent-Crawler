@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import Tuple, Optional, TYPE_CHECKING
+from typing import Tuple, Optional, TYPE_CHECKING, cast
 
 import traceback
 
@@ -12,8 +12,9 @@ from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException, StaleElementReferenceException
 
-from crawler.enums import CookieCategory, CrawlState
+from crawler.enums import CookieCategory, CrawlState, PageState
 from crawler.utils import uuid_pattern, logger
+from crawler.database import SiteVisit
 
 if TYPE_CHECKING:
     from crawler.browser import CBConsentCrawlerBrowser
@@ -47,53 +48,60 @@ def check_cookiebot_presence(webdriver: WebDriver) -> bool:
     return matchobj is not None
 
 
-def internal_cookiebot_scrape(url: str, browser_id: int, visit_id: int, webdriver: WebDriver) -> Tuple[CrawlState, str]:
+def internal_cookiebot_scrape(url: str, visit: SiteVisit, webdriver: CBConsentCrawlerBrowser) -> Tuple[CrawlState, str]:
     """
     Cookiebot stores its cookie category data in a javascript file called cc.js
     The crawling process attempts to obtain this file and read the data from it.
     @param url: URL to crawl for the category data
-    @param browser_id: identifies the browser that is performing the crawl. Only used for log messages
-    @param visit_id: uniquely identifies the url being crawled
-    @param webdriver: driver instance used to perform the crawl
+    @param visit: Visit to the site
+    @param webdriver: The browser instance used to crawl
     @return: A tuple consisting of 2 values:
         1. Resulting crawl state.
         2. Error report, or number of extracted cookies if successful.
     """
+    assert webdriver.crawl
+
+    browser_id = webdriver.crawl.browser_id
 
     # try to retrieve cookiebot ID required to access cc.js
-    cbid, tld = _try_retrieve_cbid_all_variants(browser_id, webdriver)
+    cbid, tld = cast(Tuple[str, str], _try_retrieve_cbid_all_variants(webdriver))
+
     if cbid is None:
         report = f"COOKIEBOT: Failed to find cbid on {url}"
-        # c_logmsg(report, browser_id, logging.ERROR)
+        logger.error(report, browser_id)
         return CrawlState.PARSE_ERROR, report
 
-    # c_logmsg(f"COOKIEBOT: Cookiebot UUID = {cbid}, TLD = {tld}", browser_id, logging.INFO)
+    logger.info("COOKIEBOT: Cookiebot UUID = %s, TLD = %s (browser_id: %s)", cbid, tld, browser_id)
 
     # retrieve cc.js file from cookiebot cdn domain using the requests library
-    referer = _try_find_correct_referer(webdriver, browser_id, cbid, tld, url)
+    referer = _try_find_correct_referer(webdriver.driver.page_source, browser_id, cbid, tld, url)
+
     cc_url = f"https://consent.cookiebot.{tld}/{cbid}/cc.js?referer={referer}"
-    r, crawlstate, report = simple_get_request(cc_url, browser_id=browser_id, timeout=(6, 30), headers={"Referer": url})
-    if r is None:
-        msg = f"COOKIEBOT: Failed to retrieve cc.js for {cc_url} -- Details: {report}"
-        logger.error(msg + f"(browser_id, {browser_id})")
-        return crawlstate, msg
+    # r, crawlstate, report = simple_get_request(cc_url, browser_id=browser_id, timeout=(6, 30), headers={"Referer": url})
+    # state, r = TODO (TODO: extend webdriver.get_content to set headers)
+    state, response = webdriver.get_content(cc_url)
+    
+    if state != PageState.OK or response is None:
+        logger.error(f"COOKIEBOT: Failed to retrieve cc.js for {cc_url} -- Details: response: {response}; state: {state} (browser_id, {browser_id})")
+        return CrawlState.LIBRARY_ERROR, f"PageState of {cc_url} is {state}"
 
     # some required structural checks on the javascript file contents
-    js_contents = r.text
+    js_contents = response
+
     if "CookieConsent.setOutOfRegion" in js_contents:
         msg = f"COOKIEBOT: Received an out-of-region response from \"{cc_url}\""
-        # c_logmsg(msg, browser_id, logging.ERROR)
+        logger.error(msg + " (browser_id %s)", browser_id)
         return CrawlState.REGION_BLOCK, msg
     elif re.search("cookiedomainwarning='Error: .* is not a valid domain.", js_contents):
         msg = f"COOKIEBOT: Unrecognized referer: {referer}."
-        # c_logmsg(msg, browser_id, logging.ERROR)
+        logger.error(msg + f" (browser_id {browser_id})")
         return CrawlState.LIBRARY_ERROR, msg
     elif len(js_contents.strip()) == 0:
         msg = f"COOKIEBOT: Empty response when trying to retrieve \"{cc_url}\"."
-        # c_logmsg(msg, browser_id, logging.ERROR)
+        logger.error(msg + f" (browser_id {browser_id})")
         return CrawlState.MALFORM_RESP, msg
 
-    # c_logmsg(f"COOKIEBOT: Successfully accessed \"https://consent.cookiebot.{tld}/{cbid}/cc.js\"", browser_id,logging.INFO)
+    logger.info(f"COOKIEBOT: Successfully accessed \"https://consent.cookiebot.{tld}/{cbid}/cc.js\" (browser_id: {browser_id})")
 
     # finally, if we arrived here we (most likely) found our cookie category data
     cookie_count = 0
@@ -122,15 +130,15 @@ def internal_cookiebot_scrape(url: str, browser_id: int, visit_id: int, webdrive
     except Exception as ex:
         msg = f"COOKIEBOT: Failed to extract cookie data from {cc_url}: {type(ex)} {ex}"
         traceback.print_exc()
-        # c_logmsg(msg, browser_id, logging.ERROR)
+        logger.error(msg + f"(browser_id {browser_id}")
         return CrawlState.MALFORM_RESP, msg
 
     if cookie_count == 0:
         msg = f"COOKIEBOT: No cookies found in {cc_url}"
-        # c_logmsg(msg, browser_id, logging.ERROR)
+        logger.error(msg + f"(browser_id {browser_id}")
         return CrawlState.NO_COOKIES, msg
 
-    # c_logmsg(f"COOKIEBOT: Extracted {cookie_count} cookie entries.", browser_id, logging.INFO)
+    logger.info(f"COOKIEBOT: Extracted {cookie_count} cookie entries. (browser_id {browser_id})")
     logger.info(f"COOKIEBOT: Extracted {cookie_count} cookie entries.")
     return CrawlState.SUCCESS, f"Extracted {cookie_count} cookie entries."
 
@@ -176,55 +184,59 @@ def _find_cbid_script_tag(driver: WebDriver, browser_id: int, timeout: int = 5) 
         return None
 
 
-def _try_retrieve_cbid_all_variants(browser_id:int, webdriver: WebDriver) -> Optional[Tuple[str, str]]:
+def _try_retrieve_cbid_all_variants(browser: CBConsentCrawlerBrowser) -> Optional[Tuple[str, str]]:
     """
     Attempt to retrieve the 'cbid' value with both the cbid tag approach,
     as well as by simply searching the page source using a regular expression pattern.
     :param webdriver: Selenium webdriver
     :return CBID, or None if not found.
     """
+    browser_id = browser.crawl.browser_id
 
     # Try to find the Cookie Bot ID inside of a script tag, using the cbid attribute.
-    maybe_cbid = execute_in_IFrames(_find_cbid_script_tag, webdriver, browser_id, timeout=3)
+    maybe_cbid = browser.execute_in_IFrames(_find_cbid_script_tag, timeout=3)
+
     if maybe_cbid:
-        # c_logmsg(f"COOKIEBOT: Found Cookiebot ID using Variant 1, tld: {maybe_cbid[1]}", browser_id, logging.INFO)
+        logger.info(f"COOKIEBOT: Found Cookiebot ID using Variant 1, tld: {maybe_cbid[1]} (browser_id {browser_id})")
+
         return maybe_cbid
     else:
         # Variant 2 & 3: CBID may actually be integrated into the URL itself, rather
         # than being an attribute. Simply use a regex on the page source for this.
-        page_source = webdriver.page_source
+        page_source = browser.driver.page_source
+
         variant_2 = cbid_variant2_pat.search(page_source)
         variant_3 = cbid_variant3_pat.search(page_source)
         if variant_2:
-            # c_logmsg("COOKIEBOT: Found Cookiebot ID using Variant 2", browser_id, logging.INFO)
+            logger.info("COOKIEBOT: Found Cookiebot ID using Variant 2 (browser_id %s)", browser_id)
+
             return variant_2.group(2), variant_2.group(1)
         elif variant_3:
-            # c_logmsg("COOKIEBOT: Found Cookiebot ID using Variant 3", browser_id, logging.INFO)
+            logger.info("COOKIEBOT: Found Cookiebot ID using Variant 3 (browser_id %s)", browser_id)
+
             return variant_3.group(2), variant_3.group(1)
         else:
-            # c_logmsg("COOKIEBOT: Could not find the Cookiebot ID", browser_id, logging.ERROR)
+            logger.error("COOKIEBOT: Could not find the Cookiebot ID (browser_id: %s)", browser_id)
             return None
 
 
-def _try_find_correct_referer(
-        webdriver: WebDriver, browser_id: int, cbid: str, tld: str, fallback: str) -> str:
+def _try_find_correct_referer(source: str, browser_id: Optional[int], cbid: str, tld: str, fallback: str) -> str:
     """
     The referer required to access the Cookiebot data may differ from the site the request
     is made from. In this case, the referer is listed as an argument inside the cc.js URL
     itself. This extracts said URL.
-    :param webdriver: current webdriver
+    :param source: website source code.
     :param cbid: cookiebot ID previously discovered
     :param tld: cookiebot consent URL top level domain (com or eu)
     :param fallback: referer string to use if the referer URL cannot be found. Typically set to be the current URL.
     :return: Referer string, or defined fallback if referer cannot be found.
     """
-    source = webdriver.page_source
     ref_pattern = re.compile(f"https://consent\\.cookiebot\\.{tld}/{cbid}/cc\\.js.*(\\?|&amp;)referer=(.*?)&.*")
     m = ref_pattern.search(source)
     if m:
         new_referer = m.group(2)
-        # c_logmsg(f"COOKIEBOT: Found referer: {new_referer}", browser_id, logging.INFO)
+        logger.info("COOKIEBOT: Found referer: %s (browser_id %s)", new_referer, browser_id)
         return new_referer
     else:
-        # c_logmsg(f"COOKIEBOT: No referer specified, using default.", browser_id, logging.INFO)
+        logger.info("COOKIEBOT: No referer specified, using default. (browser_id: %s)", browser_id)
         return fallback
