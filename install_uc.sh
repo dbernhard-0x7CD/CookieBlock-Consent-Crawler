@@ -26,5 +26,5 @@ wget -q -O chromedriver.zip 'https://www.googleapis.com/download/storage/v1/b/ch
 unzip chromedriver.zip
 mv chromedriver_linux64/chromedriver "${CRAWLER_CHROME_DRIVER_PATH}"
 
-rm /tmp/chrome.zip
+rm /tmp/chrome-linux.zip
 rm /tmp/chromedriver.zip
