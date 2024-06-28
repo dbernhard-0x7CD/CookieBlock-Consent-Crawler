@@ -193,6 +193,8 @@ def _try_retrieve_cbid_all_variants(browser: CBConsentCrawlerBrowser) -> Optiona
     :param webdriver: Selenium webdriver
     :return CBID, or None if not found.
     """
+    assert browser.crawl
+
     browser_id = browser.crawl.browser_id
 
     # Try to find the Cookie Bot ID inside of a script tag, using the cbid attribute.
