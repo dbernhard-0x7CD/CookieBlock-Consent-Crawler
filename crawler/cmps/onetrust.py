@@ -95,8 +95,8 @@ def internal_onetrust_scrape(url: str, visit: SiteVisit, webdriver: CBConsentCra
     The category data is found in json, either separate or as an inline document inside javascript.
     The crawling process attempts to obtain this data and read the data from it.
     @param url: The website we are trying to crawl. (performs a GET request)
-    @param visit: Visit 
-    @param webdriver: The Selenium webdriver we use to request the page.
+    @param visit: Visit to the site
+    @param webdriver: The browser instance used to crawl
     @return: A tuple consisting of 2 values:
         1. Resulting crawl state.
         2. Error report, or number of extracted cookies if successful.
