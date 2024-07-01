@@ -27,6 +27,7 @@ from urllib.parse import urldefrag
 from bs4 import BeautifulSoup
 from hyperlink import URL, URLParseError
 from numpy import random
+import random as prandom
 import undetected_chromedriver as uc
 from html2text import HTML2Text
 
@@ -625,9 +626,9 @@ class CBConsentCrawlerBrowser(Browser):
                     x = int(round(window_size['height'] / 2))
                     y = int(round(window_size['width'] / 2))
                 else:  # move a random amount in some direction
-                    move_max = random.randint(0, 500)
-                    x = random.randint(-move_max, move_max)
-                    y = random.randint(-move_max, move_max)
+                    move_max = prandom.randint(0, 500)
+                    x = prandom.randint(-move_max, move_max)
+                    y = prandom.randint(-move_max, move_max)
                 action = ActionChains(self.driver)
                 action.move_by_offset(x, y)
                 action.perform()
@@ -643,7 +644,7 @@ class CBConsentCrawlerBrowser(Browser):
         logger.info("Scrolled down")
     
         # bot mitigation 3: randomly wait so page visits happen with irregularity
-        time.sleep(random.randrange(RANDOM_SLEEP_LOW, RANDOM_SLEEP_HIGH))
+        time.sleep(prandom.randrange(RANDOM_SLEEP_LOW, RANDOM_SLEEP_HIGH))
         logger.info("Random sleep finished.")
 
 class Chrome(CBConsentCrawlerBrowser):
