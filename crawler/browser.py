@@ -56,7 +56,7 @@ from crawler.enums import PageState, CookieTuple, CrawlerType, CrawlState
 from crawler.utils import logger
 
 from crawler.cmps.cookiebot import check_cookiebot_presence, internal_cookiebot_scrape
-from crawler.cmps.termly import check_termly_presence, internal_termly_scrape
+# from crawler.cmps.termly import check_termly_presence, internal_termly_scrape
 from crawler.cmps.onetrust import check_onetrust_presence, internal_onetrust_scrape
 
 FuncT = TypeVar("FuncT", bound=Callable[..., Any])
@@ -65,14 +65,14 @@ FuncT = TypeVar("FuncT", bound=Callable[..., Any])
 presence_check_methods = {
     CrawlerType.ONETRUST: check_onetrust_presence,
     CrawlerType.COOKIEBOT: check_cookiebot_presence,
-    CrawlerType.TERMLY: check_termly_presence,
+    # CrawlerType.TERMLY: check_termly_presence,
 }
 
 # All supported crawl methods
 crawl_methods: Dict = {
     CrawlerType.ONETRUST: internal_onetrust_scrape,
     CrawlerType.COOKIEBOT: internal_cookiebot_scrape,
-    CrawlerType.TERMLY: internal_termly_scrape,
+    # CrawlerType.TERMLY: internal_termly_scrape,
 }
 
 COOKIEBLOCK_EXTENSION_ID = "fbhiolckidkciamgcobkokpelckgnnol"
