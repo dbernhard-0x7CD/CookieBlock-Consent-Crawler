@@ -1,15 +1,13 @@
 #!/bin/bash
 
-# Installs chrome to the current directory.
-# The crawler has to be run from the same directory.
+# Installs chrome to the current directory or the first argument.
 
-echo "Installing to $(pwd)"
+cdir=${1:-"$(pwd)"}
+echo "Installing to ${cdir}"
 
-cdir=$(pwd)
 CRAWLER_CHROME_DRIVER_PATH="${cdir}/chromedriver"
 CRAWLER_CHROME_PATH="${cdir}/chrome/"
 CRAWLER_CHROME_PROFILE_PATH="${cdir}/chrome_profile"
-CRAWLER_BROWSER="chrome"
 
 mkdir -p ${CRAWLER_CHROME_DRIVER_PATH}
 mkdir -p ${CRAWLER_CHROME_PATH}
