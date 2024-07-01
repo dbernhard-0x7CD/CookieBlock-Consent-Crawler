@@ -226,9 +226,9 @@ def start_task(browser_version: str) -> Task:
     return t
 
 
-def start_crawl(task: Task, browser_params: str, url: str) -> Tuple[Crawl, SiteVisit]:
+def start_crawl(task_id: int, browser_params: str, url: str) -> Tuple[Crawl, SiteVisit]:
     with SessionLocal.begin() as session:
-        c = Crawl(task=task, browser_params=browser_params)
+        c = Crawl(task_id=task_id, browser_params=browser_params)
         session.add(c)
 
         visit = SiteVisit(browser=c, site_url=url, site_rank=-1)
