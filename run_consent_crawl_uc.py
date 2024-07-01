@@ -11,6 +11,7 @@ import time
 import traceback
 import tarfile
 import shutil
+from pqdm.threads import pqdm
 
 from hyperlink import URL
 
@@ -64,6 +65,7 @@ def run_crawler() -> None:
     parser.add_argument(
         "-n",
         "--num_browsers",
+        "--num-browsers",
         help="Number of browsers to use in parallel",
         dest="num_browsers",
     )
@@ -90,7 +92,11 @@ def run_crawler() -> None:
         raise CrawlerException(f"File at {file_crawllist} does not exist")
 
     if args.num_browsers:
-        raise CrawlerException("--num_browsers Not yet implemented")
+        # TODO implemet this
+        num_browsers = int(args.num_browsers)
+        # raise CrawlerException("--num_browsers Not yet implemented")
+    else:
+        num_browsers = 1
 
     if args.use_db:
         splitted = os.path.split(args.use_db)
@@ -154,12 +160,14 @@ def run_crawler() -> None:
 
     # Start
     task = start_task(browser_version="Chrome 122")
+    task_id = task.task_id
 
     logger.info("Task: %s", task)
 
-    for l in urls:
-        logger.info("Working on %s", l)
-        crawl, visit = start_crawl(task=task, browser_params="TODO", url=l)
+    def run_domain(url: str) -> bool:
+        logger.info("Working on %s", url)
+
+        crawl, visit = start_crawl(task_id=task_id, browser_params="TODO", url=url)
 
         with Chrome(
             seconds_before_processing_page=1,
@@ -170,7 +178,7 @@ def run_crawler() -> None:
             chrome_path=chrome_path,
             crawl=crawl,
         ) as browser:
-            u = URL.from_text(l)
+            u = URL.from_text(url)
 
             browser.load_page(u)
 
@@ -187,6 +195,11 @@ def run_crawler() -> None:
 
             logger.info("Loaded url %s", u)
 
+            return True
+
+    res = pqdm(urls, run_domain, n_jobs=num_browsers, total=len(urls), exception_behaviour="immediate")
+
+    logger.info("Result is %s", all(res))
     logger.info("CB-CCrawler has finished.")
 
 
