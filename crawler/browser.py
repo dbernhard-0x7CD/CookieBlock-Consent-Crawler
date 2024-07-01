@@ -37,6 +37,7 @@ from selenium.common.exceptions import (
     JavascriptException,
     UnexpectedAlertPresentException,
     StaleElementReferenceException,
+    MoveTargetOutOfBoundsException,
 )
 from selenium.webdriver import ActionChains
 from selenium.webdriver.common.by import By
@@ -594,6 +595,56 @@ class CBConsentCrawlerBrowser(Browser):
                 if not 'timestamp' in var_data:
                     logger.error("timestamp missing in cookie: %s on %s", x, visit.site_url)
 
+    def scroll_down(self) -> None:
+        """
+        Scroll down the current page a random amount.
+        """
+        at_bottom = False
+        while random.random() > .20 and not at_bottom:
+            self.driver.execute_script("window.scrollBy(0,%d)"
+                                  % (10 + int(200 * random.random())))
+            at_bottom = self.driver.execute_script(
+                "return (((window.scrollY + window.innerHeight ) + 100 "
+                "> document.body.clientHeight ))")
+            time.sleep(0.5 + random.random())
+
+    def bot_mitigation(self) -> None:
+        NUM_MOUSE_MOVES = 10  # Times to randomly move the mouse
+        RANDOM_SLEEP_LOW = 1  # low (in sec) for random sleep between page loads
+        RANDOM_SLEEP_HIGH = 7  # high (in sec) for random sleep between page loads
+        """ Performs a number of commands intended for bot mitigation """
+    
+        # bot mitigation 1: move the randomly around a number of times
+        window_size = self.driver.get_window_size()
+        num_moves = 0
+        num_fails = 0
+        while num_moves < NUM_MOUSE_MOVES + 1 and num_fails < NUM_MOUSE_MOVES:
+            logger.info("Moving mouse")
+            try:
+                if num_moves == 0:  # move to the center of the screen
+                    x = int(round(window_size['height'] / 2))
+                    y = int(round(window_size['width'] / 2))
+                else:  # move a random amount in some direction
+                    move_max = random.randint(0, 500)
+                    x = random.randint(-move_max, move_max)
+                    y = random.randint(-move_max, move_max)
+                action = ActionChains(self.driver)
+                action.move_by_offset(x, y)
+                action.perform()
+                num_moves += 1
+            except (WebDriverException, MoveTargetOutOfBoundsException) as e:
+                num_fails += 1
+                logger.error(e)
+                pass
+    
+        # bot mitigation 2: scroll in random intervals down page
+        logger.info("Scrolling down")
+        self.scroll_down()
+        logger.info("Scrolled down")
+    
+        # bot mitigation 3: randomly wait so page visits happen with irregularity
+        time.sleep(random.randrange(RANDOM_SLEEP_LOW, RANDOM_SLEEP_HIGH))
+        logger.info("Random sleep finished.")
 
 class Chrome(CBConsentCrawlerBrowser):
     def __init__(

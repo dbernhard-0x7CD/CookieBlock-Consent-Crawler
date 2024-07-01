@@ -181,6 +181,10 @@ def run_crawler() -> None:
             u = URL.from_text(url)
 
             browser.load_page(u)
+            
+            # bot mitigation
+            logger.info("Calling bot mitigation")
+            browser.bot_mitigation()
 
             # TODO: bot mitigation
             time.sleep(1)
