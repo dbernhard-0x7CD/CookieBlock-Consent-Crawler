@@ -18,7 +18,8 @@ from hyperlink import URL
 
 from crawler.browser import Chrome
 from crawler.database import initialize_base_db, SiteVisit, SessionLocal, start_task, Crawl, start_crawl
-from crawler.utils import logger
+from crawler.utils import set_log_formatter
+
 
 
 class CrawlerException(Exception):
@@ -31,6 +32,13 @@ def run_crawler() -> None:
     """
     This file contains all the main functionality and the entry point.
     """
+    logger = logging.getLogger("cookieblock-consent-crawler")
+
+    set_log_formatter(
+        logger,
+        "%(asctime)s %(levelname)s %(name)s: %(message)s", "%Y-%m-%d:%H:%M:%S"
+    )
+    logger.setLevel(logging.INFO)
 
     ver = version("cookieblock-consent-crawler")
     logger.info(f"Starting cookieblock-consent-crawler version {ver}")
@@ -129,6 +137,8 @@ def run_crawler() -> None:
 
     if args.launch_browser:
         # Definitely start headfull
+        logger = logging.getLogger()
+
         with Chrome(
             seconds_before_processing_page=1,
             headless=False,
@@ -136,7 +146,8 @@ def run_crawler() -> None:
             chrome_profile_path=chrome_profile_path,
             chromedriver_path=chromedriver_path,
             chrome_path=chrome_path,
-            crawl=None
+            crawl=None,
+            logger=logger,
         ) as browser:
             browser.load_page(URL.from_text("about:blank"))
             time.sleep(60 * 60)  # wait one hour
@@ -180,6 +191,7 @@ def run_crawler() -> None:
             chromedriver_path=chromedriver_path,
             chrome_path=chrome_path,
             crawl=crawl,
+            logger=logger,
         ) as browser:
             u = URL.from_text(url)
 

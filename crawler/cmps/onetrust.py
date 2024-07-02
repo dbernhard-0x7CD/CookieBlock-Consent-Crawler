@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 import json
 from typing import Tuple, TYPE_CHECKING, Dict, Any, Optional, List, Union, cast
+import logging
 
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.webdriver.support.ui import WebDriverWait
@@ -12,11 +13,13 @@ from selenium.common.exceptions import TimeoutException, StaleElementReferenceEx
 # import js2py
 
 from crawler.enums import CookieCategory, CrawlState, PageState
-from crawler.utils import uuid_pattern, logger
+from crawler.utils import uuid_pattern
 from crawler.database import store_consent_data, Crawl, SiteVisit
 
 if TYPE_CHECKING:
     from crawler.browser import CBConsentCrawlerBrowser
+
+logger = logging.getLogger("cookieblock-consent-crawler")
 
 # Base URL patterns required for Variant A
 onetrust_pattern_A = re.compile(r"(https://cdn-apac\.onetrust\.com)")
