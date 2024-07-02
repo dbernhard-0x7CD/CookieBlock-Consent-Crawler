@@ -189,16 +189,11 @@ def run_crawler() -> None:
             logger.info("Calling bot mitigation")
             browser.bot_mitigation()
 
-            # TODO: bot mitigation
-            time.sleep(1)
             browser.crawl_cmps(visit=visit)
 
             # TODO: visit subpages
-            # TODO: bot mitigation
 
             browser.collect_cookies(visit=visit)
-
-            time.sleep(10)
 
             logger.info("Loaded url %s", u)
 
