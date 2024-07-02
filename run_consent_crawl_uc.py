@@ -224,6 +224,7 @@ def main() -> None:
     cb-cc should not be called again.
     """
 
+    logger = logging.getLogger("cookieblock-consent-crawler")
     try:
         run_crawler()
 
