@@ -6,6 +6,7 @@ import time
 from datetime import datetime
 
 import logging
+from logging import Logger
 import shutil
 import tempfile
 from pathlib import Path
@@ -55,9 +56,9 @@ from seleniumwire import webdriver
 
 from crawler.database import store_result, Crawl, SiteVisit, store_cookie
 from crawler.enums import PageState, CookieTuple, CrawlerType, CrawlState
-from crawler.utils import logger
 
 from crawler.cmps.cookiebot import check_cookiebot_presence, internal_cookiebot_scrape
+
 # from crawler.cmps.termly import check_termly_presence, internal_termly_scrape
 from crawler.cmps.onetrust import check_onetrust_presence, internal_onetrust_scrape
 
@@ -79,16 +80,18 @@ crawl_methods: Dict = {
 
 COOKIEBLOCK_EXTENSION_ID = "fbhiolckidkciamgcobkokpelckgnnol"
 
+
 class LinkTuple(NamedTuple):
     url: URL
     texts: list[str]
+
 
 # Find all href tags
 # JavaScript efficient implementation
 GET_LINK_JS = (Path(__file__).parent / "js/get_links.js").read_text()
 
 
-def post_load_routine(func: FuncT, browser_init: Optional["Browser"] = None) -> FuncT:
+def post_load_routine(func: FuncT, browser_init: Optional[Browser] = None) -> FuncT:
     """
     Collects cookies and dismisses alert windows after the decorated function is run
     """
@@ -97,15 +100,15 @@ def post_load_routine(func: FuncT, browser_init: Optional["Browser"] = None) -> 
         ret = func(*args, **kwargs)
 
         # check if self (Browser) is the first argument
-        browser = args[0]
+        browser: Browser = args[0]
         if not isinstance(browser, Browser):
             if browser_init:
                 browser = browser_init
             else:
-                logger.error("Browser not provided to the post_routine decorator")
+                browser.logger.error("Browser not provided to the post_routine decorator")
                 return ret
 
-        logger.debug("executing post function routine")
+        browser.logger.debug("executing post function routine")
         browser.dismiss_dialogs()
         return ret
 
@@ -123,6 +126,7 @@ class Browser(ABC):
         self,
         timeout: float,
         seconds_before_processing_page: float,
+        logger: Logger,
         proxy: Optional[str] = None,
     ) -> None:
         """This implements an abstract basic browser which provides some common settings (screenshots, proxy, timeout and the seconds_before_processing_page).
@@ -142,6 +146,7 @@ class Browser(ABC):
         self.proxy = proxy
         self.timeout = timeout
         self.seconds_before_processing_page = seconds_before_processing_page
+        self.logger = logger
 
         # Needs to also have enfbots_ prefix as this is also deleted
         # via 'run-crawler.sh' in case the crawler crashes.
@@ -162,24 +167,24 @@ class Browser(ABC):
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
     ) -> None:
-        logger.info("Exiting selenium driver")
+        self.logger.info("Exiting selenium driver")
         # noinspection PyBroadException
         try:
             self._press_key(Keys.ESCAPE)
-            logger.info(
+            self.logger.info(
                 "During the crawl %s HTTP requests were performed.", len(self.requests)
             )
             self.driver.quit()
         except Exception as e:
             # some errors (like KeyboardInterrupt) might crash Selenium and we cannot quit it like this
-            logger.warning("Driver failed to quit gracefully, due to %s", e)
+            self.logger.warning("Driver failed to quit gracefully, due to %s", e)
 
     def dismiss_dialogs(self) -> None:
         # try to dismiss alert windows
         try:
             while True:
                 self.driver.switch_to.alert.dismiss()
-                logger.debug("Dismissed alert")
+                self.logger.debug("Dismissed alert")
                 time.sleep(0.5)
         except (NoAlertPresentException, TimeoutException):
             pass
@@ -212,12 +217,12 @@ class Browser(ABC):
         if not url.path:
             url = url.child("")
 
-        logger.debug("Loading page %s", url)
+        self.logger.debug("Loading page %s", url)
         self.last_loaded_url = url
         error = None
         try:
             str_url = str(url)
-            logger.info("Calling driver.get %s", str_url)
+            self.logger.info("Calling driver.get %s", str_url)
             self.driver.get(str_url)
         except TimeoutException:
             logging.warning("Timeout on: %s", url)
@@ -232,24 +237,24 @@ class Browser(ABC):
         # this may add up to 40 s to the whole crawl execution
         if timeout == 0:
             timeout = 0.8 + random.random() * 1.2
-        logger.info("Waiting for %0.2f seconds", timeout)
+        self.logger.info("Waiting for %0.2f seconds", timeout)
         time.sleep(timeout)
 
         if str_url in self._load_status:
-            logger.info("load status is: %s", self._load_status[str_url])
+            self.logger.info("load status is: %s", self._load_status[str_url])
             return self._load_status[str_url]
         else:
-            logger.info("NO load status found for %s", str_url)
+            self.logger.info("NO load status found for %s", str_url)
 
         try:
-            logger.info("Pressing escape")
+            self.logger.info("Pressing escape")
             self._press_key(Keys.ESCAPE)
         except (
             UnexpectedAlertPresentException,
             WebDriverException,
             TimeoutException,
         ) as e:
-            logger.exception(e)
+            self.logger.exception(e)
             # Also continue
 
         if str(url) in self._load_status:
@@ -264,11 +269,11 @@ class Browser(ABC):
                     pass
                 tries -= 1
             # End of tries
-            logger.error("No status for URL: %s", url)
+            self.logger.error("No status for URL: %s", url)
             return PageState.UNKNOWN_ERROR
         if error:
             # an error on get without extra
-            logger.error("Unknown error occurred on page load.", exc_info=error)
+            self.logger.error("Unknown error occurred on page load.", exc_info=error)
             return PageState.UNKNOWN_ERROR
 
         # this indicates the list was probably an anchor and no reload happened (e.g. SPA)
@@ -288,10 +293,10 @@ class Browser(ABC):
         :param name: file name
         """
         current_url = self.current_url
-        logger.info("Dumping HTML: %s on page: %s", name, current_url)
+        self.logger.info("Dumping HTML: %s on page: %s", name, current_url)
 
         if str(current_url).strip().lower().endswith(".pdf"):
-            logger.error("Dumping html on pdf page %s", current_url)
+            self.logger.error("Dumping html on pdf page %s", current_url)
 
         content = self.get_html()
         file_name = output_dir / f"{name}.html"
@@ -349,10 +354,10 @@ class Browser(ABC):
                     try:
                         url = URL.from_text(urldefrag(href).url)
                     except URLParseError:
-                        logger.warning("Badly formatted url encountered %s", href)
+                        self.logger.warning("Badly formatted url encountered %s", href)
                         continue
                     except ValueError:
-                        logger.warning(
+                        self.logger.warning(
                             "Badly formatted url encountered, other ValueError %s", href
                         )
                         continue
@@ -363,7 +368,7 @@ class Browser(ABC):
                         try:
                             url = current_url.click(url)
                         except NotImplementedError as e:
-                            logger.warning(
+                            self.logger.warning(
                                 "NotImplementedError when clicking: %s on link %s",
                                 e,
                                 url,
@@ -374,7 +379,7 @@ class Browser(ABC):
                     test_str = [item["text"], path_only, item["alt_text"]]
                     results.append(LinkTuple(url, test_str))
             else:
-                logger.error("Strange link found: %s", item)
+                self.logger.error("Strange link found: %s", item)
         return results
 
     @post_load_routine
@@ -392,16 +397,16 @@ class Browser(ABC):
         """
         Wrapper of browser execute_script. Raises JavascriptException
         """
-        logger.debug("Executing JS code in selenium: %s", script)
+        self.logger.debug("Executing JS code in selenium: %s", script)
         try:
             res = self.driver.execute_script(script, *args)
-            # logger.info("> Result was: %s", res)
+            # self.logger.info("> Result was: %s", res)
             return res
         except JavascriptException as e:
             if raise_exception:
                 raise e
             else:
-                logger.exception(f"JavaScript exception encountered {e}")
+                self.logger.exception(f"JavaScript exception encountered {e}")
 
     @post_load_routine
     def _press_key(self, key: Any) -> None:
@@ -418,6 +423,7 @@ class CBConsentCrawlerBrowser(Browser):
     def __init__(
         self,
         seconds_before_processing_page: float,
+        logger: Logger,
         crawl: Optional[Crawl],
         proxy: Optional[str] = None,
     ) -> None:
@@ -425,6 +431,7 @@ class CBConsentCrawlerBrowser(Browser):
             timeout=7,
             seconds_before_processing_page=seconds_before_processing_page,
             proxy=proxy,
+            logger=logger,
         )
 
         self.cookie_tracker: set[CookieTuple] = set()
@@ -434,33 +441,45 @@ class CBConsentCrawlerBrowser(Browser):
         return super().load_page(url, timeout)
 
     def crawl_cmps(self, visit: SiteVisit) -> None:
-        logger.info("Checking for CMPs")
+        self.logger.info("Checking for CMPs")
 
         if self.crawl is None:
-            raise RuntimeError("This instance cannot be used to crawl as 'crawl' was not set when initializing this browser")
+            raise RuntimeError(
+                "This instance cannot be used to crawl as 'crawl' was not set when initializing this browser"
+            )
 
         results: Dict[CrawlerType, Any] = dict()
 
         for t, y in presence_check_methods.items():
             x = y(self.driver)
 
-            logger.info("Result when checking for %s: %s", t.name, x)
+            self.logger.info("Result when checking for %s: %s", t.name, x)
             results[t] = x
 
         for t, found in results.items():
             if found:
-                logger.info("Crawling for %s", t.name)
+                self.logger.info("Crawling for %s", t.name)
                 crawl_state, message = crawl_methods[t](
                     str(self.current_url), visit=visit, webdriver=self
                 )
 
-                logger.info("\tResult %s, %s", crawl_state, message)
+                self.logger.info("\tResult %s, %s", crawl_state, message)
 
                 store_result(
-                    browser=self.crawl, cmp_type=t, report=message, visit=visit, crawlState=crawl_state
+                    browser=self.crawl,
+                    cmp_type=t,
+                    report=message,
+                    visit=visit,
+                    crawlState=crawl_state,
                 )
                 return  # original crawler only crawls first one
-        store_result(browser=self.crawl, visit=visit, report="No known Consent Management Platform found on the given URL.", cmp_type=CrawlerType.FAILED, crawlState=CrawlState.CMP_NOT_FOUND)
+        store_result(
+            browser=self.crawl,
+            visit=visit,
+            report="No known Consent Management Platform found on the given URL.",
+            cmp_type=CrawlerType.FAILED,
+            crawlState=CrawlState.CMP_NOT_FOUND,
+        )
 
     # TODO: add type to command
     def execute_in_IFrames(self, command, timeout: int) -> Optional[Any]:
@@ -472,7 +491,9 @@ class CBConsentCrawlerBrowser(Browser):
         """
 
         if self.crawl is None:
-            raise RuntimeError("This instance cannot be used to crawl as 'crawl' was not set when initializing this browser")
+            raise RuntimeError(
+                "This instance cannot be used to crawl as 'crawl' was not set when initializing this browser"
+            )
 
         result = command(self.driver, self.crawl, timeout)
         if result:
@@ -480,7 +501,7 @@ class CBConsentCrawlerBrowser(Browser):
         else:
             self.driver.switch_to.default_content()
             iframes = self.driver.find_elements_by_tag_name("iframe")
-    
+
             for iframe in iframes:
                 try:
                     self.driver.switch_to.default_content()
@@ -490,27 +511,31 @@ class CBConsentCrawlerBrowser(Browser):
                         self.driver.switch_to.default_content()
                         return result
                 except StaleElementReferenceException:
-                    logger.warning("iframe turned stale, trying next one (browser_id %s)")
+                    self.logger.warning(
+                        "iframe turned stale, trying next one (browser_id %s)"
+                    )
                     continue
-    
+
             # If we get here, search also fails in iframes
             self.driver.switch_to.default_content()
             return None
 
     def collect_cookies(self, visit: SiteVisit) -> None:
-        """ Collects actual stored cookies using the CookieBlock extension """
+        """Collects actual stored cookies using the CookieBlock extension"""
 
         # TODO: is record_type stored?
 
-        logger.info("Collecting cookies")
+        self.logger.info("Collecting cookies")
 
         if self.crawl is None:
-            raise RuntimeError("This instance cannot be used to crawl as 'crawl' was not set when initializing this browser")
-  
+            raise RuntimeError(
+                "This instance cannot be used to crawl as 'crawl' was not set when initializing this browser"
+            )
+
         url = f"chrome-extension://{COOKIEBLOCK_EXTENSION_ID}/options/cookieblock_options.html"
 
         self.driver.get(url)
-        
+
         indexeddb_script = """
         function getCookieBlockHistory() {
             return new Promise((resolve, reject) => {
@@ -555,13 +580,13 @@ class CBConsentCrawlerBrowser(Browser):
 
         cookies = json.loads(indexeddb_data)
 
-        logger.info("There are %i actual cookies stored.", len(cookies))
+        self.logger.info("There are %i actual cookies stored.", len(cookies))
 
         for x in cookies:
             # Debugging
-            logger.info("Storing cookie (DEBUG OUTPUT)\n%s\n", x)
-            
-            if (not 'variable_data' in x) or len(x['variable_data']) == 0:
+            self.logger.info("Storing cookie (DEBUG OUTPUT)\n%s\n", x)
+
+            if (not "variable_data" in x) or len(x["variable_data"]) == 0:
                 raise RuntimeError("Unexpected. Variable_data missing in cookie")
 
             def host_only_fn(var_data: Dict[str, Any], prop: str) -> Optional[int]:
@@ -569,8 +594,12 @@ class CBConsentCrawlerBrowser(Browser):
                     return None
                 return 1 if var_data[prop] else 0
 
-            for var_data in x['variable_data']:
-                time_stamp = datetime.fromtimestamp(var_data['timestamp'] / 1000) if 'timestamp' in var_data else datetime.now()
+            for var_data in x["variable_data"]:
+                time_stamp = (
+                    datetime.fromtimestamp(var_data["timestamp"] / 1000)
+                    if "timestamp" in var_data
+                    else datetime.now()
+                )
 
                 store_cookie(
                     visit=visit,
@@ -580,33 +609,39 @@ class CBConsentCrawlerBrowser(Browser):
                     record_type=None,
                     change_cause=None,
                     expiry=None,
-                    host=x['domain'] if 'domain' in x else None,
-                    path=x['path'] if 'path' in x else None,
-                    value=var_data['value'] if 'value' in var_data else None,
-                    name=x['name'] if 'name' in x else None,
-                    is_host_only=host_only_fn(var_data, 'host_only'),
-                    is_http_only=host_only_fn(var_data, 'http_only'),
-                    is_secure=host_only_fn(var_data, 'secure'),
-                    is_session=host_only_fn(var_data, 'session'),
-                    same_site=var_data['same_site'] if 'same_site' in var_data else None,
+                    host=x["domain"] if "domain" in x else None,
+                    path=x["path"] if "path" in x else None,
+                    value=var_data["value"] if "value" in var_data else None,
+                    name=x["name"] if "name" in x else None,
+                    is_host_only=host_only_fn(var_data, "host_only"),
+                    is_http_only=host_only_fn(var_data, "http_only"),
+                    is_secure=host_only_fn(var_data, "secure"),
+                    is_session=host_only_fn(var_data, "session"),
+                    same_site=(
+                        var_data["same_site"] if "same_site" in var_data else None
+                    ),
                     time_stamp=time_stamp,
-                    )
+                )
 
                 # Warn if timestamp was generated
-                if not 'timestamp' in var_data:
-                    logger.error("timestamp missing in cookie: %s on %s", x, visit.site_url)
+                if not "timestamp" in var_data:
+                    self.logger.error(
+                        "timestamp missing in cookie: %s on %s", x, visit.site_url
+                    )
 
     def scroll_down(self) -> None:
         """
         Scroll down the current page a random amount.
         """
         at_bottom = False
-        while random.random() > .20 and not at_bottom:
-            self.driver.execute_script("window.scrollBy(0,%d)"
-                                  % (10 + int(200 * random.random())))
+        while random.random() > 0.20 and not at_bottom:
+            self.driver.execute_script(
+                "window.scrollBy(0,%d)" % (10 + int(200 * random.random()))
+            )
             at_bottom = self.driver.execute_script(
                 "return (((window.scrollY + window.innerHeight ) + 100 "
-                "> document.body.clientHeight ))")
+                "> document.body.clientHeight ))"
+            )
             time.sleep(0.5 + random.random())
 
     def bot_mitigation(self) -> None:
@@ -614,17 +649,17 @@ class CBConsentCrawlerBrowser(Browser):
         RANDOM_SLEEP_LOW = 1  # low (in sec) for random sleep between page loads
         RANDOM_SLEEP_HIGH = 7  # high (in sec) for random sleep between page loads
         """ Performs a number of commands intended for bot mitigation """
-    
+
         # bot mitigation 1: move the randomly around a number of times
         window_size = self.driver.get_window_size()
         num_moves = 0
         num_fails = 0
         while num_moves < NUM_MOUSE_MOVES + 1 and num_fails < NUM_MOUSE_MOVES:
-            logger.info("Moving mouse")
+            self.logger.info("Moving mouse")
             try:
                 if num_moves == 0:  # move to the center of the screen
-                    x = int(round(window_size['height'] / 2))
-                    y = int(round(window_size['width'] / 2))
+                    x = int(round(window_size["height"] / 2))
+                    y = int(round(window_size["width"] / 2))
                 else:  # move a random amount in some direction
                     move_max = prandom.randint(0, 500)
                     x = prandom.randint(-move_max, move_max)
@@ -635,17 +670,18 @@ class CBConsentCrawlerBrowser(Browser):
                 num_moves += 1
             except (WebDriverException, MoveTargetOutOfBoundsException) as e:
                 num_fails += 1
-                logger.error(e)
+                self.logger.error(e)
                 pass
-    
+
         # bot mitigation 2: scroll in random intervals down page
-        logger.info("Scrolling down")
+        self.logger.info("Scrolling down")
         self.scroll_down()
-        logger.info("Scrolled down")
-    
+        self.logger.info("Scrolled down")
+
         # bot mitigation 3: randomly wait so page visits happen with irregularity
         time.sleep(prandom.randrange(RANDOM_SLEEP_LOW, RANDOM_SLEEP_HIGH))
-        logger.info("Random sleep finished.")
+        self.logger.info("Random sleep finished.")
+
 
 class Chrome(CBConsentCrawlerBrowser):
     def __init__(
@@ -654,6 +690,7 @@ class Chrome(CBConsentCrawlerBrowser):
         chrome_path: Path,
         chromedriver_path: Path,
         chrome_profile_path: Path,
+        logger: Logger,
         crawl: Optional[Crawl],
         use_temp: bool = True,
         intercept_network: bool = True,
@@ -668,7 +705,9 @@ class Chrome(CBConsentCrawlerBrowser):
             use_temp (bool, optional): If a temporary directory should be used for the profile data which will be altered. Defaults to True.
         """
         super().__init__(
-            seconds_before_processing_page=seconds_before_processing_page, crawl=crawl
+            seconds_before_processing_page=seconds_before_processing_page,
+            crawl=crawl,
+            logger=logger,
         )
         self._requests: list[Any] = []
         self.use_temp = use_temp
@@ -735,7 +774,7 @@ class Chrome(CBConsentCrawlerBrowser):
 
         options.page_load_strategy = "normal"
 
-        logger.info(
+        self.logger.info(
             "Instantiating chrome %s using %s with profile_path %s",
             self.chrome_path,
             self.driver_path,
@@ -797,7 +836,7 @@ class Chrome(CBConsentCrawlerBrowser):
         if url == self.last_loaded_url:
             error = response.get("error_reason")
             if error:
-                logger.warning(
+                self.logger.warning(
                     "Load of page %s was interrupted with status %s.", url, error
                 )
                 # Failed, Aborted, TimedOut, AccessDenied, ConnectionClosed, ConnectionReset,
@@ -821,17 +860,17 @@ class Chrome(CBConsentCrawlerBrowser):
                     self.last_loaded_url = loc
                     self._load_status[str(url)] = PageState.REDIRECT
                 elif status_code >= 400:
-                    logger.error(
+                    self.logger.error(
                         "On %s: HTTP status_code %s and response: %s",
                         url,
                         status_code,
                         response,
                     )
-                    logger.error("Data: %s", data)
+                    self.logger.error("Data: %s", data)
                     self._load_status[str(url)] = PageState.HTTP_ERROR
                 else:
                     self._load_status[str(url)] = PageState.OK
-                    logger.debug(
+                    self.logger.debug(
                         "Fetched the page %s with status %s and content type %s",
                         url,
                         status_code,
@@ -855,4 +894,4 @@ class Chrome(CBConsentCrawlerBrowser):
             if self.use_temp:
                 self._temp_dir.cleanup()
         except Exception:
-            logger.warning("Unable to remove the temporary directory", stack_info=False)
+            self.logger.warning("Unable to remove the temporary directory", stack_info=False)

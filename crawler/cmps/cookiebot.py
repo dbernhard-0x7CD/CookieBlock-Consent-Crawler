@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from typing import Tuple, Optional, TYPE_CHECKING, cast, Union
+import logging
 
 import traceback
 
@@ -13,11 +14,13 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import TimeoutException, StaleElementReferenceException
 
 from crawler.enums import CookieCategory, CrawlState, PageState
-from crawler.utils import uuid_pattern, logger
+from crawler.utils import uuid_pattern
 from crawler.database import SiteVisit
 
 if TYPE_CHECKING:
     from crawler.browser import CBConsentCrawlerBrowser
+
+logger = logging.getLogger("cookieblock-consent-crawler")
 
 # url for the cookiebot consent CDN
 cb_base_url = r"https://consent\.cookiebot\.(com|eu)/"

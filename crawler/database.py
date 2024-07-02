@@ -29,7 +29,6 @@ from sqlalchemy.orm import (
 )
 
 from crawler.enums import CrawlState, CrawlerType
-from crawler.utils import logger
 
 """
 We do not want to use expire after commit to still have access to attributes from objects.
@@ -39,6 +38,7 @@ the database.
 """
 SessionLocal = sessionmaker(expire_on_commit=False)
 
+logger = logging.getLogger("cookieblock-consent-crawler")
 
 class Base(DeclarativeBase):
     pass
