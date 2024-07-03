@@ -8,6 +8,8 @@ from typing import Tuple, Optional, Dict, Any
 from selenium.webdriver.remote.webdriver import WebDriver
 from selenium.common.exceptions import TimeoutException
 
+from tldextract import tldextract
+
 from crawler.enums import CrawlState
 
 # unique identifier pattern
@@ -36,3 +38,7 @@ def set_log_formatter(logger: Logger, fmt: str, date_format: str) -> None:
     console_handler.setLevel(logging.INFO)
     logger.addHandler(console_handler)
 
+def is_on_same_domain(u1: str, u2: str) -> bool:
+    extract1 = tldextract.extract(u1)
+    extract2 = tldextract.extract(u2)
+    return extract1.domain == extract2.domain
