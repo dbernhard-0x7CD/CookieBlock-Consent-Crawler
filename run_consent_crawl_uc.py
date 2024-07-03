@@ -179,19 +179,25 @@ def run_crawler() -> None:
     task_id = task.task_id
 
     logger.info("Task: %s", task)
+    
+    for i in range(num_browsers):
+        browser_logger = logging.getLogger(f"browser-{i}")
 
-    def run_domain(url: str) -> bool:
-        tid = threading.get_native_id() % num_browsers
-        browser_logger = logging.getLogger(f"browser-{tid}")
-
-        file_handler = logging.FileHandler(log_dir / f"browser_{tid}.log")
+        file_handler = logging.FileHandler(log_dir / f"browser_{i}.log")
         log_formatter = logging.Formatter(
             fmt="%(asctime)s %(levelname)s %(name)s: %(message)s",
             datefmt="%Y-%m-%d:%H:%M:%S"
         )
+        file_handler.setFormatter(log_formatter)
 
         browser_logger.addHandler(file_handler)
         browser_logger.addHandler(logger.handlers[0])
+        browser_logger.setLevel(logging.INFO)
+
+
+    def run_domain(url: str) -> bool:
+        tid = threading.get_native_id() % num_browsers
+        browser_logger = logging.getLogger(f"browser-{tid}")
 
         logger.info("Working on %s [thread: %s]", url, tid)
 
@@ -210,9 +216,10 @@ def run_crawler() -> None:
             u = URL.from_text(url)
 
             browser.load_page(u)
+            browser_logger.info("Loaded url %s", u)
             
             # bot mitigation
-            logger.info("Calling bot mitigation")
+            browser_logger.info("Calling bot mitigation")
             browser.bot_mitigation()
 
             browser.crawl_cmps(visit=visit)
@@ -220,8 +227,6 @@ def run_crawler() -> None:
             # TODO: visit subpages
 
             browser.collect_cookies(visit=visit)
-
-            logger.info("Loaded url %s", u)
 
             return True
 
