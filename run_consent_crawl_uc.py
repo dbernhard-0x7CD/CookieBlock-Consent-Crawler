@@ -13,13 +13,14 @@ import tarfile
 import shutil
 from pqdm.threads import pqdm
 import threading
+import random
 
 from hyperlink import URL
 
 
 from crawler.browser import Chrome
 from crawler.database import initialize_base_db, SiteVisit, SessionLocal, start_task, Crawl, start_crawl
-from crawler.utils import set_log_formatter
+from crawler.utils import set_log_formatter, is_on_same_domain
 
 
 
@@ -95,6 +96,11 @@ def run_crawler() -> None:
         "--no-headless",
         help="Start the browser with GUI (headless disabled)",
         action="store_true",
+    )
+    parser.add_argument(
+        "--num-subpages",
+        help="Amount of links to follow when visiting a domain",
+        default=10
     )
 
     args = parser.parse_args()
@@ -174,6 +180,8 @@ def run_crawler() -> None:
         urls = [args.url]
 
     # Start
+    num_subpages = args.num_subpages
+
     task = start_task(browser_version="Chrome 122")
     task_id = task.task_id
 
@@ -223,7 +231,18 @@ def run_crawler() -> None:
 
             browser.crawl_cmps(visit=visit)
 
-            # TODO: visit subpages
+            browser.load_page(u)
+
+            # visit subpages
+            links = list(filter(lambda x: is_on_same_domain(x.url.to_text(), url), browser.get_links()))
+            logger.info("Found %s links", len(links))
+            
+            chosen = random.choices(links, k=min(num_subpages, len(links)))
+            for i, l in enumerate(chosen):
+                browser_logger.info("Subvisiting [%i]: %s", i, l.url.to_text())
+                browser.load_page(l.url)
+                browser.bot_mitigation()
+                # TODO: bot mitigation after each link visit?
 
             browser.collect_cookies(visit=visit)
 
