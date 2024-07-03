@@ -105,7 +105,9 @@ def post_load_routine(func: FuncT, browser_init: Optional[Browser] = None) -> Fu
             if browser_init:
                 browser = browser_init
             else:
-                browser.logger.error("Browser not provided to the post_routine decorator")
+                browser.logger.error(
+                    "Browser not provided to the post_routine decorator"
+                )
                 return ret
 
         browser.logger.debug("executing post function routine")
@@ -894,4 +896,6 @@ class Chrome(CBConsentCrawlerBrowser):
             if self.use_temp:
                 self._temp_dir.cleanup()
         except Exception:
-            self.logger.warning("Unable to remove the temporary directory", stack_info=False)
+            self.logger.warning(
+                "Unable to remove the temporary directory", stack_info=False
+            )
