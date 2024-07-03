@@ -138,12 +138,11 @@ def run_crawler() -> None:
     os.makedirs(data_path, exist_ok=True)
 
     if args.launch_browser:
-        # Definitely start headfull
         logger = logging.getLogger()
 
         with Chrome(
             seconds_before_processing_page=1,
-            headless=False,
+            headless=False, # Definitely start headfull
             use_temp=False,
             chrome_profile_path=chrome_profile_path,
             chromedriver_path=chromedriver_path,
