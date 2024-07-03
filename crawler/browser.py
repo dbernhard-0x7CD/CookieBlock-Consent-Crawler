@@ -676,7 +676,6 @@ class CBConsentCrawlerBrowser(Browser):
                 pass
 
         # bot mitigation 2: scroll in random intervals down page
-        self.logger.info("Scrolling down")
         self.scroll_down()
         self.logger.info("Scrolled down")
 
