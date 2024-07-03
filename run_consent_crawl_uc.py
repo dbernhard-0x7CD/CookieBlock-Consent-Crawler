@@ -12,6 +12,7 @@ import traceback
 import tarfile
 import shutil
 from pqdm.threads import pqdm
+import threading
 
 from hyperlink import URL
 
@@ -180,7 +181,19 @@ def run_crawler() -> None:
     logger.info("Task: %s", task)
 
     def run_domain(url: str) -> bool:
-        logger.info("Working on %s", url)
+        tid = threading.get_native_id() % num_browsers
+        browser_logger = logging.getLogger(f"browser-{tid}")
+
+        file_handler = logging.FileHandler(log_dir / f"browser_{tid}.log")
+        log_formatter = logging.Formatter(
+            fmt="%(asctime)s %(levelname)s %(name)s: %(message)s",
+            datefmt="%Y-%m-%d:%H:%M:%S"
+        )
+
+        browser_logger.addHandler(file_handler)
+        browser_logger.addHandler(logger.handlers[0])
+
+        logger.info("Working on %s [thread: %s]", url, tid)
 
         crawl, visit = start_crawl(task_id=task_id, browser_params="TODO", url=url)
 
@@ -192,7 +205,7 @@ def run_crawler() -> None:
             chromedriver_path=chromedriver_path,
             chrome_path=chrome_path,
             crawl=crawl,
-            logger=logger,
+            logger=browser_logger,
         ) as browser:
             u = URL.from_text(url)
 
