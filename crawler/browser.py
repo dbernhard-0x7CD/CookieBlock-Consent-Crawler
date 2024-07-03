@@ -662,13 +662,17 @@ class CBConsentCrawlerBrowser(Browser):
                 if num_moves == 0:  # move to the center of the screen
                     x = int(round(window_size["height"] / 2))
                     y = int(round(window_size["width"] / 2))
+                    action = ActionChains(self.driver)
+                    action.move_by_offset(x, y)
+                    action.perform()
                 else:  # move a random amount in some direction
-                    move_max = prandom.randint(0, 500)
+                    move_max = prandom.randint(0, 200)
                     x = prandom.randint(-move_max, move_max)
                     y = prandom.randint(-move_max, move_max)
-                action = ActionChains(self.driver)
-                action.move_by_offset(x, y)
-                action.perform()
+
+                    action = ActionChains(self.driver)
+                    action.move_by_offset(x, y)
+                    action.perform()
                 num_moves += 1
             except (WebDriverException, MoveTargetOutOfBoundsException) as e:
                 num_fails += 1
