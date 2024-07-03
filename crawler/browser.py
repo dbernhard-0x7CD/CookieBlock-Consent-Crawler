@@ -333,7 +333,7 @@ class Browser(ABC):
 
         return (status, content)
 
-    def get_links(self) -> list[LinkTuple]:
+    def get_links(self) -> List[LinkTuple]:
         """
         For currently loaded page, locate all links and their accompanying text
         """
