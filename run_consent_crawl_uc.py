@@ -83,6 +83,7 @@ def run_crawler() -> None:
     parser.add_argument(
         "-d",
         "--use_db",
+        "--use-db",
         help="Use specified database file to add rows to. Format: DATA_PATH/FILENAME.sqlite",
         dest="use_db",
     )
