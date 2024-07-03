@@ -676,7 +676,7 @@ class CBConsentCrawlerBrowser(Browser):
                 num_moves += 1
             except (WebDriverException, MoveTargetOutOfBoundsException) as e:
                 num_fails += 1
-                self.logger.error(e)
+                # self.logger.error(e)
                 pass
 
         # bot mitigation 2: scroll in random intervals down page
