@@ -602,6 +602,8 @@ class CBConsentCrawlerBrowser(Browser):
                     if "timestamp" in var_data
                     else datetime.now()
                 )
+                
+                expiry = datetime.fromtimestamp(int(var_data["expirationDate"])) if "expirationDate" in var_data else None
 
                 store_cookie(
                     visit=visit,
@@ -610,7 +612,7 @@ class CBConsentCrawlerBrowser(Browser):
                     event_ordinal=None,
                     record_type=None,
                     change_cause=None,
-                    expiry=None,
+                    expiry=expiry,
                     host=x["domain"] if "domain" in x else None,
                     path=x["path"] if "path" in x else None,
                     value=var_data["value"] if "value" in var_data else None,
