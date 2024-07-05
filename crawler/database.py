@@ -291,7 +291,7 @@ def store_cookie(
     event_ordinal: Optional[str],
     record_type: Optional[str],
     change_cause: Optional[str],
-    expiry: Optional[DateTime] = None,
+    expiry: Optional[datetime] = None,
     is_http_only: Optional[int] = None,
     is_host_only: Optional[int] = None,
     is_session: Optional[int] = None,
