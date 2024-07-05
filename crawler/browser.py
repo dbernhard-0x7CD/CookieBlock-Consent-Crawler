@@ -603,7 +603,11 @@ class CBConsentCrawlerBrowser(Browser):
                     else datetime.now()
                 )
                 
-                expiry = datetime.fromtimestamp(int(var_data["expirationDate"])) if "expirationDate" in var_data else None
+                if "expirationDate" in var_data:
+                    expiry = datetime.fromtimestamp(int(var_data["expirationDate"]))
+                else:
+                    # 9999-12-31T21:59:59.000Z
+                    expiry = datetime.fromisoformat("9999-12-31T21:59:59.000Z")
 
                 store_cookie(
                     visit=visit,
