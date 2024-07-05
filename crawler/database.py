@@ -96,7 +96,7 @@ class Cookie(Base):
     first_party_domain: Mapped[Optional[str]]
     store_id: Mapped[Optional[str]]
 
-    time_stamp: Mapped[DateTime] = mapped_column(DateTime(timezone=True))
+    time_stamp: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
 
 class SiteVisit(Base):
