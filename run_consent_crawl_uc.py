@@ -241,7 +241,7 @@ def run_crawler() -> None:
             for i, l in enumerate(chosen):
                 browser_logger.info("Subvisiting [%i]: %s", i, l.url.to_text())
                 browser.load_page(l.url)
-                browser.bot_mitigation()
+                browser.bot_mitigation(max_sleep_seconds=2)
                 # TODO: bot mitigation after each link visit?
 
             browser.collect_cookies(visit=visit)
