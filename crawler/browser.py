@@ -652,10 +652,9 @@ class CBConsentCrawlerBrowser(Browser):
             )
             time.sleep(0.5 + random.random())
 
-    def bot_mitigation(self) -> None:
+    def bot_mitigation(self, max_sleep_seconds: int = 7) -> None:
         NUM_MOUSE_MOVES = 10  # Times to randomly move the mouse
         RANDOM_SLEEP_LOW = 1  # low (in sec) for random sleep between page loads
-        RANDOM_SLEEP_HIGH = 7  # high (in sec) for random sleep between page loads
         """ Performs a number of commands intended for bot mitigation """
 
         # bot mitigation 1: move the randomly around a number of times
@@ -690,7 +689,7 @@ class CBConsentCrawlerBrowser(Browser):
         self.logger.info("Scrolled down")
 
         # bot mitigation 3: randomly wait so page visits happen with irregularity
-        time.sleep(prandom.randrange(RANDOM_SLEEP_LOW, RANDOM_SLEEP_HIGH))
+        time.sleep(prandom.randrange(RANDOM_SLEEP_LOW, max_sleep_seconds))
         self.logger.info("Random sleep finished.")
 
 
