@@ -661,8 +661,8 @@ class CBConsentCrawlerBrowser(Browser):
         window_size = self.driver.get_window_size()
         num_moves = 0
         num_fails = 0
+        
         while num_moves < NUM_MOUSE_MOVES + 1 and num_fails < NUM_MOUSE_MOVES:
-            self.logger.info("Moving mouse")
             try:
                 if num_moves == 0:  # move to the center of the screen
                     x = int(round(window_size["height"] / 2))
@@ -683,6 +683,7 @@ class CBConsentCrawlerBrowser(Browser):
                 num_fails += 1
                 # self.logger.error(e)
                 pass
+        self.logger.info("Moved mouse %s times", num_moves)
 
         # bot mitigation 2: scroll in random intervals down page
         self.scroll_down()
