@@ -183,6 +183,9 @@ def run_crawler() -> None:
     # Start
     num_subpages = args.num_subpages
 
+    # sort for having the same database as the original. TODO: remove?
+    urls = list(sorted(urls))
+
     task = start_task(browser_version="Chrome 122")
     task_id = task.task_id
 
