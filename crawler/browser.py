@@ -465,7 +465,7 @@ class CBConsentCrawlerBrowser(Browser):
                     str(self.current_url), visit=visit, webdriver=self
                 )
 
-                self.logger.info("\tResult %s, %s", crawl_state, message)
+                self.logger.info("%s Result %s, %s", t.name, crawl_state, message)
 
                 store_result(
                     browser=self.crawl,
