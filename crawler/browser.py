@@ -275,7 +275,7 @@ class Browser(ABC):
             return PageState.UNKNOWN_ERROR
         if error:
             # an error on get without extra
-            self.logger.error("Unknown error occurred on page load.", exc_info=error)
+            self.logger.error("Unknown error occurred on page load of %s.", str(url), exc_info=error)
             return PageState.UNKNOWN_ERROR
 
         # this indicates the list was probably an anchor and no reload happened (e.g. SPA)
