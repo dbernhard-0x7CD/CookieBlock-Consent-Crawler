@@ -637,12 +637,12 @@ class CBConsentCrawlerBrowser(Browser):
                         "timestamp missing in cookie: %s on %s", x, visit.site_url
                     )
 
-    def scroll_down(self) -> None:
+    def scroll_down(self, prob_scroll: float = 0.8) -> None:
         """
         Scroll down the current page a random amount.
         """
         at_bottom = False
-        while random.random() > 0.20 and not at_bottom:
+        while random.random() > (1 - prob_scroll) and not at_bottom:
             self.driver.execute_script(
                 "window.scrollBy(0,%d)" % (10 + int(200 * random.random()))
             )
@@ -652,7 +652,7 @@ class CBConsentCrawlerBrowser(Browser):
             )
             time.sleep(0.5 + random.random())
 
-    def bot_mitigation(self, max_sleep_seconds: int = 7) -> None:
+    def bot_mitigation(self, max_sleep_seconds: int = 7, prob_scrolling: float = 0.8) -> None:
         NUM_MOUSE_MOVES = 10  # Times to randomly move the mouse
         RANDOM_SLEEP_LOW = 1  # low (in sec) for random sleep between page loads
         """ Performs a number of commands intended for bot mitigation """
@@ -686,11 +686,11 @@ class CBConsentCrawlerBrowser(Browser):
         self.logger.info("Moved mouse %s times", num_moves)
 
         # bot mitigation 2: scroll in random intervals down page
-        self.scroll_down()
+        self.scroll_down(prob_scroll=prob_scrolling)
         self.logger.info("Scrolled down")
 
         # bot mitigation 3: randomly wait so page visits happen with irregularity
-        time.sleep(prandom.randrange(RANDOM_SLEEP_LOW, max_sleep_seconds))
+        time.sleep(prandom.randrange(min(RANDOM_SLEEP_LOW, max_sleep_seconds), max_sleep_seconds))
         self.logger.info("Random sleep finished.")
 
 
