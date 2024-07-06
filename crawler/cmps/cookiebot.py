@@ -15,7 +15,7 @@ from selenium.common.exceptions import TimeoutException, StaleElementReferenceEx
 
 from crawler.enums import CookieCategory, CrawlState, PageState
 from crawler.utils import uuid_pattern
-from crawler.database import SiteVisit
+from crawler.database import SiteVisit, store_consent_data
 
 if TYPE_CHECKING:
     from crawler.browser import CBConsentCrawlerBrowser
@@ -120,19 +120,20 @@ def internal_cookiebot_scrape(url: str, visit: SiteVisit, webdriver: CBConsentCr
             logger.info("matchobj: %s", matchobj)
 
             # transform the string arrays to python arrays
-            # cookies = literal_eval(matchobj.group(1))
+            cookies = literal_eval(matchobj.group(1))
 
-            # for c in cookies:
-            #     cookie_count += 1
+            for c in cookies:
+                cookie_count += 1
+                print(c)
 
-                # TODO store_consent_data
-                # send_cookiedat_to_db(c[0], c[1], cat_id, cat_name, browser_id, visit_id, c[2], c[3], c[4], c[5])
+                # store the consent data
+                store_consent_data(name=c[0], domain=c[1], cat_id=cat_id, cat_name=cat_name, browser=browser, visit=visit, purpose=purpose, expiry=None, type_name=None, type_id=None)
+
 
     # format of the cookiebot data should be uniform, but in case this happens
     # to be violated, this try-except block catches it
     except Exception as ex:
         msg = f"COOKIEBOT: Failed to extract cookie data from {cc_url}: {type(ex)} {ex}"
-        traceback.print_exc()
         logger.error(msg + f"(browser_id {browser_id}")
         return CrawlState.MALFORM_RESP, msg
 
