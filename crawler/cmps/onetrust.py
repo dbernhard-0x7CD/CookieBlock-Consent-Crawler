@@ -395,7 +395,7 @@ def _variantA_get_and_parse_json(domain_url: str, dd_id: str, ruleset_ids: List[
                             expiry = "session" if c["IsSession"] else expiry
 
                         # Store to the database
-                        store_consent_data(name=c["Name"], domain=c["Host"], cat_id=cat_id, cat_name=cat_name, browser=browser, visit=visit, purpose=purpose, expiry=expiry, type_name=None, type_id=None)
+                        store_consent_data(name=c["Name"], domain=c["Host"], cat_id=cat_id, cat_name=cat_name, browser=visit.browser, visit=visit, purpose=purpose, expiry=expiry, type_name=None, type_id=None)
 
                         cookie_count += 1
                 else:
