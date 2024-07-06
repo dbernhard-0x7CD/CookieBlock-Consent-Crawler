@@ -502,7 +502,7 @@ class CBConsentCrawlerBrowser(Browser):
             return result
         else:
             self.driver.switch_to.default_content()
-            iframes = self.driver.find_elements_by_tag_name("iframe")
+            iframes = self.driver.find_elements(By.TAG_NAME, "iframe")
 
             for iframe in iframes:
                 try:
