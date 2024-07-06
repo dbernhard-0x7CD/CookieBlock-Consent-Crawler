@@ -127,7 +127,7 @@ def internal_cookiebot_scrape(url: str, visit: SiteVisit, webdriver: CBConsentCr
                 print(c)
 
                 # store the consent data
-                store_consent_data(name=c[0], domain=c[1], cat_id=cat_id, cat_name=cat_name, browser=visit.browser, visit=visit, purpose=purpose, expiry=None, type_name=None, type_id=None)
+                store_consent_data(name=c[0], domain=c[1], cat_id=cat_id, cat_name=cat_name, browser=visit.browser, visit=visit, purpose=None, expiry=None, type_name=None, type_id=None)
 
 
     # format of the cookiebot data should be uniform, but in case this happens
