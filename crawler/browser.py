@@ -57,26 +57,12 @@ from seleniumwire import webdriver
 from crawler.database import store_result, Crawl, SiteVisit, store_cookie
 from crawler.enums import PageState, CookieTuple, CrawlerType, CrawlState
 
-from crawler.cmps.cookiebot import check_cookiebot_presence, internal_cookiebot_scrape
+from crawler.cmps.cookiebot import CookiebotCMP
 
 # from crawler.cmps.termly import check_termly_presence, internal_termly_scrape
 from crawler.cmps.onetrust import check_onetrust_presence, internal_onetrust_scrape
 
 FuncT = TypeVar("FuncT", bound=Callable[..., Any])
-
-# Presence check before full crawl process
-presence_check_methods = {
-    CrawlerType.ONETRUST: check_onetrust_presence,
-    CrawlerType.COOKIEBOT: check_cookiebot_presence,
-    # CrawlerType.TERMLY: check_termly_presence,
-}
-
-# All supported crawl methods
-crawl_methods: Dict = {
-    CrawlerType.ONETRUST: internal_onetrust_scrape,
-    CrawlerType.COOKIEBOT: internal_cookiebot_scrape,
-    # CrawlerType.TERMLY: internal_termly_scrape,
-}
 
 COOKIEBLOCK_EXTENSION_ID = "fbhiolckidkciamgcobkokpelckgnnol"
 
@@ -456,6 +442,22 @@ class CBConsentCrawlerBrowser(Browser):
             )
 
         results: Dict[CrawlerType, Any] = dict()
+
+        cookiebot_cmp = CookiebotCMP(self.logger)
+
+        # Presence check before full crawl process
+        presence_check_methods = {
+            CrawlerType.ONETRUST: check_onetrust_presence,
+            CrawlerType.COOKIEBOT: cookiebot_cmp.check_presence,
+            # CrawlerType.TERMLY: check_termly_presence,
+        }
+
+        # All supported crawl methods
+        crawl_methods: Dict = {
+            CrawlerType.ONETRUST: internal_onetrust_scrape,
+            CrawlerType.COOKIEBOT: cookiebot_cmp.scrape,
+            # CrawlerType.TERMLY: internal_termly_scrape,
+        }
 
         for t, y in presence_check_methods.items():
             x = y(self.driver)
