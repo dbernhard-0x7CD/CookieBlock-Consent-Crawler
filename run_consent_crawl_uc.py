@@ -226,6 +226,7 @@ def run_crawler() -> None:
     
     # Add browser config to the database
     crawl = register_browser_config(task_id=task_id, browser_params=json.dumps(browser_params))
+    assert crawl.browser_id
 
     def run_domain(url: str) -> bool:
         tid = threading.get_native_id() % num_browsers
