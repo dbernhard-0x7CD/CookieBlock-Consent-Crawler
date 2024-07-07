@@ -229,10 +229,9 @@ def run_crawler() -> None:
 
     def run_domain(url: str) -> bool:
         tid = threading.get_native_id() % num_browsers
-        crawl, visit = start_crawl(browser_id=crawl.browser_id, url=url)
+        visit = start_crawl(browser_id=crawl.browser_id, url=url)
 
         id = visit.visit_id
-        logger.info("Preparing logger for crawl with visit_id %s", id)
         crawl_logger = logging.getLogger(f"visit-{visit.visit_id}")
         crawl_logger.propagate = False
 
