@@ -213,7 +213,7 @@ class Browser(ABC):
             self.logger.info("Calling driver.get %s", str_url)
             self.driver.get(str_url)
         except TimeoutException:
-            logging.warning("Timeout on: %s", url)
+            self.logger.warning("Timeout on: %s", url)
             return PageState.TIMEOUT
         except WebDriverException as e:
             if "net::ERR_NAME_NOT_RESOLVED" in str(e.msg):

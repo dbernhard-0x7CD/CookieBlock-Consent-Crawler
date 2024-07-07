@@ -229,15 +229,20 @@ def start_task(browser_version: str, manager_params: Optional[str]) -> Task:
     return t
 
 
-def start_crawl(task_id: int, browser_params: str, url: str) -> Tuple[Crawl, SiteVisit]:
+def register_browser_config(task_id: int, browser_params: str) -> Crawl:
     with SessionLocal.begin() as session:
         c = Crawl(task_id=task_id, browser_params=browser_params)
         session.add(c)
 
-        visit = SiteVisit(browser=c, site_url=url, site_rank=-1)
+        return c
+
+
+def start_crawl(browser_id: int, url: str) -> SiteVisit:
+    with SessionLocal.begin() as session:
+        visit = SiteVisit(browser_id=browser_id, site_url=url, site_rank=-1)
         session.add(visit)
 
-    return (c, visit)
+        return visit
 
 
 def store_result(
