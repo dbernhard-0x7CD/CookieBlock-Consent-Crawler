@@ -835,7 +835,8 @@ class Chrome(CBConsentCrawlerBrowser):
         )
 
         # Time to wait when calling driver.get
-        # self.driver.set_page_load_timeout(Config().PAGE_TIMEOUT_SEC)
+        self.driver.set_page_load_timeout(30)
+        self.driver.set_script_timeout(30)
 
         self.driver.add_cdp_listener(
             "Network.responseReceived", self._handle_cdp_response_received
