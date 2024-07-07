@@ -400,15 +400,20 @@ class Browser(ABC):
         Wrapper of browser execute_script. Raises JavascriptException
         """
         self.logger.debug("Executing JS code in selenium: %s", script)
-        try:
-            res = self.driver.execute_script(script, *args)
-            # self.logger.info("> Result was: %s", res)
-            return res
-        except JavascriptException as e:
-            if raise_exception:
-                raise e
-            else:
-                self.logger.exception(f"JavaScript exception encountered {e}")
+        for i in range(3):
+            try:
+                res = self.driver.execute_script(script, *args)
+                # self.logger.info("> Result was: %s", res)
+                return res
+            except JavascriptException as e:
+                if raise_exception:
+                    raise e
+                else:
+                    self.logger.exception(f"JavaScript exception encountered {e}")
+            except TimeoutException as e:
+                if i >= 2:
+                    raise e
+                self.logger.info("Timed out when executing script")
 
     @post_load_routine
     def _press_key(self, key: Any) -> None:
