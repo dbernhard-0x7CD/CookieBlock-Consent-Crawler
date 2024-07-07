@@ -20,7 +20,14 @@ from hyperlink import URL
 
 
 from crawler.browser import Chrome
-from crawler.database import initialize_base_db, SiteVisit, SessionLocal, start_task, Crawl, start_crawl
+from crawler.database import (
+    initialize_base_db,
+    SiteVisit,
+    SessionLocal,
+    start_task,
+    Crawl,
+    start_crawl,
+)
 from crawler.utils import set_log_formatter, is_on_same_domain
 from crawler.enums import CrawlerType, CrawlState
 
@@ -39,8 +46,7 @@ def run_crawler() -> None:
     logger.propagate = False
 
     set_log_formatter(
-        logger,
-        "%(asctime)s %(levelname)s %(name)s: %(message)s", "%Y-%m-%d:%H:%M:%S"
+        logger, "%(asctime)s %(levelname)s %(name)s: %(message)s", "%Y-%m-%d:%H:%M:%S"
     )
     log_formatter = logging.Formatter(
         "%(asctime)s %(levelname)s %(name)s: %(message)s", "%Y-%m-%d:%H:%M:%S"
@@ -109,7 +115,7 @@ def run_crawler() -> None:
     parser.add_argument(
         "--num-subpages",
         help="Amount of links to follow when visiting a domain",
-        default=10
+        default=10,
     )
 
     args = parser.parse_args()
@@ -153,7 +159,7 @@ def run_crawler() -> None:
     if args.launch_browser:
         with Chrome(
             seconds_before_processing_page=1,
-            headless=False, # Definitely start headfull
+            headless=False,  # Definitely start headfull
             use_temp=False,
             chrome_profile_path=chrome_profile_path,
             chromedriver_path=chromedriver_path,
@@ -208,7 +214,7 @@ def run_crawler() -> None:
         file_handler = logging.FileHandler(log_dir / f"visit_{id}.log")
         log_formatter = logging.Formatter(
             fmt="%(asctime)s %(levelname)s %(filename)s %(name)s: %(message)s",
-            datefmt="%Y-%m-%d:%H:%M:%S"
+            datefmt="%Y-%m-%d:%H:%M:%S",
         )
         file_handler.setFormatter(log_formatter)
         crawl_logger.addHandler(file_handler)
@@ -234,24 +240,34 @@ def run_crawler() -> None:
 
             browser.load_page(u)
             crawl_logger.info("Loaded url %s", u)
-            
+
             # bot mitigation
             crawl_logger.info("Calling bot mitigation")
             browser.bot_mitigation(max_sleep_seconds=1)
 
             crawler_type, crawler_state = browser.crawl_cmps(visit=visit)
-            
-            if crawler_type == CrawlerType.FAILED or crawler_state == CrawlState.CMP_NOT_FOUND:
-                browser.collect_cookies(visit=visit)
-                return True # Abort as in the original crawler
 
-            logger.info("CMP result is %s and %s", crawler_type.name, crawler_state.name)
+            if crawler_type == CrawlerType.FAILED or crawler_state in [
+                CrawlState.CMP_NOT_FOUND,
+                CrawlState.NO_COOKIES,
+            ]:
+                browser.collect_cookies(visit=visit)
+                return True  # Abort as in the original crawler
+
+            logger.info(
+                "CMP result is %s and %s", crawler_type.name, crawler_state.name
+            )
             browser.load_page(u)
 
             # visit subpages
-            links = list(filter(lambda x: is_on_same_domain(x.url.to_text(), url), browser.get_links()))
+            links = list(
+                filter(
+                    lambda x: is_on_same_domain(x.url.to_text(), url),
+                    browser.get_links(),
+                )
+            )
             crawl_logger.info("Found %s links", len(links))
-            
+
             chosen = random.choices(links, k=min(num_subpages, len(links)))
             for i, l in enumerate(chosen):
                 crawl_logger.info("Subvisiting [%i]: %s", i, l.url.to_text())
@@ -262,7 +278,13 @@ def run_crawler() -> None:
 
             return True
 
-    res = pqdm(urls, run_domain, n_jobs=num_browsers, total=len(urls), exception_behaviour="immediate")
+    res = pqdm(
+        urls,
+        run_domain,
+        n_jobs=num_browsers,
+        total=len(urls),
+        exception_behaviour="immediate",
+    )
 
     logger.info("Result is %s", all(res))
     logger.info("CB-CCrawler has finished.")
