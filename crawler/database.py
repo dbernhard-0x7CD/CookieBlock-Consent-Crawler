@@ -82,7 +82,7 @@ class Cookie(Base):
     record_type: Mapped[Optional[str]]
     change_cause: Mapped[Optional[str]]
 
-    expiry: Mapped[Optional[DateTime]] = mapped_column(DateTime(timezone=True))
+    expiry: Mapped[Optional[str]]
     is_http_only: Mapped[Optional[int]]
     is_host_only: Mapped[Optional[int]]
     is_session: Mapped[Optional[int]]
@@ -97,7 +97,7 @@ class Cookie(Base):
     first_party_domain: Mapped[Optional[str]]
     store_id: Mapped[Optional[str]]
 
-    time_stamp: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    time_stamp: Mapped[str]
 
 
 class SiteVisit(Base):
@@ -315,7 +315,7 @@ def store_cookie(
             event_ordinal=event_ordinal,
             record_type=record_type,
             change_cause=change_cause,
-            expiry=expiry,
+            expiry=expiry.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z" if expiry else None,
             is_http_only=is_http_only,
             is_host_only=is_host_only,
             is_session=is_session,
@@ -327,6 +327,6 @@ def store_cookie(
             same_site=same_site,
             first_party_domain=first_party_domain,
             store_id=store_id,
-            time_stamp=time_stamp,
+            time_stamp=(time_stamp.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]) + "Z",
         )
         session.add(js_cookie)
