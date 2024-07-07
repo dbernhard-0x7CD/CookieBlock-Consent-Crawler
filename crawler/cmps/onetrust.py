@@ -285,6 +285,7 @@ def _variantA_try_retrieve_ruleset_id(domain_url: str, dd_id: str,
     state, ruleset_json = browser.get_content(target_url)
 
     if state != PageState.OK:
+        logger.error("Failed to get ruleset id from %s", target_url)
         return [], CrawlState.LIBRARY_ERROR, f"PageState of {target_url} is {state}"
 
     ids = []
