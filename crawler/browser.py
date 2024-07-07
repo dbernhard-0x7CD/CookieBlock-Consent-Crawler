@@ -58,9 +58,9 @@ from crawler.database import store_result, Crawl, SiteVisit, store_cookie
 from crawler.enums import PageState, CookieTuple, CrawlerType, CrawlState
 
 from crawler.cmps.cookiebot import CookiebotCMP
+from crawler.cmps.onetrust import OnetrustCMP
 
 # from crawler.cmps.termly import check_termly_presence, internal_termly_scrape
-from crawler.cmps.onetrust import check_onetrust_presence, internal_onetrust_scrape
 
 FuncT = TypeVar("FuncT", bound=Callable[..., Any])
 
@@ -444,17 +444,18 @@ class CBConsentCrawlerBrowser(Browser):
         results: Dict[CrawlerType, Any] = dict()
 
         cookiebot_cmp = CookiebotCMP(self.logger)
+        onetrust_cmp = OnetrustCMP(self.logger)
 
         # Presence check before full crawl process
         presence_check_methods = {
-            CrawlerType.ONETRUST: check_onetrust_presence,
+            CrawlerType.ONETRUST: onetrust_cmp.check_presence,
             CrawlerType.COOKIEBOT: cookiebot_cmp.check_presence,
             # CrawlerType.TERMLY: check_termly_presence,
         }
 
         # All supported crawl methods
         crawl_methods: Dict = {
-            CrawlerType.ONETRUST: internal_onetrust_scrape,
+            CrawlerType.ONETRUST: onetrust_cmp.scrape,
             CrawlerType.COOKIEBOT: cookiebot_cmp.scrape,
             # CrawlerType.TERMLY: internal_termly_scrape,
         }
