@@ -41,6 +41,8 @@ tests:
       crawler/utils.py
       crawler/browser.py
       crawler/database.py
+      crawler/enums.py
+      crawler/cmps/onetrust.py
 
 # This creates a docker image from each tag with the git tagname as the container tagname
 # The built image gets published on infsec-server.inf.ethz.ch
