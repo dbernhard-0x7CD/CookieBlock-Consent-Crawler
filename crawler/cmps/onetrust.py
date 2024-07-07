@@ -346,7 +346,6 @@ def _variantA_get_and_parse_json(domain_url: str, dd_id: str, ruleset_ids: List[
 
         if state != PageState.OK:
             logger.error("ONETRUST: VARIANT A: Failed to retrieve ruleset at: %s, (browser_id: %s)", curr_ruleset_url, browser.browser_id)
-            # c_logmsg(f"ONETRUST: VARIANT A: Details: {state} -- {report}", browser.browser_id, logging.DEBUG)
             logger.error("ONETRUST: VARIANT A: Details: %s -- %s (browser_id: %s)", state, f"State is {state}", browser.browser_id)
             continue
 
