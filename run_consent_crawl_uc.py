@@ -111,9 +111,7 @@ def run_crawler() -> None:
         raise CrawlerException(f"File at {file_crawllist} does not exist")
 
     if args.num_browsers:
-        # TODO implemet this
         num_browsers = int(args.num_browsers)
-        # raise CrawlerException("--num_browsers Not yet implemented")
     else:
         num_browsers = 1
 
