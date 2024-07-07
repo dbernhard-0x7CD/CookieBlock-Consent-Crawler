@@ -86,9 +86,9 @@ class CookiebotCMP(AbstractCMP):
             1. Resulting crawl state.
             2. Error report, or number of extracted cookies if successful.
         """
-        assert webdriver.crawl
+        assert webdriver.browser_id
 
-        browser_id = webdriver.crawl.browser_id
+        browser_id = webdriver.browser_id
 
         # try to retrieve cookiebot ID required to access cc.js
         cbid, tld = cast(
@@ -267,9 +267,9 @@ class CookiebotCMP(AbstractCMP):
         :param webdriver: Selenium webdriver
         :return CBID, or None if not found.
         """
-        assert browser.crawl
+        assert browser.browser_id
 
-        browser_id = browser.crawl.browser_id
+        browser_id = browser.browser_id
 
         # Try to find the Cookie Bot ID inside of a script tag, using the cbid attribute.
         maybe_cbid = browser.execute_in_IFrames(self._find_cbid_script_tag, timeout=3)

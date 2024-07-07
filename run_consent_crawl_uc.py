@@ -174,7 +174,7 @@ def run_crawler() -> None:
             chrome_profile_path=chrome_profile_path,
             chromedriver_path=chromedriver_path,
             chrome_path=chrome_path,
-            crawl=None,
+            browser_id=-1,
             logger=logger,
         ) as browser:
             browser.load_page(URL.from_text("about:blank"))
@@ -227,10 +227,11 @@ def run_crawler() -> None:
     # Add browser config to the database
     crawl = register_browser_config(task_id=task_id, browser_params=json.dumps(browser_params))
     assert crawl.browser_id
+    browser_id = crawl.browser_id
 
     def run_domain(url: str) -> bool:
         tid = threading.get_native_id() % num_browsers
-        visit = start_crawl(browser_id=crawl.browser_id, url=url)
+        visit = start_crawl(browser_id=browser_id, url=url)
 
         id = visit.visit_id
         crawl_logger = logging.getLogger(f"visit-{visit.visit_id}")
@@ -259,7 +260,7 @@ def run_crawler() -> None:
             chrome_profile_path=chrome_profile_path,
             chromedriver_path=chromedriver_path,
             chrome_path=chrome_path,
-            crawl=crawl,
+            browser_id=browser_id,crawl=crawl,
             logger=crawl_logger,
             **browser_params,
         ) as browser:
