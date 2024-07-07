@@ -40,6 +40,7 @@ SessionLocal = sessionmaker(expire_on_commit=False)
 
 logger = logging.getLogger("cookieblock-consent-crawler")
 
+
 class Base(DeclarativeBase):
     pass
 
@@ -217,10 +218,12 @@ def initialize_base_db(
         logger.info("Created database.")
 
 
-def start_task(browser_version: str) -> Task:
+def start_task(browser_version: str, manager_params: Optional[str]) -> Task:
     with SessionLocal.begin() as session:
         t = Task(
-            manager_params="TODO", openwpm_version="-1", browser_version=browser_version
+            manager_params=manager_params if manager_params else "",
+            openwpm_version="-1",
+            browser_version=browser_version,
         )
         session.add(t)
     return t
