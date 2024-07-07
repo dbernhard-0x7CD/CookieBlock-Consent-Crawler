@@ -261,7 +261,9 @@ class Browser(ABC):
             return PageState.UNKNOWN_ERROR
         if error:
             # an error on get without extra
-            self.logger.error("Unknown error occurred on page load of %s.", str(url), exc_info=error)
+            self.logger.error(
+                "Unknown error occurred on page load of %s.", str(url), exc_info=error
+            )
             return PageState.UNKNOWN_ERROR
 
         # this indicates the list was probably an anchor and no reload happened (e.g. SPA)
@@ -661,7 +663,12 @@ class CBConsentCrawlerBrowser(Browser):
             )
             time.sleep(0.01 + random.random())
 
-    def bot_mitigation(self, max_sleep_seconds: int = 7, prob_scrolling: float = 0.8, num_mouse_moves = 10) -> None:
+    def bot_mitigation(
+        self,
+        max_sleep_seconds: int = 7,
+        prob_scrolling: float = 0.8,
+        num_mouse_moves=10,
+    ) -> None:
         RANDOM_SLEEP_LOW = 1  # low (in sec) for random sleep between page loads
         """ Performs a number of commands intended for bot mitigation """
 
@@ -669,7 +676,7 @@ class CBConsentCrawlerBrowser(Browser):
         window_size = self.driver.get_window_size()
         num_moves = 0
         num_fails = 0
-        
+
         while num_moves < num_mouse_moves + 1 and num_fails < num_mouse_moves:
             try:
                 if num_moves == 0:  # move to the center of the screen
@@ -701,7 +708,11 @@ class CBConsentCrawlerBrowser(Browser):
         if max_sleep_seconds <= RANDOM_SLEEP_LOW:
             time.sleep(max_sleep_seconds)
         else:
-            time.sleep(prandom.randrange(min(RANDOM_SLEEP_LOW, max_sleep_seconds), max_sleep_seconds))
+            time.sleep(
+                prandom.randrange(
+                    min(RANDOM_SLEEP_LOW, max_sleep_seconds), max_sleep_seconds
+                )
+            )
         self.logger.info("Random sleep finished.")
 
 
