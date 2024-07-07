@@ -28,6 +28,7 @@ from crawler.database import (
     start_task,
     Crawl,
     start_crawl,
+    register_browser_config,
 )
 from crawler.utils import set_log_formatter, is_on_same_domain
 from crawler.enums import CrawlerType, CrawlState
@@ -222,10 +223,13 @@ def run_crawler() -> None:
     browser_params = {
         "use_temp": True
     }
+    
+    # Add browser config to the database
+    crawl = register_browser_config(task_id=task_id, browser_params=json.dumps(browser_params))
 
     def run_domain(url: str) -> bool:
         tid = threading.get_native_id() % num_browsers
-        crawl, visit = start_crawl(task_id=task_id, browser_params=json.dumps(browser_params), url=url)
+        crawl, visit = start_crawl(browser_id=crawl.browser_id, url=url)
 
         id = visit.visit_id
         logger.info("Preparing logger for crawl with visit_id %s", id)
