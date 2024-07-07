@@ -266,10 +266,7 @@ def run_crawler() -> None:
 
             crawler_type, crawler_state = browser.crawl_cmps(visit=visit)
 
-            if crawler_type == CrawlerType.FAILED or crawler_state in [
-                CrawlState.CMP_NOT_FOUND,
-                CrawlState.NO_COOKIES,
-            ]:
+            if crawler_type == CrawlerType.FAILED or crawler_state != CrawlState.SUCCESS:
                 browser.collect_cookies(visit=visit)
                 return True  # Abort as in the original crawler
 
