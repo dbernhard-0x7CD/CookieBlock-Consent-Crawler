@@ -315,6 +315,7 @@ def store_cookie(
             event_ordinal=event_ordinal,
             record_type=record_type,
             change_cause=change_cause,
+            # For compitability with older scripts
             expiry=expiry.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z" if expiry else None,
             is_http_only=is_http_only,
             is_host_only=is_host_only,
@@ -327,6 +328,7 @@ def store_cookie(
             same_site=same_site,
             first_party_domain=first_party_domain,
             store_id=store_id,
+            # For compitability with older scripts
             time_stamp=(time_stamp.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]) + "Z",
         )
         session.add(js_cookie)
