@@ -33,10 +33,6 @@ def set_log_formatter(logger: Logger, fmt: str, date_format: str) -> None:
     for handler in logger.handlers:
         handler.setFormatter(log_formatter)
 
-    console_handler = logging.StreamHandler()
-    console_handler.setFormatter(log_formatter)
-    console_handler.setLevel(logging.INFO)
-    logger.addHandler(console_handler)
 
 def is_on_same_domain(u1: str, u2: str) -> bool:
     extract1 = tldextract.extract(u1)
