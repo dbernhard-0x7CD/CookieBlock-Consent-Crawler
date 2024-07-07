@@ -114,6 +114,12 @@ def run_crawler() -> None:
         action="store_true",
     )
     parser.add_argument(
+        "--no-stdout",
+        help="Do not print crawl results to stdout",
+        action="store_true",
+        default=False,
+    )
+    parser.add_argument(
         "--num-subpages",
         help="Amount of links to follow when visiting a domain",
         default=10,
@@ -122,6 +128,8 @@ def run_crawler() -> None:
     args = parser.parse_args()
 
     file_crawllist = args.file
+
+    no_stdout: bool = args.no_stdout
 
     if file_crawllist and (not os.path.exists(file_crawllist)):
         raise CrawlerException(f"File at {file_crawllist} does not exist")
@@ -228,9 +236,11 @@ def run_crawler() -> None:
         file_handler.setFormatter(log_formatter)
         crawl_logger.addHandler(file_handler)
 
-        stdout_handler = logging.StreamHandler()
-        stdout_handler.setFormatter(log_formatter)
-        crawl_logger.addHandler(stdout_handler)
+        # Only add stdout as handler if desired
+        if not no_stdout:
+            stdout_handler = logging.StreamHandler()
+            stdout_handler.setFormatter(log_formatter)
+            crawl_logger.addHandler(stdout_handler)
 
         crawl_logger.setLevel(logging.INFO)
         crawl_logger.info("Working on %s [thread: %s]", url, tid)
