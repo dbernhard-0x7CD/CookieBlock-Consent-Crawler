@@ -197,11 +197,19 @@ def run_crawler() -> None:
     # sort for having the same database as the original. TODO: remove?
     urls = list(sorted(urls))
 
-    task = start_task(browser_version="Chrome 122")
+    parameters = {
+        "data_directory": str(data_path),
+        "log_directory": str(log_dir),
+        "database_name": str(database_file),
+        "num_browsers": str(num_browsers)
+    }
+    task = start_task(
+        browser_version="Chrome 122", manager_params=json.dumps(parameters)
+    )
     task_id = task.task_id
 
     logger.info("Task: %s", task)
-    
+
     def run_domain(url: str) -> bool:
         tid = threading.get_native_id() % num_browsers
         crawl, visit = start_crawl(task_id=task_id, browser_params="TODO", url=url)
