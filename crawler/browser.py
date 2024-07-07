@@ -594,8 +594,7 @@ class CBConsentCrawlerBrowser(Browser):
         self.logger.info("There are %i actual cookies stored.", len(cookies))
 
         for x in cookies:
-            # Debugging
-            self.logger.info("Storing cookie (DEBUG OUTPUT)\n%s\n", x)
+            self.logger.debug("Storing cookie (DEBUG OUTPUT)\n%s\n", x)
 
             if (not "variable_data" in x) or len(x["variable_data"]) == 0:
                 raise RuntimeError("Unexpected. Variable_data missing in cookie")
