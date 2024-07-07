@@ -21,7 +21,7 @@ from hyperlink import URL
 from crawler.browser import Chrome
 from crawler.database import initialize_base_db, SiteVisit, SessionLocal, start_task, Crawl, start_crawl
 from crawler.utils import set_log_formatter, is_on_same_domain
-
+from crawler.enums import CrawlerType
 
 
 class CrawlerException(Exception):
@@ -233,7 +233,11 @@ def run_crawler() -> None:
             browser_logger.info("Calling bot mitigation")
             browser.bot_mitigation(max_sleep_seconds=1)
 
-            browser.crawl_cmps(visit=visit)
+            crawler_type = browser.crawl_cmps(visit=visit)
+            
+            if crawler_type == CrawlerType.FAILED:
+                browser.collect_cookies(visit=visit)
+                return True # Abort as in the original crawler
 
             browser.load_page(u)
 

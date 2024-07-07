@@ -447,7 +447,7 @@ class CBConsentCrawlerBrowser(Browser):
     def load_page(self, url: URL, timeout: Optional[float] = None) -> PageState:
         return super().load_page(url, timeout)
 
-    def crawl_cmps(self, visit: SiteVisit) -> None:
+    def crawl_cmps(self, visit: SiteVisit) -> Tuple[CrawlerType, CrawlState]:
         self.logger.info("Checking for CMPs")
 
         if self.crawl is None:
@@ -479,7 +479,7 @@ class CBConsentCrawlerBrowser(Browser):
                     visit=visit,
                     crawlState=crawl_state,
                 )
-                return  # original crawler only crawls first one
+                return t, crawl_state  # original crawler only crawls first one
         store_result(
             browser=self.crawl,
             visit=visit,
@@ -487,6 +487,8 @@ class CBConsentCrawlerBrowser(Browser):
             cmp_type=CrawlerType.FAILED,
             crawlState=CrawlState.CMP_NOT_FOUND,
         )
+        
+        return CrawlerType.FAILED, CrawlState.CMP_NOT_FOUND
 
     # TODO: add type to command
     def execute_in_IFrames(self, command, timeout: int) -> Optional[Any]:
