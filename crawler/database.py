@@ -246,7 +246,7 @@ def start_crawl(browser_id: int, url: str) -> SiteVisit:
 
 
 def store_result(
-    browser: Crawl,
+    browser_id: int,
     visit: SiteVisit,
     cmp_type: CrawlerType,
     report: str,
@@ -254,7 +254,7 @@ def store_result(
 ) -> None:
     with SessionLocal.begin() as session:
         result = ConsentCrawlResult(
-            browser=browser,
+            browser_id=browser_id,
             visit=visit,
             crawl_state=crawlState.value,
             cmp_type=cmp_type.value,
@@ -293,7 +293,7 @@ def store_consent_data(
 
 def store_cookie(
     visit: SiteVisit,
-    browser: Crawl,
+    browser_id: int,
     time_stamp: datetime,
     extension_session_uuid: Optional[str],
     event_ordinal: Optional[str],
@@ -315,7 +315,7 @@ def store_cookie(
     with SessionLocal.begin() as session:
         js_cookie = Cookie(
             visit=visit,
-            browser=browser,
+            browser_id=browser_id,
             extension_session_uuid=extension_session_uuid,
             event_ordinal=event_ordinal,
             record_type=record_type,

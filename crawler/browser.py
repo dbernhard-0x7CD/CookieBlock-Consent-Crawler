@@ -419,7 +419,7 @@ class CBConsentCrawlerBrowser(Browser):
         self,
         seconds_before_processing_page: float,
         logger: Logger,
-        crawl: Optional[Crawl],
+        browser_id: int,
         proxy: Optional[str] = None,
     ) -> None:
         super().__init__(
@@ -430,7 +430,7 @@ class CBConsentCrawlerBrowser(Browser):
         )
 
         self.cookie_tracker: set[CookieTuple] = set()
-        self.crawl = crawl
+        self.browser_id = browser_id
 
     def load_page(self, url: URL, timeout: Optional[float] = None) -> PageState:
         return super().load_page(url, timeout)
@@ -438,7 +438,7 @@ class CBConsentCrawlerBrowser(Browser):
     def crawl_cmps(self, visit: SiteVisit) -> Tuple[CrawlerType, CrawlState]:
         self.logger.info("Checking for CMPs")
 
-        if self.crawl is None:
+        if self.browser_id is None:
             raise RuntimeError(
                 "This instance cannot be used to crawl as 'crawl' was not set when initializing this browser"
             )
@@ -478,7 +478,7 @@ class CBConsentCrawlerBrowser(Browser):
                 self.logger.info("%s Result %s, %s", t.name, crawl_state, message)
 
                 store_result(
-                    browser=self.crawl,
+                    browser_id=self.browser_id,
                     cmp_type=t,
                     report=message,
                     visit=visit,
@@ -486,7 +486,7 @@ class CBConsentCrawlerBrowser(Browser):
                 )
                 return t, crawl_state  # original crawler only crawls first one
         store_result(
-            browser=self.crawl,
+            browser_id=self.browser_id,
             visit=visit,
             report="No known Consent Management Platform found on the given URL.",
             cmp_type=CrawlerType.FAILED,
@@ -504,12 +504,12 @@ class CBConsentCrawlerBrowser(Browser):
         @return: None if not found, Any if found
         """
 
-        if self.crawl is None:
+        if self.browser_id is None:
             raise RuntimeError(
                 "This instance cannot be used to crawl as 'crawl' was not set when initializing this browser"
             )
 
-        result = command(self.driver, self.crawl, timeout)
+        result = command(self.driver, self.browser_id, timeout)
         if result:
             return result
         else:
@@ -520,7 +520,7 @@ class CBConsentCrawlerBrowser(Browser):
                 try:
                     self.driver.switch_to.default_content()
                     self.driver.switch_to.frame(iframe)
-                    result = command(self.driver, self.crawl, timeout=0)
+                    result = command(self.driver, self.browser_id, timeout=0)
                     if result:
                         self.driver.switch_to.default_content()
                         return result
@@ -541,7 +541,7 @@ class CBConsentCrawlerBrowser(Browser):
 
         self.logger.info("Collecting cookies")
 
-        if self.crawl is None:
+        if self.browser_id is None:
             raise RuntimeError(
                 "This instance cannot be used to crawl as 'crawl' was not set when initializing this browser"
             )
@@ -622,7 +622,7 @@ class CBConsentCrawlerBrowser(Browser):
 
                 store_cookie(
                     visit=visit,
-                    browser=self.crawl,
+                    browser_id=self.browser_id,
                     extension_session_uuid=None,
                     event_ordinal=None,
                     record_type="unknown",
@@ -724,7 +724,7 @@ class Chrome(CBConsentCrawlerBrowser):
         chromedriver_path: Path,
         chrome_profile_path: Path,
         logger: Logger,
-        crawl: Optional[Crawl],
+        browser_id: int,
         use_temp: bool = True,
         intercept_network: bool = True,
         headless: bool = True,
@@ -739,7 +739,7 @@ class Chrome(CBConsentCrawlerBrowser):
         """
         super().__init__(
             seconds_before_processing_page=seconds_before_processing_page,
-            crawl=crawl,
+            browser_id=browser_id,
             logger=logger,
         )
         self._requests: list[Any] = []
