@@ -218,10 +218,14 @@ def run_crawler() -> None:
     task_id = task.task_id
 
     logger.info("Task: %s", task)
+    
+    browser_params = {
+        "use_temp": True
+    }
 
     def run_domain(url: str) -> bool:
         tid = threading.get_native_id() % num_browsers
-        crawl, visit = start_crawl(task_id=task_id, browser_params="TODO", url=url)
+        crawl, visit = start_crawl(task_id=task_id, browser_params=json.dumps(browser_params), url=url)
 
         id = visit.visit_id
         logger.info("Preparing logger for crawl with visit_id %s", id)
@@ -248,12 +252,12 @@ def run_crawler() -> None:
         with Chrome(
             seconds_before_processing_page=1,
             headless=headless,
-            use_temp=True,
             chrome_profile_path=chrome_profile_path,
             chromedriver_path=chromedriver_path,
             chrome_path=chrome_path,
             crawl=crawl,
             logger=crawl_logger,
+            **browser_params,
         ) as browser:
             u = URL.from_text(url)
 
