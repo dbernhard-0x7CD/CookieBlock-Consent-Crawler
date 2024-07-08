@@ -492,7 +492,7 @@ class CBConsentCrawlerBrowser(Browser):
             cmp_type=CrawlerType.FAILED,
             crawlState=CrawlState.CMP_NOT_FOUND,
         )
-        
+
         return CrawlerType.FAILED, CrawlState.CMP_NOT_FOUND
 
     # TODO: add type to command
@@ -613,7 +613,7 @@ class CBConsentCrawlerBrowser(Browser):
                     if "timestamp" in var_data
                     else datetime.now()
                 )
-                
+
                 if "expirationDate" in var_data:
                     expiry = datetime.fromtimestamp(int(var_data["expirationDate"]))
                 else:
