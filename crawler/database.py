@@ -234,15 +234,15 @@ def register_browser_config(task_id: int, browser_params: str) -> Crawl:
         c = Crawl(task_id=task_id, browser_params=browser_params)
         session.add(c)
 
-        return c
+    return c
 
 
 def start_crawl(browser_id: int, url: str) -> SiteVisit:
     with SessionLocal.begin() as session:
         visit = SiteVisit(browser_id=browser_id, site_url=url, site_rank=-1)
         session.add(visit)
-
-        return visit
+        
+    return visit
 
 
 def store_result(
@@ -255,7 +255,7 @@ def store_result(
     with SessionLocal.begin() as session:
         result = ConsentCrawlResult(
             browser_id=browser_id,
-            visit=visit,
+            visit_id=visit.visit_id,
             crawl_state=crawlState.value,
             cmp_type=cmp_type.value,
             report=report,
@@ -277,9 +277,9 @@ def store_consent_data(
 ) -> None:
     with SessionLocal.begin() as session:
         data = ConsentData(
-            browser=browser,
+            browser_id=browser.browser_id,
             name=name,
-            visit=visit,
+            visit_id=visit.visit_id,
             domain=domain,
             cat_id=cat_id,
             cat_name=cat_name,
@@ -314,7 +314,7 @@ def store_cookie(
 ):
     with SessionLocal.begin() as session:
         js_cookie = Cookie(
-            visit=visit,
+            visit_id=visit.visit_id,
             browser_id=browser_id,
             extension_session_uuid=extension_session_uuid,
             event_ordinal=event_ordinal,

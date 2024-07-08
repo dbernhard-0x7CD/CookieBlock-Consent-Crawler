@@ -233,75 +233,78 @@ def run_crawler() -> None:
         tid = threading.get_native_id() % num_browsers
         visit = start_crawl(browser_id=browser_id, url=url)
 
-        id = visit.visit_id
-        crawl_logger = logging.getLogger(f"visit-{visit.visit_id}")
-        crawl_logger.propagate = False
+        with SessionLocal.begin() as session:
+            session.add(visit)
 
-        file_handler = logging.FileHandler(log_dir / f"visit_{id}.log")
-        log_formatter = logging.Formatter(
-            fmt="%(asctime)s %(levelname)s %(filename)s %(name)s: %(message)s",
-            datefmt="%Y-%m-%d:%H:%M:%S",
-        )
-        file_handler.setFormatter(log_formatter)
-        crawl_logger.addHandler(file_handler)
+            id = visit.visit_id
+            crawl_logger = logging.getLogger(f"visit-{visit.visit_id}")
+            crawl_logger.propagate = False
 
-        # Only add stdout as handler if desired
-        if not no_stdout:
-            stdout_handler = logging.StreamHandler()
-            stdout_handler.setFormatter(log_formatter)
-            crawl_logger.addHandler(stdout_handler)
-
-        crawl_logger.setLevel(logging.INFO)
-        crawl_logger.info("Working on %s [thread: %s]", url, tid)
-
-        with Chrome(
-            seconds_before_processing_page=1,
-            headless=headless,
-            chrome_profile_path=chrome_profile_path,
-            chromedriver_path=chromedriver_path,
-            chrome_path=chrome_path,
-            browser_id=browser_id,crawl=crawl,
-            logger=crawl_logger,
-            **browser_params,
-        ) as browser:
-            u = URL.from_text(url)
-
-            browser.load_page(u)
-            crawl_logger.info("Loaded url %s", u)
-
-            # bot mitigation
-            crawl_logger.info("Calling bot mitigation")
-            browser.bot_mitigation(max_sleep_seconds=1)
-
-            crawler_type, crawler_state = browser.crawl_cmps(visit=visit)
-
-            if crawler_type == CrawlerType.FAILED or crawler_state != CrawlState.SUCCESS:
-                browser.collect_cookies(visit=visit)
-                return True  # Abort as in the original crawler
-
-            logger.info(
-                "CMP result is %s and %s", crawler_type.name, crawler_state.name
+            file_handler = logging.FileHandler(log_dir / f"visit_{id}.log")
+            log_formatter = logging.Formatter(
+                fmt="%(asctime)s %(levelname)s %(filename)s %(name)s: %(message)s",
+                datefmt="%Y-%m-%d:%H:%M:%S",
             )
-            browser.load_page(u)
+            file_handler.setFormatter(log_formatter)
+            crawl_logger.addHandler(file_handler)
 
-            # visit subpages
-            links = list(
-                filter(
-                    lambda x: is_on_same_domain(x.url.to_text(), url),
-                    browser.get_links(),
+            # Only add stdout as handler if desired
+            if not no_stdout:
+                stdout_handler = logging.StreamHandler()
+                stdout_handler.setFormatter(log_formatter)
+                crawl_logger.addHandler(stdout_handler)
+
+            crawl_logger.setLevel(logging.INFO)
+            crawl_logger.info("Working on %s [thread: %s]", url, tid)
+
+            with Chrome(
+                seconds_before_processing_page=1,
+                headless=headless,
+                chrome_profile_path=chrome_profile_path,
+                chromedriver_path=chromedriver_path,
+                chrome_path=chrome_path,
+                browser_id=browser_id,crawl=crawl,
+                logger=crawl_logger,
+                **browser_params,
+            ) as browser:
+                u = URL.from_text(url)
+
+                browser.load_page(u)
+                crawl_logger.info("Loaded url %s", u)
+
+                # bot mitigation
+                crawl_logger.info("Calling bot mitigation")
+                browser.bot_mitigation(max_sleep_seconds=1)
+
+                crawler_type, crawler_state = browser.crawl_cmps(visit=visit)
+
+                if crawler_type == CrawlerType.FAILED or crawler_state != CrawlState.SUCCESS:
+                    browser.collect_cookies(visit=visit)
+                    return True  # Abort as in the original crawler
+
+                crawl_logger.info(
+                    "CMP result is %s and %s", crawler_type.name, crawler_state.name
                 )
-            )
-            crawl_logger.info("Found %s links", len(links))
+                browser.load_page(u)
 
-            chosen = random.choices(links, k=min(num_subpages, len(links)))
-            for i, l in enumerate(chosen):
-                crawl_logger.info("Subvisiting [%i]: %s", i, l.url.to_text())
-                browser.load_page(l.url)
-                browser.bot_mitigation(max_sleep_seconds=1, num_mouse_moves=1)
+                # visit subpages
+                links = list(
+                    filter(
+                        lambda x: is_on_same_domain(x.url.to_text(), url),
+                        browser.get_links(),
+                    )
+                )
+                crawl_logger.info("Found %s links", len(links))
 
-            browser.collect_cookies(visit=visit)
+                chosen = random.choices(links, k=min(num_subpages, len(links)))
+                for i, l in enumerate(chosen):
+                    crawl_logger.info("Subvisiting [%i]: %s", i, l.url.to_text())
+                    browser.load_page(l.url)
+                    browser.bot_mitigation(max_sleep_seconds=1, num_mouse_moves=1)
 
-            return True
+                browser.collect_cookies(visit=visit)
+
+                return True
 
     res = pqdm(
         urls,
