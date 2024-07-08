@@ -167,9 +167,11 @@ class OnetrustCMP(AbstractCMP):
         """
 
         # Variant A, Part 1: Try to retrieve data domain id
-        browser = visit.browser
+        browser_id = visit.browser.browser_id
+        assert browser_id
+
         self.logger.info(
-            "ONETRUST: Attempting Variant A (browser_id: %s)", browser.browser_id
+            "ONETRUST: Attempting Variant A (browser_id: %s)", browser_id
         )
 
         result = webdriver.execute_in_IFrames(
@@ -183,7 +185,7 @@ class OnetrustCMP(AbstractCMP):
                 "ONETRUST: VARIANT A: OneTrust data domain url = %s, %s (browser_id: %s)",
                 domain_url,
                 dd_id,
-                browser.browser_id,
+                browser_id,
             )
 
             # Variant A, Part 2: Using the data domain ID, retrieve ruleset ID list
@@ -194,19 +196,19 @@ class OnetrustCMP(AbstractCMP):
                 self.logger.error(
                     "FAILED to retrieve ruleset_id: %s (browser_id: %s)",
                     state,
-                    browser.browser_id,
+                    browser_id,
                 )
                 return state, report
 
             self.logger.info(
                 "ONETRUST: VARIANT A: Found %s ruleset ids (browser_id: %s)",
                 len(rs_ids),
-                browser.browser_id,
+                browser_id,
             )
             self.logger.debug(
                 "ONETRUST: VARIANT A: Retrieved ruleset ids %s",
                 rs_ids,
-                browser.browser_id,
+                browser_id,
             )
 
             # Variant A, Part 3: For each ruleset id, retrieve cookie json
@@ -217,20 +219,20 @@ class OnetrustCMP(AbstractCMP):
                 self.logger.error(
                     "FAILED to get and parse json with dd_id: %s (browser_id: %s)",
                     dd_id,
-                    browser.browser_id,
+                    browser_id,
                 )
                 return state, report
 
             self.logger.info(
                 "ONETRUST: VARIANT A: Retrieved %s cookies (browser_id: %s)",
                 cookie_count,
-                browser.browser_id,
+                browser_id,
             )
         else:
             # Variant B, Part 1: Obtain the javascript URL
 
             self.logger.info(
-                "ONETRUST: Attempting Variant B (browser_id: %s)", browser.browser_id
+                "ONETRUST: Attempting Variant B (browser_id: %s)", browser_id
             )
 
             script_url = webdriver.execute_in_IFrames(
@@ -241,14 +243,14 @@ class OnetrustCMP(AbstractCMP):
                     "ONETRUST: Could not find a valid OneTrust CMP Variant on this URL."
                 )
                 self.logger.error(
-                    "%s (browser_id: %s): %s", report, browser.browser_id, result
+                    "%s (browser_id: %s): %s", report, browser_id, result
                 )
 
                 return CrawlState.CMP_NOT_FOUND, report
             self.logger.info(
                 "ONETRUST: VARIANT B: Onetrust Javascript URL = %s (browser_id %s)",
                 script_url,
-                browser.browser_id,
+                browser_id,
             )
 
             # Variant B, Part 2: Access the script and retrieve raw data from it
@@ -265,12 +267,12 @@ class OnetrustCMP(AbstractCMP):
                 return state, report
             self.logger.info(
                 "ONETRUST: VARIANT B: Successfully retrieved OneTrust Consent javascript object data. (browser_id %s)",
-                browser.browser_id,
+                browser_id,
             )
 
             # Variant B, Part 3: Extract the cookie values from raw data
             cookie_count, state, report = self._variantB_extract_cookies_from_dict(
-                data_dict, browser, visit
+                data_dict, browser_id, visit
             )
             if state != CrawlState.SUCCESS:
                 self.logger.error("Failed in part3 with state %s: %s", state, report)
@@ -279,7 +281,7 @@ class OnetrustCMP(AbstractCMP):
             self.logger.info(
                 "ONETRUST: VARIANT B: Retrieved %s cookies (browser_id: %s)",
                 cookie_count,
-                browser.browser_id,
+                browser_id,
             )
 
         return CrawlState.SUCCESS, f"Extracted {cookie_count} cookie entries."
@@ -375,7 +377,7 @@ class OnetrustCMP(AbstractCMP):
                 continue
         return False
 
-    def _exists_script_tag_with_jsurl(self, driver, browser) -> Union[bool, str]:
+    def _exists_script_tag_with_jsurl(self, driver, browser_id: int) -> Union[bool, str]:
         """
         Directly retrieve the link to the javascript containing the OneTrust consent categories.
         Looks for domains of the form:  "https://<domain>/consent/<UUID>.js"
@@ -394,7 +396,7 @@ class OnetrustCMP(AbstractCMP):
                             self.logger.info(
                                 "ONETRUST: VARIANT B: Pattern found: %s (browser_id: %s)",
                                 p.pattern,
-                                browser.browser_id,
+                                browser_id,
                             )
                             return matchobj.group(0)
             except StaleElementReferenceException:
@@ -714,7 +716,7 @@ class OnetrustCMP(AbstractCMP):
             )
 
     def _variantB_try_retrieve_jsurl(
-        self, driver: WebDriver, browser: Crawl, timeout: int = 5
+        self, driver: WebDriver, browser_id: int, timeout: int = 5
     ) -> Optional[str]:
         """
         Find OneTrust javascript URL inside the HTML of the current webdriver page.
@@ -729,14 +731,14 @@ class OnetrustCMP(AbstractCMP):
                 str,
                 wait.until(
                     lambda x: self._exists_script_tag_with_jsurl(
-                        driver=x, browser=browser
+                        driver=x, browser_id=browser_id
                     )
                 ),
             )
         except TimeoutException:
             self.logger.info(
                 "ONETRUST: VARIANT B: Timeout on trying to retrieve javascript link. (browser_id: %s)",
-                browser.browser_id,
+                browser_id,
             )
             return None
 
@@ -817,7 +819,7 @@ class OnetrustCMP(AbstractCMP):
             )
 
     def _variantB_extract_cookies_from_dict(
-        self, consent_data: Dict[str, Any], browser: Crawl, visit: SiteVisit
+        self, consent_data: Dict[str, Any], browser_id: int, visit: SiteVisit
     ) -> Tuple[int, CrawlState, str]:
         """
         Using the dictionary from the previous step, extract the useful data contained within.
@@ -825,7 +827,6 @@ class OnetrustCMP(AbstractCMP):
         @param browser_id: process that performs the action
         @return: number of cookies extracted, crawl state, report
         """
-        assert browser.browser_id
 
         cookie_count = 0
         try:
@@ -844,9 +845,9 @@ class OnetrustCMP(AbstractCMP):
 
                     if len(langproplist) > 0:
                         cat_name = langproplist[0]["GroupName"]["Text"]
-                        cat_id = self.category_lookup_en(browser.browser_id, cat_name)
+                        cat_id = self.category_lookup_en(browser_id, cat_name)
                         if cat_id == CookieCategory.UNRECOGNIZED:
-                            cat_id = self.category_lookup_de(browser.browser_id, cat_name)
+                            cat_id = self.category_lookup_de(browser_id, cat_name)
 
                     else:
                         raise AttributeError("Empty Group")
@@ -855,7 +856,7 @@ class OnetrustCMP(AbstractCMP):
                     cat_id = CookieCategory.UNRECOGNIZED
                     self.logger.warning(
                         "ONETRUST: Unable to find category name. Attempting cookie retrieval anyways... (browser_id: %s)",
-                        browser.browser_id,
+                        browser_id,
                     )
 
                 for cookie_dat in g_contents["Cookies"]:
@@ -875,7 +876,7 @@ class OnetrustCMP(AbstractCMP):
                         domain=chost,
                         cat_id=cat_id,
                         cat_name=cat_name,
-                        browser=browser,
+                        browser=visit.browser,
                         visit=visit,
                         purpose=cdesc,
                         expiry=cexpiry,
