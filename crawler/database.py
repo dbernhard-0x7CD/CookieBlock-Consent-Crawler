@@ -321,7 +321,9 @@ def store_cookie(
             record_type=record_type,
             change_cause=change_cause,
             # For compitability with older scripts
-            expiry=expiry.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z" if expiry else None,
+            expiry=(
+                expiry.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z" if expiry else None
+            ),
             is_http_only=is_http_only,
             is_host_only=is_host_only,
             is_session=is_session,
