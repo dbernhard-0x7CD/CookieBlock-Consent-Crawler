@@ -280,6 +280,7 @@ def run_crawler() -> None:
 
                 if crawler_type == CrawlerType.FAILED or crawler_state != CrawlState.SUCCESS:
                     browser.collect_cookies(visit=visit)
+                    crawl_logger.info("Aborted crawl crawl to %s [crawl_type: %s; crawler_state: %s]", u, crawler_type.name, crawler_state.name)
                     return True  # Abort as in the original crawler
 
                 crawl_logger.info(
@@ -304,6 +305,7 @@ def run_crawler() -> None:
 
                 browser.collect_cookies(visit=visit)
 
+                crawl_logger.info("Sucessfully finished crawl to %s", u)
                 return True
 
     res = pqdm(
