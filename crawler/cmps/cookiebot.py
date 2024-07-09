@@ -95,7 +95,7 @@ class CookiebotCMP(AbstractCMP):
 
         if result is None:
             report = f"COOKIEBOT: Failed to find cbid on {url}"
-            self.logger.error(report, browser_id)
+            self.logger.error(report)
             return CrawlState.PARSE_ERROR, report
 
         cbid, tld = result
