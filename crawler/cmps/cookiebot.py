@@ -91,14 +91,14 @@ class CookiebotCMP(AbstractCMP):
         browser_id = webdriver.browser_id
 
         # try to retrieve cookiebot ID required to access cc.js
-        cbid, tld = cast(
-            Tuple[str, str], self._try_retrieve_cbid_all_variants(webdriver)
-        )
+        result = self._try_retrieve_cbid_all_variants(webdriver)
 
-        if cbid is None:
+        if result is None:
             report = f"COOKIEBOT: Failed to find cbid on {url}"
             self.logger.error(report, browser_id)
             return CrawlState.PARSE_ERROR, report
+
+        cbid, tld = result
 
         self.logger.info(
             "COOKIEBOT: Cookiebot UUID = %s, TLD = %s (browser_id: %s)",
