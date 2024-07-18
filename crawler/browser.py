@@ -174,11 +174,11 @@ class Browser(ABC):
         # try to dismiss alert windows
         try:
             while True:
-                with stopit.ThreadingTimeout(10, swallow_exc=True) as ctxt:
+                with stopit.ThreadingTimeout(60, swallow_exc=True) as ctxt:
                     self.driver.switch_to.alert.dismiss()
                     self.logger.debug("Dismissed alert")
                 time.sleep(0.2 + random.rand() * 0.3)
-        except (NoAlertPresentException, TimeoutException):
+        except (NoAlertPresentException, TimeoutException, stopit.TimeoutException):
             pass
 
     @property
