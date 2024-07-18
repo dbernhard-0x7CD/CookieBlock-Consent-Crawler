@@ -19,6 +19,7 @@ import json
 
 from hyperlink import URL
 
+import stopit
 
 from crawler.browser import Chrome
 from crawler.database import (
@@ -309,9 +310,22 @@ def run_crawler() -> None:
                 crawl_logger.info("Sucessfully finished crawl to %s", u)
                 return True
 
+    def run_domain_with_timeout(url: str, timeout: int = 180) -> bool:
+        with stopit.ThreadingTimeout(timeout) as ctx_mgr:
+            assert ctx_mgr.state == ctx_mgr.EXECUTING
+
+            res = run_domain(url)
+        if ctx_mgr.state == ctx_mgr.EXECUTED:
+            logger.info("Successfully ran %s", url)
+        elif ctx_mgr.state == ctx_mgr.TIMED_OUT:
+            logger.info("Timed out: %s", url)
+        else:
+            logger.info("ctx_mgr.state: %s", ctx_mgr.state)
+        return res
+
     res = pqdm(
         urls,
-        run_domain,
+        lambda x: run_domain_with_timeout(x, 240),
         n_jobs=num_browsers,
         total=len(urls),
         exception_behaviour="immediate",

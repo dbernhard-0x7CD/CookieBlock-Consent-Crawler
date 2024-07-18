@@ -1556,6 +1556,16 @@ pymysql = ["pymysql"]
 sqlcipher = ["sqlcipher3_binary"]
 
 [[package]]
+name = "stopit"
+version = "1.1.2"
+description = "Timeout control decorator and context managers, raise any exception in another thread"
+optional = false
+python-versions = "*"
+files = [
+    {file = "stopit-1.1.2.tar.gz", hash = "sha256:f7f39c583fd92027bd9d06127b259aee7a5b7945c1f1fa56263811e1e766996d"},
+]
+
+[[package]]
 name = "tblib"
 version = "3.0.0"
 description = "Traceback serialization library."
@@ -1894,4 +1904,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.12"
-content-hash = "7a94197ea13dfbc8200165fa9cb8ab6788fc4865b98a6ff1280bdcede52da688"
+content-hash = "ea0696b0f87e9c1912c9d05ec1549b180baa6f18402f24d64ed9262a96199360"
