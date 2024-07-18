@@ -348,8 +348,11 @@ def main() -> int:
         print("stats_temp")
         print(stats_temp)
         for i in range(4):
-            print(f"Average number of updates for category {i}: {mean(stats_temp[i])}")
-            print(f"Standard Deviation of updates for category {i}: {stdev(stats_temp[i])}")
+            if len(stats_temp[i]) > 1:
+                print(f"Average number of updates for category {i}: {mean(stats_temp[i])}")
+                print(f"Standard Deviation of updates for category {i}: {stdev(stats_temp[i])}")
+            else:
+                print(f"Too few datapoints for category {i}")
         print(f"Total average of updates: {mean(all_temp)}")
         print(f"Standard Deviation of updates: {stdev(all_temp)}")
 
