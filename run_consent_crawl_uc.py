@@ -311,7 +311,7 @@ def run_crawler() -> None:
                 return True
 
     def run_domain_with_timeout(url: str, timeout: int = 180) -> bool:
-        with stopit.SignalTimeout(timeout) as ctx_mgr:
+        with stopit.ThreadingTimeout(timeout) as ctx_mgr:
             assert ctx_mgr.state == ctx_mgr.EXECUTING
 
             res = run_domain(url)
