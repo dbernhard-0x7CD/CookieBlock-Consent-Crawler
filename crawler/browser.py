@@ -173,7 +173,7 @@ class Browser(ABC):
     def dismiss_dialogs(self) -> None:
         # try to dismiss alert windows
         try:
-            while True:
+            for _ in range(10):
                 with stopit.ThreadingTimeout(60, swallow_exc=True) as ctxt:
                     self.driver.switch_to.alert.dismiss()
                     self.logger.debug("Dismissed alert")
