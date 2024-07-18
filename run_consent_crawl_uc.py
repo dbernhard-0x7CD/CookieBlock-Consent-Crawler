@@ -49,10 +49,10 @@ def run_crawler() -> None:
     logger.propagate = False
 
     set_log_formatter(
-        logger, "%(asctime)s %(levelname)s %(name)s: %(message)s", "%Y-%m-%d:%H:%M:%S"
+        logger, "%(asctime)s %(levelname)s %(name)s: %(message)s", "%Y-%m-%d %H:%M:%S"
     )
     log_formatter = logging.Formatter(
-        "%(asctime)s %(levelname)s %(name)s: %(message)s", "%Y-%m-%d:%H:%M:%S"
+        "%(asctime)s %(levelname)s %(name)s: %(message)s", "%Y-%m-%d %H:%M:%S"
     )
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(log_formatter)
