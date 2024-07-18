@@ -173,7 +173,7 @@ class Browser(ABC):
             while True:
                 self.driver.switch_to.alert.dismiss()
                 self.logger.debug("Dismissed alert")
-                time.sleep(0.5)
+                time.sleep(0.2 + random.rand() * 0.3)
         except (NoAlertPresentException, TimeoutException):
             pass
 
