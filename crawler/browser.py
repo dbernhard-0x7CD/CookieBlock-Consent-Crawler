@@ -681,7 +681,7 @@ class CBConsentCrawlerBrowser(Browser):
         num_moves = 0
         num_fails = 0
 
-        while num_moves < num_mouse_moves + 1 and num_fails < num_mouse_moves:
+        while num_moves < num_mouse_moves + 1 and num_fails <= num_mouse_moves:
             try:
                 if num_moves == 0:  # move to the center of the screen
                     x = int(round(window_size["height"] / 2))
