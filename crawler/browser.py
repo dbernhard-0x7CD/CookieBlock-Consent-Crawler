@@ -54,6 +54,8 @@ from selenium_stealth import stealth
 
 from seleniumwire import webdriver
 
+import stopit
+
 from crawler.database import store_result, Crawl, SiteVisit, store_cookie
 from crawler.enums import PageState, CookieTuple, CrawlerType, CrawlState
 
@@ -156,6 +158,7 @@ class Browser(ABC):
         exc_tb: TracebackType | None,
     ) -> None:
         self.logger.info("Exiting selenium driver")
+
         # noinspection PyBroadException
         try:
             self._press_key(Keys.ESCAPE)
@@ -171,8 +174,9 @@ class Browser(ABC):
         # try to dismiss alert windows
         try:
             while True:
-                self.driver.switch_to.alert.dismiss()
-                self.logger.debug("Dismissed alert")
+                with stopit.ThreadingTimeout(10, swallow_exc=True) as ctxt:
+                    self.driver.switch_to.alert.dismiss()
+                    self.logger.debug("Dismissed alert")
                 time.sleep(0.2 + random.rand() * 0.3)
         except (NoAlertPresentException, TimeoutException):
             pass
