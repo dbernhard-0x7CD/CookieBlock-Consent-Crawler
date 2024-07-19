@@ -344,13 +344,18 @@ def run_crawler() -> None:
             
             pqdm_args.append(visit)
 
-    res = pqdm(
-        pqdm_args,
-        lambda x: run_domain_with_timeout(x, 240),
-        n_jobs=num_browsers,
-        total=len(urls),
-        exception_behaviour="immediate",
-    )
+    if num_browsers == 1:
+        res = []
+        for arg in pqdm_args:
+            res.append(run_domain_with_timeout(arg, 240)) 
+    else:
+        res = pqdm(
+            pqdm_args,
+            lambda x: run_domain_with_timeout(x, 240),
+            n_jobs=num_browsers,
+            total=len(urls),
+            exception_behaviour="immediate",
+        )
     logger.info("All %s crawls have finished", len(pqdm_args))
 
     # Store data in database
