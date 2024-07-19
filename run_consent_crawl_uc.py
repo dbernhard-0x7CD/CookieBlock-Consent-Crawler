@@ -321,7 +321,8 @@ def run_crawler() -> None:
 
                 res = run_domain(visit)
             if ctx_mgr.state == ctx_mgr.EXECUTED:
-                logger.info("Successfully ran %s", url)
+                pass
+                # logger.info("Successfully ran %s", url)
             elif ctx_mgr.state == ctx_mgr.TIMED_OUT:
                 logger.info("Timed out: %s", url)
             else:
