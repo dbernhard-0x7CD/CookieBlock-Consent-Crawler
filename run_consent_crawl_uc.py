@@ -319,15 +319,7 @@ def run_crawler() -> None:
             with stopit.ThreadingTimeout(timeout, swallow_exc=False) as ctx_mgr:
                 assert ctx_mgr.state == ctx_mgr.EXECUTING
 
-                res = run_domain(visit)
-            if ctx_mgr.state == ctx_mgr.EXECUTED:
-                pass
-                # logger.info("Successfully ran %s", url)
-            elif ctx_mgr.state == ctx_mgr.TIMED_OUT:
-                logger.info("Timed out: %s", url)
-            else:
-                logger.info("ctx_mgr.state: %s", ctx_mgr.state)
-            return res
+                return run_domain(visit)
         except stopit.TimeoutException as e:
             logger.warning("Website %s timed out after %s seconds", visit.site_url, timeout)
 
