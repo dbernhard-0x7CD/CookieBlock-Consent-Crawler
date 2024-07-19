@@ -316,7 +316,7 @@ def run_crawler() -> None:
         try:
             url = visit.site_url
 
-            with stopit.ThreadingTimeout(timeout) as ctx_mgr:
+            with stopit.ThreadingTimeout(timeout, swallow_exc=False) as ctx_mgr:
                 assert ctx_mgr.state == ctx_mgr.EXECUTING
 
                 res = run_domain(visit)
@@ -328,6 +328,10 @@ def run_crawler() -> None:
             else:
                 logger.info("ctx_mgr.state: %s", ctx_mgr.state)
             return res
+        except stopit.TimeoutException as e:
+            logger.warning("Website %s timed out after %s seconds", visit.site_url, timeout)
+
+            return ConsentCrawlResult(report=f"Timed out after {timeout} seconds: {visit.site_url}", browser=visit.browser, visit=visit, cmp_type=CrawlerType.FAILED.value, crawl_state=CrawlState.LIBRARY_ERROR.value), [], []
         except Exception as e:
             logger.error("visit_id: %s Failure when crawling %s: %s", visit.visit_id, visit.site_url, str(e))
             return ConsentCrawlResult(report=f"Failure: {str(e)}", browser=visit.browser, visit=visit, cmp_type=CrawlerType.FAILED.value, crawl_state=CrawlState.LIBRARY_ERROR.value), [], []
