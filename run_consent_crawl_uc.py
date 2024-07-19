@@ -350,6 +350,7 @@ def run_crawler() -> None:
         total=len(urls),
         exception_behaviour="immediate",
     )
+    crawl_logger.info("All %s crawls have finished", len(pqdm_args))
 
     # Store data in database
     with SessionLocal.begin() as session:
