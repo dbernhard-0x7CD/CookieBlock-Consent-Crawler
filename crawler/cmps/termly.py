@@ -8,6 +8,7 @@ from selenium.webdriver.remote.webdriver import WebDriver
 
 from crawler.enums import CookieCategory, CrawlState
 from crawler.utils import uuid_pattern, logger
+from crawler.database import SiteVisit
 
 if TYPE_CHECKING:
     from crawler.browser import CBConsentCrawlerBrowser

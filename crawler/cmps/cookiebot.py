@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from typing import Tuple, Optional, TYPE_CHECKING, cast, Union
+from typing import Tuple, Optional, TYPE_CHECKING, cast, Union, List
 import logging
 from logging import Logger
 import json
@@ -15,7 +15,7 @@ from selenium.common.exceptions import TimeoutException, StaleElementReferenceEx
 
 from crawler.enums import CookieCategory, CrawlState, PageState
 from crawler.utils import uuid_pattern
-from crawler.database import SiteVisit, store_consent_data
+from crawler.database import SiteVisit, ConsentData
 from crawler.cmps.abstract_cmp import AbstractCMP
 
 if TYPE_CHECKING:
@@ -75,7 +75,7 @@ class CookiebotCMP(AbstractCMP):
 
     def scrape(
         self, url: str, visit: SiteVisit, webdriver: CBConsentCrawlerBrowser
-    ) -> Tuple[CrawlState, str]:
+    ) -> Tuple[CrawlState, str, List[ConsentData]]:
         """
         Cookiebot stores its cookie category data in a javascript file called cc.js
         The crawling process attempts to obtain this file and read the data from it.
@@ -96,7 +96,7 @@ class CookiebotCMP(AbstractCMP):
         if result is None:
             report = f"COOKIEBOT: Failed to find cbid on {url}"
             self.logger.error(report)
-            return CrawlState.PARSE_ERROR, report
+            return CrawlState.PARSE_ERROR, report, []
 
         cbid, tld = result
 
@@ -122,7 +122,7 @@ class CookiebotCMP(AbstractCMP):
             self.logger.error(
                 f"COOKIEBOT: Failed to retrieve cc.js for {cc_url} -- Details: response: {response}; state: {state} (browser_id, {browser_id})"
             )
-            return CrawlState.LIBRARY_ERROR, f"PageState of {cc_url} is {state}"
+            return CrawlState.LIBRARY_ERROR, f"PageState of {cc_url} is {state}", []
 
         # some required structural checks on the javascript file contents
         js_contents = response
@@ -130,17 +130,17 @@ class CookiebotCMP(AbstractCMP):
         if "CookieConsent.setOutOfRegion" in js_contents:
             msg = f'COOKIEBOT: Received an out-of-region response from "{cc_url}"'
             self.logger.error(msg + " (browser_id %s)", browser_id)
-            return CrawlState.REGION_BLOCK, msg
+            return CrawlState.REGION_BLOCK, msg, []
         elif re.search(
             "cookiedomainwarning='Error: .* is not a valid domain.", js_contents
         ):
             msg = f"COOKIEBOT: Unrecognized referer: {referer}."
             self.logger.error(msg + f" (browser_id {browser_id})")
-            return CrawlState.LIBRARY_ERROR, msg
+            return CrawlState.LIBRARY_ERROR, msg, []
         elif len(js_contents.strip()) == 0:
             msg = f'COOKIEBOT: Empty response when trying to retrieve "{cc_url}".'
             self.logger.error(msg + f" (browser_id {browser_id})")
-            return CrawlState.MALFORM_RESP, msg
+            return CrawlState.MALFORM_RESP, msg, []
 
         self.logger.info(
             f'COOKIEBOT: Successfully accessed "https://consent.cookiebot.{tld}/{cbid}/cc.js" (browser_id: {browser_id})'
@@ -148,6 +148,7 @@ class CookiebotCMP(AbstractCMP):
 
         # finally, if we arrived here we (most likely) found our cookie category data
         cookie_count = 0
+        data: List[ConsentData] = []
         try:
             for cat_name in name_to_cat.keys():
                 cat_id = name_to_cat[cat_name]
@@ -171,37 +172,37 @@ class CookiebotCMP(AbstractCMP):
                     type_name = c[4] if len(c) >= 4 else None
                     type_id = c[5] if len(c) >= 5 else None
 
-                    # store the consent data
-                    store_consent_data(
+                    # Add consent data to list
+                    data.append(ConsentData(
                         name=c[0],
                         domain=c[1],
                         cat_id=cat_id,
                         cat_name=cat_name,
-                        browser=visit.browser,
                         visit=visit,
+                        browser_id=visit.browser_id,
                         purpose=purpose,
                         expiry=expiry,
                         type_name=type_name,
                         type_id=type_id,
-                    )
+                    ))
 
         # format of the cookiebot data should be uniform, but in case this happens
         # to be violated, this try-except block catches it
         except Exception as ex:
             msg = f"COOKIEBOT: Failed to extract cookie data from {cc_url}: {type(ex)} {ex}"
             self.logger.error(msg + f"(browser_id {browser_id}")
-            return CrawlState.MALFORM_RESP, msg
+            return CrawlState.MALFORM_RESP, msg, []
 
         if cookie_count == 0:
             msg = f"COOKIEBOT: No cookies found in {cc_url}"
             self.logger.error(msg + f"(browser_id {browser_id}")
-            return CrawlState.NO_COOKIES, msg
+            return CrawlState.NO_COOKIES, msg, []
 
         self.logger.info(
             f"COOKIEBOT: Extracted {cookie_count} cookie entries. (browser_id {browser_id})"
         )
 
-        return CrawlState.SUCCESS, f"Extracted {cookie_count} cookie entries."
+        return CrawlState.SUCCESS, f"Extracted {cookie_count} cookie entries.", data
 
     def _exists_script_tag_with_cbid(
         self, driver: WebDriver, browser_id: int

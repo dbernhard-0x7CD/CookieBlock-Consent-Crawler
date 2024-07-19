@@ -4,6 +4,7 @@ import argparse
 import os
 import sys
 from logging import Logger
+from typing import List, Optional, Tuple
 import logging
 from datetime import datetime
 from pathlib import Path
@@ -30,6 +31,8 @@ from crawler.database import (
     Crawl,
     start_crawl,
     register_browser_config,
+    ConsentData,
+    ConsentCrawlResult,
 )
 from crawler.utils import set_log_formatter, is_on_same_domain
 from crawler.enums import CrawlerType, CrawlState
@@ -174,7 +177,7 @@ def run_crawler() -> None:
             use_temp=False,
             chrome_profile_path=chrome_profile_path,
             chromedriver_path=chromedriver_path,
-            chrome_path=chrome_path,
+            chrome_path=str(chrome_path),
             browser_id=-1,
             logger=logger,
         ) as browser:
@@ -221,9 +224,10 @@ def run_crawler() -> None:
     task_id = task.task_id
 
     logger.info("Task: %s", task)
-    
+ 
     browser_params = {
-        "use_temp": True
+        "use_temp": True,
+        "chrome_path": str(chrome_path.absolute()),
     }
     
     # Add browser config to the database
@@ -231,90 +235,84 @@ def run_crawler() -> None:
     assert crawl.browser_id
     browser_id = crawl.browser_id
 
-    def run_domain(url: str) -> bool:
-        tid = threading.get_native_id() % num_browsers
-        visit = start_crawl(browser_id=browser_id, url=url)
+    def run_domain(visit: SiteVisit) -> Tuple[ConsentCrawlResult, List[ConsentData]]:
+        id = visit.visit_id
+        crawl_logger = logging.getLogger(f"visit-{visit.visit_id}")
+        crawl_logger.propagate = False
 
-        with SessionLocal.begin() as session:
-            session.add(visit)
+        file_handler = logging.FileHandler(log_dir / f"visit_{id}.log")
+        log_formatter = logging.Formatter(
+            fmt="%(asctime)s %(levelname)s %(filename)s %(name)s: %(message)s",
+            datefmt="%Y-%m-%d:%H:%M:%S",
+        )
+        file_handler.setFormatter(log_formatter)
+        crawl_logger.addHandler(file_handler)
 
-            id = visit.visit_id
-            crawl_logger = logging.getLogger(f"visit-{visit.visit_id}")
-            crawl_logger.propagate = False
+        # Only add stdout as handler if desired
+        if not no_stdout:
+            stdout_handler = logging.StreamHandler()
+            stdout_handler.setFormatter(log_formatter)
+            crawl_logger.addHandler(stdout_handler)
 
-            file_handler = logging.FileHandler(log_dir / f"visit_{id}.log")
-            log_formatter = logging.Formatter(
-                fmt="%(asctime)s %(levelname)s %(filename)s %(name)s: %(message)s",
-                datefmt="%Y-%m-%d:%H:%M:%S",
-            )
-            file_handler.setFormatter(log_formatter)
-            crawl_logger.addHandler(file_handler)
+        crawl_logger.setLevel(logging.INFO)
+        crawl_logger.info("Working on %s", url)
 
-            # Only add stdout as handler if desired
-            if not no_stdout:
-                stdout_handler = logging.StreamHandler()
-                stdout_handler.setFormatter(log_formatter)
-                crawl_logger.addHandler(stdout_handler)
+        with Chrome(
+            seconds_before_processing_page=1,
+            headless=headless,
+            chrome_profile_path=chrome_profile_path,
+            chromedriver_path=chromedriver_path,
+            browser_id=browser_id,
+            crawl=crawl,
+            logger=crawl_logger,
+            **browser_params, # type: ignore
+        ) as browser:
+            u = URL.from_text(url)
 
-            crawl_logger.setLevel(logging.INFO)
-            crawl_logger.info("Working on %s [thread: %s]", url, tid)
+            browser.load_page(u)
+            crawl_logger.info("Loaded url %s", u)
 
-            with Chrome(
-                seconds_before_processing_page=1,
-                headless=headless,
-                chrome_profile_path=chrome_profile_path,
-                chromedriver_path=chromedriver_path,
-                chrome_path=chrome_path,
-                browser_id=browser_id,crawl=crawl,
-                logger=crawl_logger,
-                **browser_params,
-            ) as browser:
-                u = URL.from_text(url)
+            # bot mitigation
+            crawl_logger.info("Calling bot mitigation")
+            browser.bot_mitigation(max_sleep_seconds=1)
 
-                browser.load_page(u)
-                crawl_logger.info("Loaded url %s", u)
+            crawler_type, crawler_state, consent_data, result = browser.crawl_cmps(visit=visit)
 
-                # bot mitigation
-                crawl_logger.info("Calling bot mitigation")
-                browser.bot_mitigation(max_sleep_seconds=1)
-
-                crawler_type, crawler_state = browser.crawl_cmps(visit=visit)
-
-                if crawler_type == CrawlerType.FAILED or crawler_state != CrawlState.SUCCESS:
-                    browser.collect_cookies(visit=visit)
-                    crawl_logger.info("Aborted crawl crawl to %s [crawl_type: %s; crawler_state: %s]", u, crawler_type.name, crawler_state.name)
-                    return True  # Abort as in the original crawler
-
-                crawl_logger.info(
-                    "CMP result is %s and %s", crawler_type.name, crawler_state.name
-                )
-                browser.load_page(u)
-
-                # visit subpages
-                links = list(
-                    filter(
-                        lambda x: is_on_same_domain(x.url.to_text(), url),
-                        browser.get_links(),
-                    )
-                )
-                crawl_logger.info("Found %s links", len(links))
-
-                chosen = random.choices(links, k=min(num_subpages, len(links)))
-                for i, l in enumerate(chosen):
-                    crawl_logger.info("Subvisiting [%i]: %s", i, l.url.to_text())
-                    browser.load_page(l.url)
-                    browser.bot_mitigation(max_sleep_seconds=1, num_mouse_moves=1)
-
+            if crawler_type == CrawlerType.FAILED or crawler_state != CrawlState.SUCCESS:
                 browser.collect_cookies(visit=visit)
+                crawl_logger.info("Aborted crawl crawl to %s [crawl_type: %s; crawler_state: %s]", u, crawler_type.name, crawler_state.name)
+                return (result, consent_data)  # Abort as in the original crawler
 
-                crawl_logger.info("Sucessfully finished crawl to %s", u)
-                return True
+            crawl_logger.info(
+                "CMP result is %s and %s", crawler_type.name, crawler_state.name
+            )
+            browser.load_page(u)
 
-    def run_domain_with_timeout(url: str, timeout: int = 180) -> bool:
+            # visit subpages
+            links = list(
+                filter(
+                    lambda x: is_on_same_domain(x.url.to_text(), url),
+                    browser.get_links(),
+                )
+            )
+            crawl_logger.info("Found %s links", len(links))
+
+            chosen = random.choices(links, k=min(num_subpages, len(links)))
+            for i, l in enumerate(chosen):
+                crawl_logger.info("Subvisiting [%i]: %s", i, l.url.to_text())
+                browser.load_page(l.url)
+                browser.bot_mitigation(max_sleep_seconds=1, num_mouse_moves=1)
+
+            browser.collect_cookies(visit=visit)
+
+            crawl_logger.info("Sucessfully finished crawl to %s", u)
+            return (result, consent_data)
+
+    def run_domain_with_timeout(visit: SiteVisit, timeout: int = 180) -> Tuple[ConsentCrawlResult, List[ConsentData]]:
         with stopit.ThreadingTimeout(timeout) as ctx_mgr:
             assert ctx_mgr.state == ctx_mgr.EXECUTING
 
-            res = run_domain(url)
+            res = run_domain(visit)
         if ctx_mgr.state == ctx_mgr.EXECUTED:
             logger.info("Successfully ran %s", url)
         elif ctx_mgr.state == ctx_mgr.TIMED_OUT:
@@ -323,15 +321,33 @@ def run_crawler() -> None:
             logger.info("ctx_mgr.state: %s", ctx_mgr.state)
         return res
 
+    pqdm_args: List[SiteVisit] = []
+
+    # Prepare all visits in one thread
+    with SessionLocal.begin() as session:
+        for url in urls:
+            visit = start_crawl(browser_id=browser_id, url=url)
+            session.add(visit)
+            session.refresh(visit)
+            session.refresh(visit.browser)
+            
+            pqdm_args.append(visit)
+
     res = pqdm(
-        urls,
+        pqdm_args,
         lambda x: run_domain_with_timeout(x, 240),
         n_jobs=num_browsers,
         total=len(urls),
         exception_behaviour="immediate",
     )
 
-    logger.info("Result is %s", all(res))
+    # Store data in database
+    with SessionLocal.begin() as session:
+        for result, cds in res:
+            session.add(result)
+            for cd in cds:
+                session.add(cd)
+
     logger.info("CB-CCrawler has finished.")
 
 
