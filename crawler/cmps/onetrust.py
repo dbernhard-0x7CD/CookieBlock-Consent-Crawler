@@ -15,7 +15,7 @@ from selenium.common.exceptions import TimeoutException, StaleElementReferenceEx
 
 from crawler.enums import CookieCategory, CrawlState, PageState
 from crawler.utils import uuid_pattern
-from crawler.database import store_consent_data, Crawl, SiteVisit
+from crawler.database import ConsentData, Crawl, SiteVisit
 from crawler.cmps.abstract_cmp import AbstractCMP
 
 if TYPE_CHECKING:
@@ -153,7 +153,7 @@ class OnetrustCMP(AbstractCMP):
 
     def scrape(
         self, url: str, visit: SiteVisit, webdriver: CBConsentCrawlerBrowser
-    ) -> Tuple[CrawlState, str]:
+    ) -> Tuple[CrawlState, str, List[ConsentData]]:
         """
         Extract cookie category data from the variants of the OneTrust Cookie Consent Platform.
         The category data is found in json, either separate or as an inline document inside javascript.
@@ -198,7 +198,7 @@ class OnetrustCMP(AbstractCMP):
                     state,
                     browser_id,
                 )
-                return state, report
+                return state, report, []
 
             self.logger.info(
                 "ONETRUST: VARIANT A: Found %s ruleset ids (browser_id: %s)",
@@ -212,7 +212,7 @@ class OnetrustCMP(AbstractCMP):
             )
 
             # Variant A, Part 3: For each ruleset id, retrieve cookie json
-            cookie_count, state, report = self._variantA_get_and_parse_json(
+            cookie_count, state, report, data = self._variantA_get_and_parse_json(
                 domain_url, dd_id, rs_ids, webdriver, visit
             )
             if state != CrawlState.SUCCESS:
@@ -221,7 +221,7 @@ class OnetrustCMP(AbstractCMP):
                     dd_id,
                     browser_id,
                 )
-                return state, report
+                return state, report, []
 
             self.logger.info(
                 "ONETRUST: VARIANT A: Retrieved %s cookies (browser_id: %s)",
@@ -246,7 +246,7 @@ class OnetrustCMP(AbstractCMP):
                     "%s (browser_id: %s): %s", report, browser_id, result
                 )
 
-                return CrawlState.CMP_NOT_FOUND, report
+                return CrawlState.CMP_NOT_FOUND, report, []
             self.logger.info(
                 "ONETRUST: VARIANT B: Onetrust Javascript URL = %s (browser_id %s)",
                 script_url,
@@ -264,19 +264,19 @@ class OnetrustCMP(AbstractCMP):
                     report,
                     data_dict,
                 )
-                return state, report
+                return state, report, []
             self.logger.info(
                 "ONETRUST: VARIANT B: Successfully retrieved OneTrust Consent javascript object data. (browser_id %s)",
                 browser_id,
             )
 
             # Variant B, Part 3: Extract the cookie values from raw data
-            cookie_count, state, report = self._variantB_extract_cookies_from_dict(
+            cookie_count, state, report, data = self._variantB_extract_cookies_from_dict(
                 data_dict, browser_id, visit
             )
             if state != CrawlState.SUCCESS:
                 self.logger.error("Failed in part3 with state %s: %s", state, report)
-                return state, report
+                return state, report, []
 
             self.logger.info(
                 "ONETRUST: VARIANT B: Retrieved %s cookies (browser_id: %s)",
@@ -284,7 +284,7 @@ class OnetrustCMP(AbstractCMP):
                 browser_id,
             )
 
-        return CrawlState.SUCCESS, f"Extracted {cookie_count} cookie entries."
+        return CrawlState.SUCCESS, f"Extracted {cookie_count} cookie entries.", data
 
     def category_lookup_en(self, browser_id: int, cat_name: str) -> CookieCategory:
         """
@@ -519,7 +519,7 @@ class OnetrustCMP(AbstractCMP):
         ruleset_ids: List[Tuple[str, str]],
         webdriver: CBConsentCrawlerBrowser,
         visit: SiteVisit,
-    ) -> Tuple[int, CrawlState, str]:
+    ) -> Tuple[int, CrawlState, str, List[ConsentData]]:
         """
         Retrieve and parse the json files from the domain URL storing the cookie categories.
         The raw cookie data will be stored internally and can later be persisted to disk.
@@ -532,6 +532,7 @@ class OnetrustCMP(AbstractCMP):
         browser_id = webdriver.browser_id
 
         cookie_count = 0
+        data: List[ConsentData] = []
 
         self.logger.info("RULESET IDS: %s", ruleset_ids)
         for lang, i in ruleset_ids:
@@ -621,19 +622,19 @@ class OnetrustCMP(AbstractCMP):
                             if "IsSession" in c:
                                 expiry = "session" if c["IsSession"] else expiry
 
-                            # Store to the database
-                            store_consent_data(
+                            # Add to list
+                            data.append(ConsentData(
                                 name=c["Name"],
                                 domain=c["Host"],
                                 cat_id=cat_id,
                                 cat_name=cat_name,
-                                browser=visit.browser,
                                 visit=visit,
+                                browser_id=visit.browser_id,
                                 purpose=purpose,
                                 expiry=expiry,
                                 type_name=None,
                                 type_id=None,
-                            )
+                            ))
 
                             cookie_count += 1
                     else:
@@ -654,19 +655,19 @@ class OnetrustCMP(AbstractCMP):
                                 if "IsSession" in c:
                                     expiry = "session" if c["IsSession"] else expiry
 
-                                # Store to the database
-                                store_consent_data(
+                                # Add to list
+                                data.append(ConsentData(
                                     name=c["Name"],
                                     domain=c["Host"],
                                     cat_id=cat_id,
                                     cat_name=cat_name,
-                                    browser=visit.browser,
                                     visit=visit,
+                                    browser_id=visit.browser_id,
                                     purpose=purpose,
                                     expiry=expiry,
                                     type_name=None,
                                     type_id=None,
-                                )
+                                ))
                                 cookie_count += 1
                     else:
                         pass
@@ -707,12 +708,14 @@ class OnetrustCMP(AbstractCMP):
                 0,
                 CrawlState.NO_COOKIES,
                 f"ONETRUST: VARIANT A: Could not extract any cookies for ddid: {dd_id}.",
+                data
             )
         else:
             return (
                 cookie_count,
                 CrawlState.SUCCESS,
                 f"ONETRUST: VARIANT A: Cookies Extracted: {cookie_count}",
+                []
             )
 
     def _variantB_try_retrieve_jsurl(
@@ -820,7 +823,7 @@ class OnetrustCMP(AbstractCMP):
 
     def _variantB_extract_cookies_from_dict(
         self, consent_data: Dict[str, Any], browser_id: int, visit: SiteVisit
-    ) -> Tuple[int, CrawlState, str]:
+    ) -> Tuple[int, CrawlState, str, List[ConsentData]]:
         """
         Using the dictionary from the previous step, extract the useful data contained within.
         @param consent_data: Cookie data dictionary retrieved from previous step.
@@ -828,7 +831,7 @@ class OnetrustCMP(AbstractCMP):
         @return: number of cookies extracted, crawl state, report
         """
 
-        cookie_count = 0
+        data: List[ConsentData] = []
         try:
             # If we arrive here, "Groups" must be in the dictionary
             g_data = consent_data["Groups"]
@@ -871,19 +874,18 @@ class OnetrustCMP(AbstractCMP):
                     if "IsSession" in cookie_dat:
                         cexpiry = "session" if cookie_dat["IsSession"] else cexpiry
 
-                    store_consent_data(
+                    data.append(ConsentData(
                         name=cname,
                         domain=chost,
                         cat_id=cat_id,
                         cat_name=cat_name,
-                        browser=visit.browser,
+                        browser_id=visit.browser_id,
                         visit=visit,
                         purpose=cdesc,
                         expiry=cexpiry,
                         type_name=None,
                         type_id=None,
-                    )
-                    cookie_count += 1
+                    ))
 
         except (AttributeError, KeyError) as ex:
             self.logger.error(
@@ -893,8 +895,9 @@ class OnetrustCMP(AbstractCMP):
                 0,
                 CrawlState.PARSE_ERROR,
                 f"ONETRUST: VARIANT B: Could not retrieve an expected attribute from consent data dict. -- {type(ex)} - {ex}",
+                []
             )
-        if cookie_count == 0:
+        if len(data) == 0:
             self.logger.warning(
                 "ONETRUST: VARIANT B: Consent Platform Script contained zero cookies!"
             )
@@ -902,13 +905,15 @@ class OnetrustCMP(AbstractCMP):
                 0,
                 CrawlState.NO_COOKIES,
                 "ONETRUST: VARIANT B: Consent Platform Script contained zero cookies!",
+                []
             )
         else:
             self.logger.info(
-                f"ONETRUST: VARIANT B: Successfully retrieved {cookie_count} cookies."
+                f"ONETRUST: VARIANT B: Successfully retrieved {len(data)} cookies."
             )
             return (
-                cookie_count,
+                len(data),
                 CrawlState.SUCCESS,
-                f"ONETRUST: VARIANT B: Successfully retrieved {cookie_count} cookies.",
+                f"ONETRUST: VARIANT B: Successfully retrieved {len(data)} cookies.",
+                data
             )

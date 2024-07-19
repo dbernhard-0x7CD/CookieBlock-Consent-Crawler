@@ -56,7 +56,7 @@ from seleniumwire import webdriver
 
 import stopit
 
-from crawler.database import store_result, Crawl, SiteVisit, store_cookie
+from crawler.database import Crawl, SiteVisit, store_cookie, ConsentData, ConsentCrawlResult
 from crawler.enums import PageState, CookieTuple, CrawlerType, CrawlState
 
 from crawler.cmps.cookiebot import CookiebotCMP
@@ -439,7 +439,7 @@ class CBConsentCrawlerBrowser(Browser):
     def load_page(self, url: URL, timeout: Optional[float] = None) -> PageState:
         return super().load_page(url, timeout)
 
-    def crawl_cmps(self, visit: SiteVisit) -> Tuple[CrawlerType, CrawlState]:
+    def crawl_cmps(self, visit: SiteVisit) -> Tuple[CrawlerType, CrawlState, List[ConsentData], ConsentCrawlResult]:
         self.logger.info("Checking for CMPs")
 
         if self.browser_id is None:
@@ -472,32 +472,33 @@ class CBConsentCrawlerBrowser(Browser):
             self.logger.info("Result when checking for %s: %s", crawl_type.name, is_present)
             results[crawl_type] = is_present
 
-        for t, found in results.items():
+        for crawl_type, found in results.items():
             if found:
-                self.logger.info("Crawling for %s", t.name)
-                crawl_state, message = crawl_methods[t](
+                self.logger.info("Crawling for %s", crawl_type.name)
+
+                crawl_state, message, consent_data = crawl_methods[crawl_type](
                     str(self.current_url), visit=visit, webdriver=self
                 )
 
-                self.logger.info("%s Result %s, %s", t.name, crawl_state, message)
+                self.logger.info("%s Result %s, %s", crawl_type.name, crawl_state, message)
 
-                store_result(
+                result = ConsentCrawlResult(
                     browser_id=self.browser_id,
-                    cmp_type=t,
+                    visit_id=visit.visit_id,
+                    crawl_state=crawl_state.value,
+                    cmp_type=crawl_type.value,
                     report=message,
-                    visit=visit,
-                    crawlState=crawl_state,
                 )
-                return t, crawl_state  # original crawler only crawls first one
-        store_result(
+                return crawl_type, crawl_state, consent_data, result  # original crawler only crawls first one
+        result = ConsentCrawlResult(
             browser_id=self.browser_id,
-            visit=visit,
-            report="No known Consent Management Platform found on the given URL.",
+            visit_id=visit.visit_id,
+            crawl_state=CrawlState.CMP_NOT_FOUND,
             cmp_type=CrawlerType.FAILED,
-            crawlState=CrawlState.CMP_NOT_FOUND,
+            report="No known Consent Management Platform found on the given URL.",
         )
 
-        return CrawlerType.FAILED, CrawlState.CMP_NOT_FOUND
+        return CrawlerType.FAILED, CrawlState.CMP_NOT_FOUND, [], result
 
     # TODO: add type to command
     def execute_in_IFrames(self, command, timeout: int) -> Optional[Any]:
@@ -724,7 +725,7 @@ class Chrome(CBConsentCrawlerBrowser):
     def __init__(
         self,
         seconds_before_processing_page: float,
-        chrome_path: Path,
+        chrome_path: str,
         chromedriver_path: Path,
         chrome_profile_path: Path,
         logger: Logger,
@@ -764,7 +765,7 @@ class Chrome(CBConsentCrawlerBrowser):
             self.profile_path = chrome_profile_path
         self.headless = headless
 
-        self.chrome_path = chrome_path
+        self.chrome_path = Path(chrome_path)
         self.driver_path = chromedriver_path
 
     @property

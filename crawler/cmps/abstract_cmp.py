@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Tuple, TYPE_CHECKING
+from typing import Tuple, List, TYPE_CHECKING
 
 from logging import Logger
 
 from selenium.webdriver.remote.webdriver import WebDriver
 
 from crawler.enums import CrawlState
-from crawler.database import SiteVisit
+from crawler.database import SiteVisit, ConsentData
 
 if TYPE_CHECKING:
     from crawler.browser import CBConsentCrawlerBrowser
@@ -28,5 +28,5 @@ class AbstractCMP(ABC):
         ...
 
     @abstractmethod
-    def scrape(self, url: str, visit: SiteVisit, webdriver: CBConsentCrawlerBrowser) -> Tuple[CrawlState, str]:
+    def scrape(self, url: str, visit: SiteVisit, webdriver: CBConsentCrawlerBrowser) -> Tuple[CrawlState, str, List[ConsentData]]:
         ...

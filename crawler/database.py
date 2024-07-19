@@ -263,34 +263,6 @@ def store_result(
         session.add(result)
 
 
-def store_consent_data(
-    name: str,
-    domain: str,
-    cat_id: int,
-    cat_name: str,
-    browser: Crawl,
-    visit: SiteVisit,
-    purpose: Optional[str],
-    expiry: Optional[str],
-    type_name: Optional[str],
-    type_id: Optional[int],
-) -> None:
-    with SessionLocal.begin() as session:
-        data = ConsentData(
-            browser_id=browser.browser_id,
-            name=name,
-            visit_id=visit.visit_id,
-            domain=domain,
-            cat_id=cat_id,
-            cat_name=cat_name,
-            purpose=purpose,
-            expiry=expiry,
-            type_name=type_name,
-            type_id=type_id,
-        )
-        session.add(data)
-
-
 def store_cookie(
     visit: SiteVisit,
     browser_id: int,
