@@ -466,11 +466,11 @@ class CBConsentCrawlerBrowser(Browser):
             # CrawlerType.TERMLY: internal_termly_scrape,
         }
 
-        for t, y in presence_check_methods.items():
-            x = y(self.driver)
+        for crawl_type, check_presence in presence_check_methods.items():
+            is_present = check_presence(self.driver)
 
-            self.logger.info("Result when checking for %s: %s", t.name, x)
-            results[t] = x
+            self.logger.info("Result when checking for %s: %s", crawl_type.name, is_present)
+            results[crawl_type] = is_present
 
         for t, found in results.items():
             if found:
