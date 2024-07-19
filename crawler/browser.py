@@ -791,6 +791,8 @@ class Chrome(CBConsentCrawlerBrowser):
         if self.proxy:
             options.add_argument(f"--proxy-server={self.proxy}")
 
+        options.add_argument("--disable-dev-shm-usage")
+
         # if Config().CHROME_DISABLE_SHM:
         #     options.add_argument("--disable-dev-shm-usage")
 
