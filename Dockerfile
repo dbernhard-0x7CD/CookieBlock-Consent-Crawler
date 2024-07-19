@@ -38,4 +38,7 @@ FROM python-base as production
 
 WORKDIR /crawler/
 
+# Patch selenium to not run indefinitely
+RUN patch -d /usr/local/lib/python3.12/site-packages/ -p1 < add_default_timeout.patch 
+
 RUN ./install_uc.sh
