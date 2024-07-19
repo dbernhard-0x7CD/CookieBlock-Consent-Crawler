@@ -308,22 +308,27 @@ def run_crawler() -> None:
             browser.collect_cookies(visit=visit)
 
             crawl_logger.info("Sucessfully finished crawl to %s", u)
-            return (result, consent_data)
+
+        return (result, consent_data)
 
     def run_domain_with_timeout(visit: SiteVisit, timeout: int = 180) -> Tuple[ConsentCrawlResult, List[ConsentData]]:
-        url = visit.site_url
+        try:
+            url = visit.site_url
 
-        with stopit.ThreadingTimeout(timeout) as ctx_mgr:
-            assert ctx_mgr.state == ctx_mgr.EXECUTING
+            with stopit.ThreadingTimeout(timeout) as ctx_mgr:
+                assert ctx_mgr.state == ctx_mgr.EXECUTING
 
-            res = run_domain(visit)
-        if ctx_mgr.state == ctx_mgr.EXECUTED:
-            logger.info("Successfully ran %s", url)
-        elif ctx_mgr.state == ctx_mgr.TIMED_OUT:
-            logger.info("Timed out: %s", url)
-        else:
-            logger.info("ctx_mgr.state: %s", ctx_mgr.state)
-        return res
+                res = run_domain(visit)
+            if ctx_mgr.state == ctx_mgr.EXECUTED:
+                logger.info("Successfully ran %s", url)
+            elif ctx_mgr.state == ctx_mgr.TIMED_OUT:
+                logger.info("Timed out: %s", url)
+            else:
+                logger.info("ctx_mgr.state: %s", ctx_mgr.state)
+            return res
+        except Exception as e:
+            logger.error("visit_id: %s Failure when crawling %s: %s", visit.visit_id, visit.site_url, str(e))
+            return ConsentCrawlResult(report=f"Failure: {str(e)}", browser=visit.browser, visit=visit, cmp_type=CrawlerType.FAILED.value, crawl_state=CrawlState.LIBRARY_ERROR.value), []
 
     pqdm_args: List[SiteVisit] = []
 
