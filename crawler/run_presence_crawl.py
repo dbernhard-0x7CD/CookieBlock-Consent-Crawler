@@ -71,7 +71,7 @@ onetrust_patterns: Tuple = (onetrust_pattern_A, onetrust_pattern_B, cmp_cookiela
                             cookiecdn_base_pattern, cookiepro_base_pattern)
 
 # Termly CDN domain
-termly_url_pattern = re.compile("https://app\\.termly\\.io/")
+from crawler.cmps.termly import termly_url_pattern
 
 # timeout in seconds
 connect_timeout = 60  # how long to connect at most
