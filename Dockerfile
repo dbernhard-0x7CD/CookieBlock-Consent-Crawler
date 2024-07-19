@@ -25,7 +25,7 @@ RUN apt-get update && \
 RUN apt-get remove -y chromium
 
 # Copy needed files
-COPY install_uc.sh poetry.lock pyproject.toml run_consent_crawl_uc.py *.tar.gz README.md /crawler/
+COPY add_default_timeout.patch install_uc.sh poetry.lock pyproject.toml run_consent_crawl_uc.py *.tar.gz README.md /crawler/
 COPY ./crawler/ /crawler/crawler/
 
 WORKDIR /crawler/
