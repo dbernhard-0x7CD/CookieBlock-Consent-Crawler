@@ -229,6 +229,7 @@ def run_crawler() -> None:
     browser_params = {
         "use_temp": True,
         "chrome_path": str(chrome_path.absolute()),
+        "headless": headless,
     }
     
     # Add browser config to the database
@@ -262,7 +263,6 @@ def run_crawler() -> None:
 
         with Chrome(
             seconds_before_processing_page=1,
-            headless=headless,
             chrome_profile_path=chrome_profile_path,
             chromedriver_path=chromedriver_path,
             browser_id=browser_id,
