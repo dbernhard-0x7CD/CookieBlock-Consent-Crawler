@@ -348,14 +348,15 @@ def run_crawler() -> None:
             
             pqdm_args.append(visit)
 
+    timeout = 300
     if num_browsers == 1:
         res = []
         for arg in pqdm_args:
-            res.append(run_domain_with_timeout(arg, 240)) 
+            res.append(run_domain_with_timeout(arg, timeout)) 
     else:
         res = pqdm(
             pqdm_args,
-            lambda x: run_domain_with_timeout(x, 240),
+            lambda x: run_domain_with_timeout(x, timeout),
             n_jobs=num_browsers,
             total=len(urls),
             exception_behaviour="immediate",
