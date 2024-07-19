@@ -236,6 +236,8 @@ def run_crawler() -> None:
     browser_id = crawl.browser_id
 
     def run_domain(visit: SiteVisit) -> Tuple[ConsentCrawlResult, List[ConsentData]]:
+        url = visit.site_url
+
         id = visit.visit_id
         crawl_logger = logging.getLogger(f"visit-{visit.visit_id}")
         crawl_logger.propagate = False
@@ -309,6 +311,8 @@ def run_crawler() -> None:
             return (result, consent_data)
 
     def run_domain_with_timeout(visit: SiteVisit, timeout: int = 180) -> Tuple[ConsentCrawlResult, List[ConsentData]]:
+        url = visit.site_url
+
         with stopit.ThreadingTimeout(timeout) as ctx_mgr:
             assert ctx_mgr.state == ctx_mgr.EXECUTING
 
