@@ -33,6 +33,7 @@ from crawler.database import (
     register_browser_config,
     ConsentData,
     ConsentCrawlResult,
+    Cookie,
 )
 from crawler.utils import set_log_formatter, is_on_same_domain
 from crawler.enums import CrawlerType, CrawlState
@@ -235,7 +236,7 @@ def run_crawler() -> None:
     assert crawl.browser_id
     browser_id = crawl.browser_id
 
-    def run_domain(visit: SiteVisit) -> Tuple[ConsentCrawlResult, List[ConsentData]]:
+    def run_domain(visit: SiteVisit) -> Tuple[ConsentCrawlResult, List[ConsentData], List[Cookie]]:
         url = visit.site_url
 
         id = visit.visit_id
@@ -283,7 +284,7 @@ def run_crawler() -> None:
             if crawler_type == CrawlerType.FAILED or crawler_state != CrawlState.SUCCESS:
                 browser.collect_cookies(visit=visit)
                 crawl_logger.info("Aborted crawl crawl to %s [crawl_type: %s; crawler_state: %s]", u, crawler_type.name, crawler_state.name)
-                return (result, consent_data)  # Abort as in the original crawler
+                return (result, consent_data, [])  # Abort as in the original crawler
 
             crawl_logger.info(
                 "CMP result is %s and %s", crawler_type.name, crawler_state.name
@@ -305,13 +306,13 @@ def run_crawler() -> None:
                 browser.load_page(l.url)
                 browser.bot_mitigation(max_sleep_seconds=1, num_mouse_moves=1)
 
-            browser.collect_cookies(visit=visit)
+            cookies = browser.collect_cookies(visit=visit)
 
             crawl_logger.info("Sucessfully finished crawl to %s", u)
 
-        return (result, consent_data)
+        return (result, consent_data, cookies)
 
-    def run_domain_with_timeout(visit: SiteVisit, timeout: int = 180) -> Tuple[ConsentCrawlResult, List[ConsentData]]:
+    def run_domain_with_timeout(visit: SiteVisit, timeout: int = 180) -> Tuple[ConsentCrawlResult, List[ConsentData], List[Cookie]]:
         try:
             url = visit.site_url
 
@@ -328,7 +329,7 @@ def run_crawler() -> None:
             return res
         except Exception as e:
             logger.error("visit_id: %s Failure when crawling %s: %s", visit.visit_id, visit.site_url, str(e))
-            return ConsentCrawlResult(report=f"Failure: {str(e)}", browser=visit.browser, visit=visit, cmp_type=CrawlerType.FAILED.value, crawl_state=CrawlState.LIBRARY_ERROR.value), []
+            return ConsentCrawlResult(report=f"Failure: {str(e)}", browser=visit.browser, visit=visit, cmp_type=CrawlerType.FAILED.value, crawl_state=CrawlState.LIBRARY_ERROR.value), [], []
 
     pqdm_args: List[SiteVisit] = []
 
@@ -352,10 +353,12 @@ def run_crawler() -> None:
 
     # Store data in database
     with SessionLocal.begin() as session:
-        for result, cds in res:
+        for result, cds, cookies in res:
             session.add(result)
             for cd in cds:
                 session.add(cd)
+            for c in cookies:
+                session.add(c)
 
     logger.info("CB-CCrawler has finished.")
 

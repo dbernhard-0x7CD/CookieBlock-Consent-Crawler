@@ -56,7 +56,7 @@ from seleniumwire import webdriver
 
 import stopit
 
-from crawler.database import Crawl, SiteVisit, store_cookie, ConsentData, ConsentCrawlResult
+from crawler.database import Crawl, SiteVisit, ConsentData, ConsentCrawlResult, Cookie
 from crawler.enums import PageState, CookieTuple, CrawlerType, CrawlState
 
 from crawler.cmps.cookiebot import CookiebotCMP
@@ -539,7 +539,7 @@ class CBConsentCrawlerBrowser(Browser):
             self.driver.switch_to.default_content()
             return None
 
-    def collect_cookies(self, visit: SiteVisit) -> None:
+    def collect_cookies(self, visit: SiteVisit) -> List[Cookie]:
         """Collects actual stored cookies using the CookieBlock extension"""
 
         # TODO: is record_type stored?
@@ -601,6 +601,8 @@ class CBConsentCrawlerBrowser(Browser):
 
         self.logger.info("There are %i actual cookies stored.", len(cookies))
 
+        result: List[Cookie] = []
+
         for x in cookies:
             self.logger.debug("Storing cookie (DEBUG OUTPUT)\n%s\n", x)
 
@@ -625,33 +627,43 @@ class CBConsentCrawlerBrowser(Browser):
                     # 9999-12-31T21:59:59.000Z
                     expiry = datetime.fromisoformat("9999-12-31T21:59:59.000Z")
 
-                store_cookie(
+                js_cookie = Cookie(
                     visit=visit,
+                    visit_id=visit.visit_id,
                     browser_id=self.browser_id,
                     extension_session_uuid=None,
                     event_ordinal=None,
                     record_type="unknown",
                     change_cause="unknown",
-                    expiry=expiry,
-                    host=x["domain"] if "domain" in x else None,
-                    path=x["path"] if "path" in x else None,
-                    value=var_data["value"] if "value" in var_data else None,
-                    name=x["name"] if "name" in x else None,
+                    # For compitability with older scripts
+                    expiry=(
+                        expiry.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3] + "Z"
+                    ),
                     is_host_only=host_only_fn(var_data, "host_only"),
                     is_http_only=host_only_fn(var_data, "http_only"),
                     is_secure=host_only_fn(var_data, "secure"),
                     is_session=host_only_fn(var_data, "session"),
+                    host=x["domain"] if "domain" in x else None,
+                    name=x["name"] if "name" in x else None,
+                    path=x["path"] if "path" in x else None,
+                    value=var_data["value"] if "value" in var_data else None,
                     same_site=(
                         var_data["same_site"] if "same_site" in var_data else None
                     ),
-                    time_stamp=time_stamp,
+                    first_party_domain=None,
+                    store_id=None,
+                    # For compitability with older scripts
+                    time_stamp=(time_stamp.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3]) + "Z",
                 )
+                result.append(js_cookie)
 
                 # Warn if timestamp was generated
                 if not "timestamp" in var_data:
                     self.logger.error(
                         "timestamp missing in cookie: %s on %s", x, visit.site_url
                     )
+        # End iterating over cookies
+        return result
 
     def scroll_down(self, prob_scroll: float = 0.8) -> None:
         """
