@@ -777,7 +777,7 @@ class Chrome(CBConsentCrawlerBrowser):
 
         # required in docker (no X11 context)
         # More info on flags: https://peter.sh/experiments/chromium-command-line-switches/
-        options.add_argument("--no-sandbox")
+        # options.add_argument("--no-sandbox")
 
         # if len(self.languages) > 0:
         #     options.add_argument("--accept-lang=" + ",".join(self.languages))
