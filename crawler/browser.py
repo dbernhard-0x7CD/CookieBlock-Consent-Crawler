@@ -174,7 +174,7 @@ class Browser(ABC):
         # try to dismiss alert windows
         try:
             for _ in range(10):
-                with stopit.ThreadingTimeout(60, swallow_exc=True) as ctxt:
+                with stopit.ThreadingTimeout(60, swallow_exc=False) as ctxt:
                     self.driver.switch_to.alert.dismiss()
                     self.logger.debug("Dismissed alert")
                 time.sleep(0.2 + random.rand() * 0.3)
