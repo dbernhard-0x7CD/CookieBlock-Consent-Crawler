@@ -31,6 +31,7 @@ from numpy import random
 import random as prandom
 import undetected_chromedriver as uc
 from html2text import HTML2Text
+from ftfy import fix_encoding
 
 from selenium.common.exceptions import (
     NoAlertPresentException,
@@ -321,7 +322,7 @@ class Browser(ABC):
 
         formatter = HTML2Text()
         formatter.ignore_images = True
-        content = formatter.handle(self.driver.page_source)
+        content = formatter.handle(fix_encoding(self.driver.page_source))
 
         return (status, content)
 
