@@ -675,7 +675,7 @@ class CBConsentCrawlerBrowser(Browser):
                 "window.scrollBy(0,%d)" % (10 + int(200 * random.random()))
             )
             at_bottom = self.driver.execute_script("""
-                if ('clientHeight' in document.body) {
+                if (document.body != null && 'clientHeight' in document.body) {
                     return ((window.scrollY + window.innerHeight) + 100 > document.body.clientHeight)
                 } else {
                     return True
