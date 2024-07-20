@@ -309,6 +309,11 @@ def run_crawler() -> None:
             cookies = browser.collect_cookies(visit=visit)
 
             crawl_logger.info("Sucessfully finished crawl to %s", u)
+            
+            # Close file handler
+            for handler in crawl_logger.handlers:
+                if isinstance(handler, logging.FileHandler):
+                    handler.close()
 
         return (result, consent_data, cookies)
 
