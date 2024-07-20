@@ -128,8 +128,8 @@ class CookiebotCMP(AbstractCMP):
         js_contents = response
 
         if "CookieConsent.setOutOfRegion" in js_contents:
-            msg = f'COOKIEBOT: Received an out-of-region response from "{cc_url}"'
-            self.logger.error(msg + " (browser_id %s)", browser_id)
+            msg = 'COOKIEBOT: Received an out-of-region response from %s' % cc_url
+            self.logger.error("%s (browser_id %s)", msg, browser_id)
             return CrawlState.REGION_BLOCK, msg, []
         elif re.search(
             "cookiedomainwarning='Error: .* is not a valid domain.", js_contents
