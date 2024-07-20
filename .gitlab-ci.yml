@@ -23,6 +23,7 @@ test_container_building:
         - .dockerignore
         - Dockerfile
         - poetry.lock
+        - install_uc.sh
 
 # Run pytests of this project
 tests:
