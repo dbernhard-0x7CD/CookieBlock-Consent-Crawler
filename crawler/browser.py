@@ -542,7 +542,7 @@ class CBConsentCrawlerBrowser(Browser):
     def collect_cookies(self, visit: SiteVisit) -> List[Cookie]:
         """Collects actual stored cookies using the CookieBlock extension"""
 
-        # TODO: is record_type stored?
+        # TODO: how is record_type stored?
 
         self.logger.info("Collecting cookies")
 
