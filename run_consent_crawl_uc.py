@@ -220,7 +220,7 @@ def run_crawler() -> None:
         "num_browsers": str(num_browsers)
     }
     task = start_task(
-        browser_version="Chrome 122", manager_params=json.dumps(parameters)
+        browser_version="Chrome 126", manager_params=json.dumps(parameters)
     )
     task_id = task.task_id
 
