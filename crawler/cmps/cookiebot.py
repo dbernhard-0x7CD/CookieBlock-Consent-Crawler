@@ -135,11 +135,11 @@ class CookiebotCMP(AbstractCMP):
             "cookiedomainwarning='Error: .* is not a valid domain.", js_contents
         ):
             msg = f"COOKIEBOT: Unrecognized referer: {referer}."
-            self.logger.error(msg + f" (browser_id {browser_id})")
+            self.logger.error("%s (browser_id %s)", msg, browser_id)
             return CrawlState.LIBRARY_ERROR, msg, []
         elif len(js_contents.strip()) == 0:
             msg = f'COOKIEBOT: Empty response when trying to retrieve "{cc_url}".'
-            self.logger.error(msg + f" (browser_id {browser_id})")
+            self.logger.error("%s (browser_id %s)", msg, browser_id)
             return CrawlState.MALFORM_RESP, msg, []
 
         self.logger.info(
@@ -190,12 +190,12 @@ class CookiebotCMP(AbstractCMP):
         # to be violated, this try-except block catches it
         except Exception as ex:
             msg = f"COOKIEBOT: Failed to extract cookie data from {cc_url}: {type(ex)} {ex}"
-            self.logger.error(msg + f"(browser_id {browser_id}")
+            self.logger.error("%s (browser_id %s", msg, browser_id)
             return CrawlState.MALFORM_RESP, msg, []
 
         if cookie_count == 0:
             msg = f"COOKIEBOT: No cookies found in {cc_url}"
-            self.logger.error(msg + f"(browser_id {browser_id}")
+            self.logger.error("%s (browser_id %s", msg, browser_id)
             return CrawlState.NO_COOKIES, msg, []
 
         self.logger.info(
