@@ -345,7 +345,7 @@ def run_crawler() -> None:
             
             pqdm_args.append(visit)
 
-    timeout = 300
+    timeout = 600 # 10 minutes
     if num_browsers == 1:
         res = []
         for arg in pqdm_args:
