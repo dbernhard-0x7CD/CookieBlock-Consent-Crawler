@@ -320,8 +320,11 @@ def run_crawler() -> None:
                 assert ctx_mgr.state == ctx_mgr.EXECUTING
 
                 return run_domain(visit)
+        except TimeoutError as e:
+            logger.warning("Website %s had a TimeoutError", visit.site_url)
         except stopit.TimeoutException as e:
             logger.warning("Website %s timed out after %s seconds", visit.site_url, timeout)
+            # Add to unfinished or retry? TODO
 
             return ConsentCrawlResult(report=f"Timed out after {timeout} seconds: {visit.site_url}", browser=visit.browser, visit=visit, cmp_type=CrawlerType.FAILED.value, crawl_state=CrawlState.LIBRARY_ERROR.value), [], []
         except Exception as e:
