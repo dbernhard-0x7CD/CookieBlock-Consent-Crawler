@@ -670,7 +670,7 @@ class CBConsentCrawlerBrowser(Browser):
         Scroll down the current page a random amount.
         """
         at_bottom = False
-        while random.random() > (1 - prob_scroll) and not at_bottom:
+        while random.random() > (1.0 - prob_scroll) and not at_bottom:
             self.driver.execute_script(
                 "window.scrollBy(0,%d)" % (10 + int(200 * random.random()))
             )
@@ -698,7 +698,7 @@ class CBConsentCrawlerBrowser(Browser):
         num_moves = 0
         num_fails = 0
 
-        while num_moves < num_mouse_moves + 1 and num_fails <= num_mouse_moves:
+        while num_moves < num_mouse_moves + 1 and num_fails < num_mouse_moves:
             try:
                 if num_moves == 0:  # move to the center of the screen
                     x = int(round(window_size["height"] / 2))
@@ -718,7 +718,6 @@ class CBConsentCrawlerBrowser(Browser):
             except (WebDriverException, MoveTargetOutOfBoundsException) as e:
                 num_fails += 1
                 # self.logger.error(e)
-                pass
         self.logger.info("Moved mouse %s times", num_moves)
 
         # bot mitigation 2: scroll in random intervals down page
