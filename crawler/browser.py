@@ -960,4 +960,5 @@ class Chrome(CBConsentCrawlerBrowser):
         self.logger.info("Killing browser PID %s", self.driver.browser_pid)
         
         os.kill(self.driver.browser_pid, signal.SIGTERM)
+        self.driver.quit()
 
