@@ -4,6 +4,8 @@ import json
 from abc import ABC, abstractmethod
 import time
 from datetime import datetime
+import os
+import signal
 
 import logging
 from logging import Logger
@@ -953,3 +955,8 @@ class Chrome(CBConsentCrawlerBrowser):
             self.logger.warning(
                 "Unable to remove the temporary directory", stack_info=False
             )
+
+        self.logger.info("Killing browser PID %s", self.driver.browser_pid)
+        
+        os.kill(self.driver.browser_pid, signal.SIGTERM)
+
