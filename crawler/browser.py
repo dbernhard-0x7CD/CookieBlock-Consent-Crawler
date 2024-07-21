@@ -680,7 +680,7 @@ class CBConsentCrawlerBrowser(Browser):
                 if (document.body != null && 'clientHeight' in document.body) {
                     return ((window.scrollY + window.innerHeight) + 100 > document.body.clientHeight)
                 } else {
-                    return True
+                    return true
                 }
                 """
             )
