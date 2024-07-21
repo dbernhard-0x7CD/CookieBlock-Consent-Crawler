@@ -380,6 +380,7 @@ def run_crawler() -> None:
                 session.add(c)
 
     logger.info("CB-CCrawler has finished.")
+    logging.shutdown()
 
 
 def main() -> None:
