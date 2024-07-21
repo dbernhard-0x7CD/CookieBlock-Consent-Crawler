@@ -843,6 +843,7 @@ class Chrome(CBConsentCrawlerBrowser):
             driver_executable_path=str(self.driver_path),
             browser_executable_path=str(self.chrome_path / "chrome"),
             headless=self.headless,
+            version_main=126,
             user_data_dir=str(self.profile_path),
             enable_cdp_events=True,
         )
