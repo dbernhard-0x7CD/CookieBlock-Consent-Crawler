@@ -35,24 +35,20 @@ The repository is split into two web crawler types, as well as some additional s
 
 ### Main Crawler Scripts
 
-In the subfolder `crawler`, two webcrawlers can be found:
-* One is designated as __"CMP Presence Crawler"__ which uses the Python `requests` library to quickly detect whether a website uses a cookie consent library from one of three different Consent Management Providers (CMP).
-This crawler serves as a first pass to filter domains that cannot be used for extracting useful data in the slower, OpenWPM-based crawl.
-* The second is designated as the __"Consent Crawler"__, which uses the OpenWPM framework to extract both cookies and their corresponding usage purposes if found.
-This process uses actual Firefox browser instances to browse websites and gather cookies.
-The process is slow, but it's the best method for collecting cookie data required for training a predictor.
+In the subfolder `crawler`, the file `run_presence_crawl.py`:
+* This is designated as __"CMP Presence Crawler"__ which uses the Python `requests` library to quickly detect whether a website uses a cookie consent library from one of three different Consent Management Providers (CMP).
+* This crawler serves as a first pass to filter domains that cannot be used for extracting useful data in the slower, OpenWPM-based crawl.
+
+In the root folder the `run_consent_crawl_uc.py` is the second part:
+* It is designated as the __"Consent Crawler"__, which uses the chrome browser to extract both cookies and their corresponding usage purposes if found.
+* The process is slow, but it's the best method for collecting cookie data required for training a predictor.
 
 Currently, the web crawlers support cookie banners from the following Consent Management Providers:
 * Cookiebot
 * OneTrust (includes OptAnon, CookiePro and CookieLaw)
-* Termly
-
-The consent crawler is based on OpenWPM v0.12.0 by _Steven Englehardt et al._, which can be found at:
-
-https://github.com/mozilla/OpenWPM
+* (Not yet supported in UC) Termly
 
 It also uses a fork of the Consent-O-Matic extension by _Janus Bager Kristensen et al._ to automatically provide affirmative consent to cookie banners.
-
 This allows the web crawler to gather more cookies than would normally be possible.
 
 Its source can be found at:
