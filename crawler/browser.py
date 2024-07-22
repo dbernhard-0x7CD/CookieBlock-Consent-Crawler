@@ -948,7 +948,7 @@ class Chrome(CBConsentCrawlerBrowser):
         # noinspection PyBroadException
         try:
             # Chrome might still be writing into it after quit(). Give it some time
-            time.sleep(0.2)
+            time.sleep(1.0)
 
             if self.use_temp:
                 self._temp_dir.cleanup()
