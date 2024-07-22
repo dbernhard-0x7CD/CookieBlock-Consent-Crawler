@@ -238,6 +238,9 @@ def run_crawler() -> None:
     assert crawl.browser_id
     browser_id = crawl.browser_id
 
+    # Debugging
+    proc = psutil.Process()
+
     def run_domain(visit: SiteVisit) -> Tuple[ConsentCrawlResult, List[ConsentData], List[Cookie]]:
         url = visit.site_url
 
