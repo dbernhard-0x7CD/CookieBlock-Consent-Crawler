@@ -17,6 +17,7 @@ from pqdm.threads import pqdm
 import threading
 import random
 import json
+import psutil
 
 from hyperlink import URL
 
@@ -309,7 +310,7 @@ def run_crawler() -> None:
             for i, l in enumerate(chosen):
                 crawl_logger.info("Subvisiting [%i]: %s", i, l.url.to_text())
                 browser.load_page(l.url)
-                browser.bot_mitigation(max_sleep_seconds=1, num_mouse_moves=1)
+                browser.bot_mitigation(max_sleep_seconds=1, num_mouse_moves=2)
 
             cookies = browser.collect_cookies(visit=visit)
 
@@ -319,6 +320,10 @@ def run_crawler() -> None:
             for handler in crawl_logger.handlers:
                 if isinstance(handler, logging.FileHandler):
                     handler.close()
+
+            logger.info("OPEN FILES: %s", len(proc.open_files()))
+            logger.info("CONNECTIONS: %s", len(proc.connections()))
+            logger.info("fds: %s", proc.num_fds())
 
         return (result, consent_data, cookies)
 
