@@ -368,6 +368,10 @@ def run_crawler() -> None:
         res = []
         for arg in pqdm_args:
             res.append(run_domain_with_timeout(arg, timeout)) 
+
+            logger.info("OPEN FILES: %s", len(proc.open_files()))
+            logger.info("CONNECTIONS: %s", len(proc.connections()))
+            logger.info("fds: %s", proc.num_fds())
     else:
         res = pqdm(
             pqdm_args,
