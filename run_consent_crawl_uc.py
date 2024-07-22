@@ -248,7 +248,7 @@ def run_crawler() -> None:
         crawl_logger = logging.getLogger(f"visit-{visit.visit_id}")
         crawl_logger.propagate = False
 
-        file_handler = logging.FileHandler(log_dir / f"visit_{id}.log")
+        file_handler = logging.FileHandler(log_dir / f"visit_{id}.log", delay=False)
         log_formatter = logging.Formatter(
             fmt="%(asctime)s %(levelname)s %(filename)s %(name)s: %(message)s",
             datefmt="%Y-%m-%d:%H:%M:%S",
@@ -323,6 +323,7 @@ def run_crawler() -> None:
             for handler in crawl_logger.handlers:
                 if isinstance(handler, logging.FileHandler):
                     handler.close()
+                    crawl_logger.removeHandler(handler)
 
             logger.info("OPEN FILES: %s", len(proc.open_files()))
             logger.info("CONNECTIONS: %s", len(proc.connections()))
