@@ -961,7 +961,3 @@ class Chrome(CBConsentCrawlerBrowser):
                 "Unable to remove the temporary directory", stack_info=False
             )
 
-        self.logger.info("Killing browser PID %s", self.driver.browser_pid)
-        
-        # os.kill(self.driver.browser_pid, signal.SIGTERM)
-
