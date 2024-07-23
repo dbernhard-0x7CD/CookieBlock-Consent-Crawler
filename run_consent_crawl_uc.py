@@ -70,7 +70,7 @@ def run_crawler() -> None:
     logger.setLevel(logging.INFO)
 
     ver = version("cookieblock-consent-crawler")
-    logger.info(f"Starting cookieblock-consent-crawler version {ver}")
+    logger.info("Starting cookieblock-consent-crawler version %s", ver)
 
     # Has some WARNING messages that the pool is full
     logging.getLogger("urllib3").setLevel(logging.ERROR)
@@ -267,6 +267,7 @@ def run_crawler() -> None:
             crawl_logger.addHandler(stdout_handler)
 
         crawl_logger.setLevel(logging.INFO)
+        crawl_logger.info("CookieBlock-ConsentCrawler version %s", ver)
         crawl_logger.info("Working on %s", url)
 
         with Chrome(
