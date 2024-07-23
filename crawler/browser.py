@@ -32,6 +32,7 @@ from hyperlink import URL, URLParseError
 from numpy import random
 import random as prandom
 import undetected_chromedriver as uc
+from undetected_chromedriver.patcher import Patcher
 from html2text import HTML2Text
 from ftfy import fix_encoding
 
@@ -837,6 +838,9 @@ class Chrome(CBConsentCrawlerBrowser):
             self.driver_path,
             self.profile_path,
         )
+
+        # Copy chromedriver to patchers directory
+        shutil.copy(self.driver_path, Patcher.data_path)
 
         self.driver = uc.Chrome(
             options=options,
