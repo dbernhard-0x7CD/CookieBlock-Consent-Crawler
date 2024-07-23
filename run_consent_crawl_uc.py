@@ -384,8 +384,9 @@ def run_crawler() -> None:
 
     if num_browsers == 1:
         res = []
-        for arg in pqdm_args:
+        for i, arg in enumerate(pqdm_args):
             run_domain_with_timeout(arg, timeout, slist)
+            logger.info("Finished %s/%s", i+1, len(pqdm_args))
     else:
         res = pqdm(
             pqdm_args,
