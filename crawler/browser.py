@@ -161,7 +161,7 @@ class Browser(ABC):
         exc_val: BaseException | None,
         exc_tb: TracebackType | None,
     ) -> None:
-        self.logger.info("Exiting selenium driver")
+        self.logger.info("Exiting selenium driver %s, %s, %s", exc_type, exc_val, exc_tb)
 
         # noinspection PyBroadException
         try:
