@@ -18,6 +18,9 @@ import threading
 import random
 import json
 import psutil
+from multiprocessing import Process
+from multiprocessing.managers import ListProxy
+import multiprocessing
 
 from hyperlink import URL
 
@@ -241,7 +244,7 @@ def run_crawler() -> None:
     # Debugging
     proc = psutil.Process()
 
-    def run_domain(visit: SiteVisit) -> Tuple[ConsentCrawlResult, List[ConsentData], List[Cookie]]:
+    def run_domain(visit: SiteVisit, ret_list: ListProxy) -> None:
         url = visit.site_url
 
         id = visit.visit_id
@@ -293,7 +296,8 @@ def run_crawler() -> None:
                 for handler in crawl_logger.handlers:
                     if isinstance(handler, logging.FileHandler):
                         handler.close()
-                return (result, consent_data, [])  # Abort as in the original crawler
+                ret_list.append((result, consent_data, []) ) # Abort as in the original crawler
+                return
 
             crawl_logger.info(
                 "CMP result is %s and %s", crawler_type.name, crawler_state.name
@@ -325,32 +329,35 @@ def run_crawler() -> None:
                     handler.close()
                     crawl_logger.removeHandler(handler)
 
-            logger.info("OPEN FILES: %s", len(proc.open_files()))
-            logger.info("CONNECTIONS: %s", len(proc.connections()))
+            # To detect resource leakage
+            logger.info("Number of open files: %s", len(proc.open_files()))
+            for f in proc.open_files():
+                logger.info("\tOpen file: %s", f)
+            logger.info("Number of connections: %s", len(proc.connections()))
             logger.info("fds: %s", proc.num_fds())
+            
+            ret_list.append((result, consent_data, cookies))
 
-        return (result, consent_data, cookies)
-
-    def run_domain_with_timeout(visit: SiteVisit, timeout: int = 180) -> Tuple[ConsentCrawlResult, List[ConsentData], List[Cookie]]:
+    def run_domain_with_timeout(visit: SiteVisit, timeout: int, slist) -> None:
         try:
             url = visit.site_url
 
             with stopit.ThreadingTimeout(timeout, swallow_exc=False) as ctx_mgr:
                 assert ctx_mgr.state == ctx_mgr.EXECUTING
 
-                return run_domain(visit)
+                run_domain(visit, slist)
         except TimeoutError as e:
             logger.warning("Website %s had a TimeoutError", visit.site_url)
 
-            return ConsentCrawlResult(report=f"TimeoutError: {visit.site_url}", browser=visit.browser, visit=visit, cmp_type=CrawlerType.FAILED.value, crawl_state=CrawlState.LIBRARY_ERROR.value), [], []
+            slist.append((ConsentCrawlResult(report=f"TimeoutError: {visit.site_url}", browser=visit.browser, visit=visit, cmp_type=CrawlerType.FAILED.value, crawl_state=CrawlState.LIBRARY_ERROR.value), [], []))
         except stopit.TimeoutException as e:
             logger.warning("Website %s timed out after %s seconds", visit.site_url, timeout)
             # Add to unfinished or retry? TODO
 
-            return ConsentCrawlResult(report=f"Timed out after {timeout} seconds: {visit.site_url}", browser=visit.browser, visit=visit, cmp_type=CrawlerType.FAILED.value, crawl_state=CrawlState.LIBRARY_ERROR.value), [], []
+            slist.append((ConsentCrawlResult(report=f"Timed out after {timeout} seconds: {visit.site_url}", browser=visit.browser, visit=visit, cmp_type=CrawlerType.FAILED.value, crawl_state=CrawlState.LIBRARY_ERROR.value), [], []))
         except Exception as e:
             logger.error("visit_id: %s Failure when crawling %s: %s", visit.visit_id, visit.site_url, str(e))
-            return ConsentCrawlResult(report=f"Failure: {str(e)}", browser=visit.browser, visit=visit, cmp_type=CrawlerType.FAILED.value, crawl_state=CrawlState.LIBRARY_ERROR.value), [], []
+            slist.append((ConsentCrawlResult(report=f"Failure: {str(e)}", browser=visit.browser, visit=visit, cmp_type=CrawlerType.FAILED.value, crawl_state=CrawlState.LIBRARY_ERROR.value), [], []))
 
     pqdm_args: List[SiteVisit] = []
 
@@ -365,27 +372,37 @@ def run_crawler() -> None:
             pqdm_args.append(visit)
 
     timeout = 600 # 10 minutes
+    manager = multiprocessing.Manager()
+    slist = manager.list()
+
     if num_browsers == 1:
         res = []
         for arg in pqdm_args:
-            res.append(run_domain_with_timeout(arg, timeout)) 
 
-            logger.info("OPEN FILES: %s", len(proc.open_files()))
-            logger.info("CONNECTIONS: %s", len(proc.connections()))
-            logger.info("fds: %s", proc.num_fds())
+            p = Process(target=run_domain_with_timeout, args=(arg, timeout, slist))
+            p.start()
+            p.join()
+            
+            p.close()
     else:
         res = pqdm(
             pqdm_args,
-            lambda x: run_domain_with_timeout(x, timeout),
+            lambda x: run_domain_with_timeout(x, timeout, slist),
             n_jobs=num_browsers,
             total=len(urls),
             exception_behaviour="immediate",
         )
     logger.info("All %s crawls have finished", len(pqdm_args))
 
+    logger.info("Number of open files: %s", len(proc.open_files()))
+    for f in proc.open_files():
+        logger.info("\tOpen file: %s", f)
+    logger.info("Number of connections: %s", len(proc.connections()))
+    logger.info("fds: %s", proc.num_fds())
+    
     # Store data in database
     with SessionLocal.begin() as session:
-        for result, cds, cookies in res:
+        for result, cds, cookies in slist:
             session.add(result)
             for cd in cds:
                 session.add(cd)

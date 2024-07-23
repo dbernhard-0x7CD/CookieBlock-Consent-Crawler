@@ -846,6 +846,8 @@ class Chrome(CBConsentCrawlerBrowser):
             version_main=126,
             user_data_dir=str(self.profile_path),
             enable_cdp_events=True,
+            use_subprocess=True,
+            user_multi_procs=True,
         )
 
         stealth(
