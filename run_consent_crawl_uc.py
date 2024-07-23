@@ -24,6 +24,7 @@ from multiprocessing.managers import ListProxy
 import multiprocessing
 
 from hyperlink import URL
+import urllib3
 
 import stopit
 
@@ -352,8 +353,12 @@ def run_crawler() -> None:
                 
                 p.close()
             return True
-        except TimeoutError as e:
+        except (TimeoutError, urllib3.exceptions.TimeoutError) as e:
             logger.warning("Website %s had a TimeoutError", visit.site_url)
+            # This except block should store the websites for later to retry them
+
+            with open("./retry_list.txt", "a", encoding="utf-8") as file:
+                file.write(url)
 
             slist.append((ConsentCrawlResult(report=f"TimeoutError: {visit.site_url}", browser=visit.browser, visit=visit, cmp_type=CrawlerType.FAILED.value, crawl_state=CrawlState.LIBRARY_ERROR.value), [], []))
         except stopit.TimeoutException as e:
