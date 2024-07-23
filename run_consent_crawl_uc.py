@@ -251,7 +251,7 @@ def run_crawler() -> None:
         file_handler = logging.FileHandler(log_dir / f"visit_{id}.log", delay=False)
         log_formatter = logging.Formatter(
             fmt="%(asctime)s %(levelname)s %(filename)s %(name)s: %(message)s",
-            datefmt="%Y-%m-%d:%H:%M:%S",
+            datefmt="%Y-%m-%d %H:%M:%S",
         )
         file_handler.setFormatter(log_formatter)
         crawl_logger.addHandler(file_handler)
