@@ -841,7 +841,8 @@ class Chrome(CBConsentCrawlerBrowser):
 
         # Copy chromedriver to patchers directory
         Path(Patcher.data_path).mkdir(exist_ok=True)
-        shutil.copy(self.driver_path, Patcher.data_path)
+        if not (Path(Patcher.data_path) / "chromedriver").exists():
+            shutil.copy(self.driver_path, Patcher.data_path)
 
         self.driver = uc.Chrome(
             options=options,
