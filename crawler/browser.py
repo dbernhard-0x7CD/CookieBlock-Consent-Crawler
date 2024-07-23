@@ -166,9 +166,6 @@ class Browser(ABC):
         # noinspection PyBroadException
         try:
             self._press_key(Keys.ESCAPE)
-            self.logger.info(
-                "During the crawl %s HTTP requests were performed.", len(self.requests)
-            )
             self.driver.quit()
         except Exception as e:
             # some errors (like KeyboardInterrupt) might crash Selenium and we cannot quit it like this
