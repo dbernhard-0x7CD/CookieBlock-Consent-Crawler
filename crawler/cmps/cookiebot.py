@@ -300,8 +300,11 @@ class CookiebotCMP(AbstractCMP):
                     "COOKIEBOT: Found Cookiebot ID using Variant 3 (browser_id %s)",
                     browser_id,
                 )
-
-                return variant_3.group(2), variant_3.group(1)
+                
+                if len(variant_3.groups()) == 3:
+                    return variant_3.group(2), variant_3.group(1)
+                else:
+                    return None
             else:
                 self.logger.error(
                     "COOKIEBOT: Could not find the Cookiebot ID (browser_id: %s)",
