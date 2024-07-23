@@ -338,14 +338,18 @@ def run_crawler() -> None:
             
             ret_list.append((result, consent_data, cookies))
 
-    def run_domain_with_timeout(visit: SiteVisit, timeout: int, slist) -> None:
+    def run_domain_with_timeout(visit: SiteVisit, timeout: int, slist) -> bool:
         try:
             url = visit.site_url
 
             with stopit.ThreadingTimeout(timeout, swallow_exc=False) as ctx_mgr:
                 assert ctx_mgr.state == ctx_mgr.EXECUTING
-
-                run_domain(visit, slist)
+                p = Process(target=run_domain, args=(visit, slist))
+                p.start()
+                p.join()
+                
+                p.close()
+            return True
         except TimeoutError as e:
             logger.warning("Website %s had a TimeoutError", visit.site_url)
 
@@ -358,6 +362,7 @@ def run_crawler() -> None:
         except Exception as e:
             logger.error("visit_id: %s Failure when crawling %s: %s", visit.visit_id, visit.site_url, str(e))
             slist.append((ConsentCrawlResult(report=f"Failure: {str(e)}", browser=visit.browser, visit=visit, cmp_type=CrawlerType.FAILED.value, crawl_state=CrawlState.LIBRARY_ERROR.value), [], []))
+        return False
 
     pqdm_args: List[SiteVisit] = []
 
@@ -378,12 +383,7 @@ def run_crawler() -> None:
     if num_browsers == 1:
         res = []
         for arg in pqdm_args:
-
-            p = Process(target=run_domain_with_timeout, args=(arg, timeout, slist))
-            p.start()
-            p.join()
-            
-            p.close()
+            run_domain_with_timeout(arg, timeout, slist)
     else:
         res = pqdm(
             pqdm_args,
@@ -392,6 +392,7 @@ def run_crawler() -> None:
             total=len(urls),
             exception_behaviour="immediate",
         )
+        all(res)
     logger.info("All %s crawls have finished", len(pqdm_args))
 
     logger.info("Number of open files: %s", len(proc.open_files()))
@@ -402,12 +403,13 @@ def run_crawler() -> None:
     
     # Store data in database
     with SessionLocal.begin() as session:
-        for result, cds, cookies in slist:
-            session.add(result)
+        for result, cds, cookies in tqdm(slist):
+            session.merge(result)
+
             for cd in cds:
-                session.add(cd)
+                session.merge(cd)
             for c in cookies:
-                session.add(c)
+                session.merge(c)
 
     logger.info("CB-CCrawler has finished.")
     logging.shutdown()
