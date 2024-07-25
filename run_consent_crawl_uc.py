@@ -348,7 +348,7 @@ def run_crawler() -> None:
             with stopit.ThreadingTimeout(timeout, swallow_exc=False) as ctx_mgr:
                 assert ctx_mgr.state == ctx_mgr.EXECUTING
 
-                q = Queue(maxsize=1)
+                q: Queue[Tuple[int, int]] = Queue(maxsize=1)
                 p = Process(target=run_domain, args=(visit, q))
                 p.start()
                 p.join()
