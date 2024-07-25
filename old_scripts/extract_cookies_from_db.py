@@ -220,8 +220,8 @@ def main() -> int:
             cur.execute(TRAINING_DATA_QUERY)
 
             for row in cur:
-                print("PROCESSING ROW")
-                print(row)
+                # print("PROCESSING ROW")
+                # print(row)
 
                 cat_id = int(row["cat_id"])
 
@@ -338,15 +338,15 @@ def main() -> int:
 
         all_temp: List[int] = []
         stats_temp: List[List[int]] = [[], [], [], []]
-        print("updates_per_cookie_entry:")
-        print(updates_per_cookie_entry)
+        # print("updates_per_cookie_entry:")
+        # print(updates_per_cookie_entry)
         for (k, l), c in updates_per_cookie_entry.items():
             stats_temp[l].append(c)
             all_temp.append(c)
-            print(c)
+            # print(c)
 
         print("stats_temp")
-        print(stats_temp)
+        # print(stats_temp)
         for i in range(4):
             if len(stats_temp[i]) > 1:
                 print(f"Average number of updates for category {i}: {mean(stats_temp[i])}")
