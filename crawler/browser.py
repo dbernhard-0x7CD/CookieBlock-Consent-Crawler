@@ -27,7 +27,7 @@ from typing import (
 )
 
 from urllib.parse import urldefrag
-from psutil import Process
+from psutil import Process, TimeoutExpired
 
 from bs4 import BeautifulSoup
 from hyperlink import URL, URLParseError
@@ -958,15 +958,25 @@ class Chrome(CBConsentCrawlerBrowser):
 
         # noinspection PyBroadException
         try:
-            # Chrome might still be writing into it after quit(). Give it some time
+            # Ensure chrome is no longer running before removing _temp_dir
 
             if not pid is None:
                 p = Process(pid)
 
+                i = 0
                 while p.is_running():
                     self.logger.info("Browser still running")
-                    time.sleep(10)
-                time.sleep(1.0)
+                    try:
+                        p.wait(timeout=10)
+                    except TimeoutExpired:
+                        pass
+                    
+                    if i > 5:
+                        self.logger.info("Sending kill/term")
+                        p.kill()
+                        p.wait()
+                        p.terminate()
+                    i+= 1
 
             if self.use_temp:
                 self._temp_dir.cleanup()
