@@ -25,7 +25,9 @@ from typing import (
     Tuple,
     NamedTuple,
 )
+
 from urllib.parse import urldefrag
+from psutil import Process
 
 from bs4 import BeautifulSoup
 from hyperlink import URL, URLParseError
@@ -950,10 +952,21 @@ class Chrome(CBConsentCrawlerBrowser):
 
         super().__exit__(exc_type, exc_val, exc_tb)
 
+        pid = self.driver.browser_pid
+        self.logger.info("browser_pid: %s", self.driver.browser_pid)
+        self.logger.info("browser_pid type: %s", type(self.driver.browser_pid))
+
         # noinspection PyBroadException
         try:
             # Chrome might still be writing into it after quit(). Give it some time
-            time.sleep(1.0)
+
+            if not pid is None:
+                p = Process(pid)
+
+                while p.is_running():
+                    self.logger.info("Browser still running")
+                    time.sleep(10)
+                time.sleep(1.0)
 
             if self.use_temp:
                 self._temp_dir.cleanup()
