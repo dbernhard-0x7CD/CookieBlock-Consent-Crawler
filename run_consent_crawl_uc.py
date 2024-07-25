@@ -19,7 +19,7 @@ import random
 import json
 import psutil
 from tqdm import tqdm
-from multiprocessing import Process
+from multiprocessing import Process, Queue
 from multiprocessing.managers import ListProxy
 import multiprocessing
 
@@ -246,7 +246,7 @@ def run_crawler() -> None:
     # Debugging
     proc = psutil.Process()
 
-    def run_domain(visit: SiteVisit, ret_list: ListProxy) -> None:
+    def run_domain(visit: SiteVisit, process_result: Queue) -> None:
         url = visit.site_url
 
         id = visit.visit_id
@@ -299,7 +299,7 @@ def run_crawler() -> None:
                 for handler in crawl_logger.handlers:
                     if isinstance(handler, logging.FileHandler):
                         handler.close()
-                ret_list.append((result, consent_data, []) ) # Abort as in the original crawler
+                process_result.put((result, consent_data, []))
                 return
 
             crawl_logger.info(
@@ -338,8 +338,8 @@ def run_crawler() -> None:
                 crawl_logger.info("\tOpen file: %s", f)
             crawl_logger.info("Number of connections: %s", len(proc.connections()))
             crawl_logger.info("fds: %s", proc.num_fds())
-            
-            ret_list.append((result, consent_data, cookies))
+
+            process_result.put((result, consent_data, cookies))
 
     def run_domain_with_timeout(visit: SiteVisit, timeout: int, slist) -> bool:
         try:
@@ -347,11 +347,15 @@ def run_crawler() -> None:
 
             with stopit.ThreadingTimeout(timeout, swallow_exc=False) as ctx_mgr:
                 assert ctx_mgr.state == ctx_mgr.EXECUTING
-                p = Process(target=run_domain, args=(visit, slist))
+
+                q = Queue(maxsize=1)
+                p = Process(target=run_domain, args=(visit, q))
                 p.start()
                 p.join()
                 
                 p.close()
+                
+                slist.append(q.get())
             return True
         except (TimeoutError, urllib3.exceptions.TimeoutError, urllib3.exceptions.MaxRetryError) as e:
             logger.warning("Website %s had a TimeoutError", visit.site_url)
