@@ -348,7 +348,7 @@ def run_crawler() -> None:
             with stopit.ThreadingTimeout(timeout, swallow_exc=False) as ctx_mgr:
                 assert ctx_mgr.state == ctx_mgr.EXECUTING
 
-                q: Queue[Tuple[int, int]] = Queue(maxsize=1)
+                q: Queue[Tuple[ConsentCrawlResult, ]] = Queue(maxsize=1)
                 p = Process(target=run_domain, args=(visit, q))
                 p.start()
                 p.join()
@@ -389,7 +389,7 @@ def run_crawler() -> None:
 
     timeout = 600 # 10 minutes
     manager = multiprocessing.Manager()
-    slist = manager.list()
+    slist: ListProxy[Tuple[ConsentCrawlResult, List[ConsentData], List[Cookie]]] = manager.list()
 
     if num_browsers == 1:
         res = []
