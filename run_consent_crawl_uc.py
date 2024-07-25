@@ -303,7 +303,7 @@ def run_crawler() -> None:
                 return
 
             crawl_logger.info(
-                "CMP result is %s and %s", crawler_type.name, crawler_state.name
+                "Ran %s CMP: %s (Found %s consents)", crawler_type.name, crawler_state.name, len(consent_data)
             )
             browser.load_page(u)
 
