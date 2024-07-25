@@ -353,7 +353,7 @@ def run_crawler() -> None:
                 
                 p.close()
             return True
-        except (TimeoutError, urllib3.exceptions.TimeoutError) as e:
+        except (TimeoutError, urllib3.exceptions.TimeoutError, urllib3.exceptions.MaxRetryError) as e:
             logger.warning("Website %s had a TimeoutError", visit.site_url)
             # This except block should store the websites for later to retry them
 
