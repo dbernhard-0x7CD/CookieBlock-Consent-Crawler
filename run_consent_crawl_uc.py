@@ -397,6 +397,17 @@ def run_crawler() -> None:
             run_domain_with_timeout(arg, timeout, slist)
             logger.info("Finished %s/%s", i+1, len(pqdm_args))
     else:
+        with Chrome(
+            seconds_before_processing_page=1,
+            chrome_profile_path=chrome_profile_path,
+            chromedriver_path=chromedriver_path,
+            browser_id=browser_id,
+            crawl=crawl,
+            logger=logger,
+            **browser_params, # type: ignore
+        ) as browser:
+            state, content = browser.get_content("chrome://version")
+
         res = pqdm(
             pqdm_args,
             lambda x: run_domain_with_timeout(x, timeout, slist),
