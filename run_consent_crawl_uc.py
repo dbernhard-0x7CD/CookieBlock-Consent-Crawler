@@ -62,7 +62,7 @@ def run_crawler() -> None:
         logger, "%(asctime)s %(levelname)s %(name)s: %(message)s", "%Y-%m-%d %H:%M:%S"
     )
     log_formatter = logging.Formatter(
-        "%(asctime)s %(levelname)s %(name)s: %(message)s", "%Y-%m-%d %H:%M:%S"
+        "%(asctime)s %(levelname)s %(name)s %(processName)s: %(message)s", "%Y-%m-%d %H:%M:%S"
     )
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(log_formatter)
@@ -255,7 +255,7 @@ def run_crawler() -> None:
 
         file_handler = logging.FileHandler(log_dir / f"visit_{id}.log", delay=False)
         log_formatter = logging.Formatter(
-            fmt="%(asctime)s %(levelname)s %(filename)s %(name)s: %(message)s",
+            fmt="%(asctime)s %(levelname)s %(filename)s %(name)s %(processName)s: %(message)s",
             datefmt="%Y-%m-%d %H:%M:%S",
         )
         file_handler.setFormatter(log_formatter)
