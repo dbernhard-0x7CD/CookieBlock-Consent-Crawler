@@ -304,7 +304,7 @@ class Browser(ABC):
         return file_name
 
     def get_html(self) -> str:
-        return self.driver.page_source
+        return str(self.driver.page_source)
 
     def get_soup(self) -> BeautifulSoup:
         """
