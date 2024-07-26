@@ -399,6 +399,9 @@ def run_crawler() -> None:
             run_domain_with_timeout(arg, timeout, slist)
             logger.info("Finished %s/%s", i+1, len(pqdm_args))
     else:
+        # Start one instance to patch the chromedriver executable and
+        # later start multiple which all do _not_ need to patch the
+        # chromedriver executable because it is already patched.
         with Chrome(
             seconds_before_processing_page=1,
             chrome_profile_path=chrome_profile_path,
