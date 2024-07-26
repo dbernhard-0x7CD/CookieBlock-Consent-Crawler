@@ -976,6 +976,8 @@ class Chrome(CBConsentCrawlerBrowser):
                         p.kill()
                         p.wait()
                         p.terminate()
+                    if i > 10:
+                        raise Exception("Unable to kill browser")
                     i+= 1
 
             if self.use_temp:
