@@ -270,6 +270,7 @@ def run_crawler() -> None:
         crawl_logger.setLevel(logging.INFO)
         crawl_logger.info("CookieBlock-ConsentCrawler version %s", ver)
         crawl_logger.info("Working on %s", url)
+        file_handler.flush()
 
         with Chrome(
             seconds_before_processing_page=1,
