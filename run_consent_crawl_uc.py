@@ -325,12 +325,6 @@ def run_crawler() -> None:
             cookies = browser.collect_cookies(visit=visit)
 
             crawl_logger.info("Sucessfully finished crawl to %s", u)
-            
-            # Close file handler
-            for handler in crawl_logger.handlers:
-                if isinstance(handler, logging.FileHandler):
-                    handler.close()
-                    crawl_logger.removeHandler(handler)
 
             # To detect resource leakage
             crawl_logger.info("Number of open files: %s", len(proc.open_files()))
@@ -340,6 +334,14 @@ def run_crawler() -> None:
             crawl_logger.info("fds: %s", proc.num_fds())
 
             process_result.put((result, consent_data, cookies))
+            
+            crawl_logger.info("End of crawl to %s", u)
+
+            # Close file handler
+            for handler in crawl_logger.handlers:
+                if isinstance(handler, logging.FileHandler):
+                    handler.close()
+                    crawl_logger.removeHandler(handler)
 
     def run_domain_with_timeout(visit: SiteVisit, timeout: int, slist) -> bool:
         try:
