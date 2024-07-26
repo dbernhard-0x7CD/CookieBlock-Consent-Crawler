@@ -984,8 +984,8 @@ class Chrome(CBConsentCrawlerBrowser):
                 self._temp_dir.cleanup()
             if self.temp_download_directory:
                 self.temp_download_directory.cleanup()
-        except Exception:
+        except Exception as e:
             self.logger.warning(
-                "Unable to remove the temporary directory", stack_info=False
+                "Unable to remove the temporary directory %s", stack_info=False, e 
             )
 
