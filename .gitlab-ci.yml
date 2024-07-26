@@ -35,7 +35,7 @@ tests:
     - python --version
     - rm -f coverage.xml
     - echo "Static type checking"
-    - mypy --install-types
+    - mypy
       --non-interactive
       --ignore-missing-imports
       run_consent_crawl_uc.py
