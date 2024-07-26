@@ -965,7 +965,7 @@ class Chrome(CBConsentCrawlerBrowser):
 
                 i = 0
                 while p.is_running():
-                    self.logger.info("Browser still running")
+                    self.logger.info("Browser is still running")
                     try:
                         p.wait(timeout=10)
                     except TimeoutExpired:
