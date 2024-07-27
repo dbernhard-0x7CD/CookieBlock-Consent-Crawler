@@ -33,6 +33,7 @@ from bs4 import BeautifulSoup
 from hyperlink import URL, URLParseError
 from numpy import random
 import random as prandom
+import string
 import undetected_chromedriver as uc
 from undetected_chromedriver.patcher import Patcher
 from html2text import HTML2Text
@@ -769,7 +770,8 @@ class Chrome(CBConsentCrawlerBrowser):
 
         # By default we use a temporary directory to always have a fresh chrome profile
         if self.use_temp:
-            self._temp_dir = tempfile.TemporaryDirectory(prefix="enfbots_")
+            rand_str = ''.join(prandom.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(6))
+            self._temp_dir = tempfile.TemporaryDirectory(prefix="enfbots_", suffix=rand_str)
             self.profile_path = Path(self._temp_dir.name) / "chrome_profile"
 
             # copy profile to the temporary directory
