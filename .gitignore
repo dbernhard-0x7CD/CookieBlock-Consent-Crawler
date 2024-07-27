@@ -166,3 +166,4 @@ chromedriver/
 chrome/
 chrome_profile/
 collected_data/
+violation_stats/
