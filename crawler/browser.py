@@ -981,6 +981,21 @@ class Chrome(CBConsentCrawlerBrowser):
                     if i > 10:
                         raise Exception("Unable to kill browser")
                     i+= 1
+                # Chrome is gone
+        
+                self.logger.info("process: %s", self.driver.service.process.pid)
+                if self.driver.service and self.driver.service.process and self.driver.service.process.pid:
+                    chromedriver_pid = self.driver.service.process.pid
+                    if isinstance(chromedriver_pid, int):
+                        chromedriver = Process(chromedriver_pid)
+                        
+                        chromedriver.kill()
+                        
+                        chromedriver.wait(10)
+                        
+                        if chromedriver.is_running():
+                            self.logger.info("Terminated chromedriver")
+                            chromedriver.terminate()
 
             if self.use_temp:
                 self._temp_dir.cleanup()
