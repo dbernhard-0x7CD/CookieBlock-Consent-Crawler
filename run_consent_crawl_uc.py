@@ -19,7 +19,8 @@ import random
 import json
 import psutil
 from tqdm import tqdm
-from multiprocessing import Process, Queue
+from multiprocessing import Queue
+from psutil import Process, TimeoutExpired
 from multiprocessing.managers import ListProxy
 import multiprocessing
 
@@ -345,24 +346,26 @@ def run_crawler() -> None:
                     crawl_logger.removeHandler(handler)
 
     def run_domain_with_timeout(visit: SiteVisit, timeout: int, slist) -> bool:
+        q: Queue[Tuple[ConsentCrawlResult, ]] = Queue(maxsize=1)
+
+        p = Process(target=run_domain, args=(visit, q))
+
         try:
             url = visit.site_url
 
-            with stopit.ThreadingTimeout(timeout, swallow_exc=False) as ctx_mgr:
-                assert ctx_mgr.state == ctx_mgr.EXECUTING
-
-                q: Queue[Tuple[ConsentCrawlResult, ]] = Queue(maxsize=1)
-                p = Process(target=run_domain, args=(visit, q))
-                p.start()
-                p.join()
-                
-                p.close()
-                
-                slist.append(q.get())
+            p.start()
+            p.join(timeout=timeout)
+            
+            p.close()
+            
+            slist.append(q.get())
             return True
-        except (TimeoutError, urllib3.exceptions.TimeoutError, urllib3.exceptions.MaxRetryError) as e:
-            logger.warning("Website %s had a TimeoutError", visit.site_url)
+        except (TimeoutError, urllib3.exceptions.TimeoutError, urllib3.exceptions.MaxRetryError, TimeoutExpired) as e:
+            logger.warning("Website %s had a timeout (%s)", visit.site_url, type(e))
             # This except block should store the websites for later to retry them
+
+            if p.is_running():
+                p.terminate()
 
             with open("./retry_list.txt", "a", encoding="utf-8") as file:
                 file.write(url)
