@@ -19,8 +19,8 @@ import random
 import json
 import psutil
 from tqdm import tqdm
-from multiprocessing import Queue
-from psutil import Process, TimeoutExpired
+from multiprocessing import Queue, Process
+from psutil import TimeoutExpired
 from multiprocessing.managers import ListProxy
 import multiprocessing
 
