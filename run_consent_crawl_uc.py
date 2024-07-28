@@ -332,7 +332,7 @@ def run_crawler() -> None:
             crawl_logger.info("Number of open files: %s", len(proc.open_files()))
             for f in proc.open_files():
                 crawl_logger.info("\tOpen file: %s", f)
-            crawl_logger.info("Number of connections: %s", len(proc.connections()))
+            crawl_logger.info("Number of connections: %s", len(proc.net_connections()))
             crawl_logger.info("fds: %s", proc.num_fds())
 
             process_result.put((result, consent_data, cookies))
@@ -430,7 +430,7 @@ def run_crawler() -> None:
     logger.info("Number of open files: %s", len(proc.open_files()))
     for f in proc.open_files():
         logger.info("\tOpen file: %s", f)
-    logger.info("Number of connections: %s", len(proc.connections()))
+    logger.info("Number of connections: %s", len(proc.net_connections()))
     logger.info("fds: %s", proc.num_fds())
     
     # Store data in database
