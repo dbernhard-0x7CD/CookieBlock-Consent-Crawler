@@ -349,6 +349,7 @@ def run_crawler() -> None:
         q: Queue[Tuple[ConsentCrawlResult, ]] = Queue(maxsize=1)
 
         p = Process(target=run_domain, args=(visit, q))
+        ps_p = psutil.Process(p.pid)
 
         try:
             url = visit.site_url
@@ -364,8 +365,8 @@ def run_crawler() -> None:
             logger.warning("Website %s had a timeout (%s)", visit.site_url, type(e))
             # This except block should store the websites for later to retry them
 
-            if p.is_running():
-                p.terminate()
+            if ps_p.is_running():
+                ps_p.terminate()
 
             with open("./retry_list.txt", "a", encoding="utf-8") as file:
                 file.write(url)
