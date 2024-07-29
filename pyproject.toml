@@ -34,7 +34,6 @@ docopt = "^0.6.2"
 types-pymysql = "^1.1.0.20240524"
 types-requests = "^2.32.0.20240622"
 pqdm = "^0.2.0"
-stopit = "^1.1.2"
 selenium = "^4.23.0"
 ftfy = "^6.2.0"
 

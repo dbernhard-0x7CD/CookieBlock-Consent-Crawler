@@ -61,8 +61,6 @@ from selenium_stealth import stealth
 
 from seleniumwire import webdriver
 
-import stopit
-
 from crawler.database import Crawl, SiteVisit, ConsentData, ConsentCrawlResult, Cookie
 from crawler.enums import PageState, CookieTuple, CrawlerType, CrawlState
 
