@@ -364,6 +364,7 @@ def run_crawler() -> None:
             return True
         except (TimeoutError, urllib3.exceptions.TimeoutError, urllib3.exceptions.MaxRetryError, TimeoutExpired) as e:
             logger.warning("Website %s had a timeout (%s)", visit.site_url, type(e))
+            logger.exception(e)
             # This except block should store the websites for later to retry them
 
             if ps_p.is_running():
@@ -380,6 +381,7 @@ def run_crawler() -> None:
             slist.append((ConsentCrawlResult(report=f"Timed out after {timeout} seconds: {visit.site_url}", browser=visit.browser, visit=visit, cmp_type=CrawlerType.FAILED.value, crawl_state=CrawlState.LIBRARY_ERROR.value), [], []))
         except Exception as e:
             logger.error("visit_id: %s Failure when crawling %s: %s", visit.visit_id, visit.site_url, str(e))
+            logger.exception(e)
             slist.append((ConsentCrawlResult(report=f"Failure: {str(e)}", browser=visit.browser, visit=visit, cmp_type=CrawlerType.FAILED.value, crawl_state=CrawlState.LIBRARY_ERROR.value), [], []))
         return False
 
