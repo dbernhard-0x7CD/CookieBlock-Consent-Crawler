@@ -27,7 +27,7 @@ from typing import (
 )
 
 from urllib.parse import urldefrag
-from psutil import Process, TimeoutExpired
+from psutil import Process, TimeoutExpired, NoSuchProcess
 
 from bs4 import BeautifulSoup
 from hyperlink import URL, URLParseError
@@ -952,16 +952,17 @@ class Chrome(CBConsentCrawlerBrowser):
 
         super().__exit__(exc_type, exc_val, exc_tb)
 
-        pid = self.driver.browser_pid
+        browser_pid = self.driver.browser_pid
+
         self.logger.info("browser_pid: %s", self.driver.browser_pid)
-        self.logger.info("browser_pid type: %s", type(self.driver.browser_pid))
 
         # noinspection PyBroadException
         try:
             # Ensure chrome is no longer running before removing _temp_dir
 
-            if not pid is None:
-                p = Process(pid)
+            if not browser_pid is None:
+                p = Process(browser_pid)
+                self.logger.info("Parent PID: %s", p.ppid)
 
                 i = 0
                 while p.is_running():
@@ -984,16 +985,25 @@ class Chrome(CBConsentCrawlerBrowser):
                 self.logger.info("process: %s", self.driver.service.process.pid)
                 if self.driver.service and self.driver.service.process and self.driver.service.process.pid:
                     chromedriver_pid = self.driver.service.process.pid
-                    if isinstance(chromedriver_pid, int):
-                        chromedriver = Process(chromedriver_pid)
-                        
-                        chromedriver.kill()
-                        
-                        chromedriver.wait(10)
-                        
-                        if chromedriver.is_running():
-                            self.logger.info("Terminated chromedriver")
-                            chromedriver.terminate()
+                    self.logger.info("chromedriver PID: %s", chromedriver_pid)
+                    self.logger.info("chromedriver PPID: %s", Process(chromedriver_pid).ppid)
+
+                    try:
+                        if isinstance(chromedriver_pid, int):
+                            chromedriver = Process(chromedriver_pid)
+                            
+                            self.logger.info("killing")
+                            chromedriver.kill()
+                            
+                            self.logger.info("waiting")
+                            chromedriver.wait(10)
+                            
+                            self.logger.info("terminating check")
+                            if Process(chromedriver_pid).is_running():
+                                self.logger.info("Terminated chromedriver")
+                                chromedriver.terminate()
+                    except NoSuchProcess:
+                        pass
 
             if self.use_temp:
                 self._temp_dir.cleanup()
