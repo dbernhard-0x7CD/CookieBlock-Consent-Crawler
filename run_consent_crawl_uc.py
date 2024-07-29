@@ -21,7 +21,7 @@ import psutil
 from tqdm import tqdm
 from multiprocessing import Queue, Process
 from queue import Empty
-from psutil import TimeoutExpired
+from psutil import TimeoutExpired, NoSuchProcess
 from multiprocessing.managers import ListProxy
 import multiprocessing
 
@@ -358,18 +358,21 @@ def run_crawler() -> None:
             p.start()
             p.join(timeout=timeout)
 
-            ps_p = psutil.Process(p.pid)
-            logger.info("PID: %s", p.pid)
+            try:
+                ps_p = psutil.Process(p.pid)
+                logger.info("PID: %s", p.pid)
 
-            ps_p = psutil.Process(p.pid)
-            if ps_p.is_running():
-                logger.info("Terminating process %s", p)
-                logger.info("Terminating process %s", ps_p)
-                
-                for cp in ps_p.children(True):
-                    cp.terminate()
-                ps_p.terminate()
-                logger.info("Sent signals")
+                ps_p = psutil.Process(p.pid)
+                if ps_p.is_running():
+                    logger.info("Terminating process %s", p)
+                    logger.info("Terminating process %s", ps_p)
+                    
+                    for cp in ps_p.children(True):
+                        cp.terminate()
+                    ps_p.terminate()
+                    logger.info("Sent signals")
+            except NoSuchProcess:
+                pass
 
             slist.append(q.get(timeout=1))
             return True
