@@ -28,8 +28,6 @@ import multiprocessing
 from hyperlink import URL
 import urllib3
 
-import stopit
-
 from crawler.browser import Chrome
 from crawler.database import (
     initialize_base_db,
@@ -387,11 +385,6 @@ def run_crawler() -> None:
                 file.write(url)
 
             slist.append((ConsentCrawlResult(report=f"TimeoutError: {visit.site_url}", browser=visit.browser, visit=visit, cmp_type=CrawlerType.FAILED.value, crawl_state=CrawlState.LIBRARY_ERROR.value), [], []))
-        except stopit.TimeoutException as e:
-            logger.warning("Website %s timed out after %s seconds", visit.site_url, timeout)
-            # Add to unfinished or retry? TODO
-
-            slist.append((ConsentCrawlResult(report=f"Timed out after {timeout} seconds: {visit.site_url}", browser=visit.browser, visit=visit, cmp_type=CrawlerType.FAILED.value, crawl_state=CrawlState.LIBRARY_ERROR.value), [], []))
         except Exception as e:
             logger.error("visit_id: %s Failure when crawling %s: %s", visit.visit_id, visit.site_url, str(e))
             logger.exception(e)
