@@ -4,8 +4,9 @@ import argparse
 import os
 import sys
 import re
+from itertools import repeat
 from logging import Logger
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
@@ -18,13 +19,15 @@ import threading
 import random
 import json
 import psutil
+
 from tqdm import tqdm
-from multiprocessing import Queue, Process
+from threading import Thread
+from multiprocessing import Queue, Process, freeze_support
 from queue import Empty
 from psutil import TimeoutExpired, NoSuchProcess
 from multiprocessing.managers import ListProxy
-from pathos import multiprocessing
-import multiprocessing as pmultiprocessing
+
+import multiprocessing
 
 from hyperlink import URL
 import urllib3
@@ -42,7 +45,7 @@ from crawler.database import (
     ConsentCrawlResult,
     Cookie,
 )
-from crawler.utils import set_log_formatter, is_on_same_domain
+from crawler.utils import set_log_formatter, is_on_same_domain, show_thread_stacks
 from crawler.enums import CrawlerType, CrawlState
 
 
@@ -50,6 +53,222 @@ class CrawlerException(Exception):
     """
     Indicates that the crawler has some unrecoverable error and should stop crawling.
     """
+
+
+log_dir = Path("./logs")
+log_dir.mkdir(exist_ok=True)
+
+chrome_profile_path = Path("./chrome_profile/")
+chromedriver_path = Path("./chromedriver/chromedriver")
+chrome_path = Path("./chrome/")
+
+ver = version("cookieblock-consent-crawler")
+
+
+def run_domain(
+    visit: SiteVisit,
+    process_result: Queue,
+    browser_id: int,
+    no_stdout: bool,
+    crawl: Crawl,
+    browser_params: Dict,
+    num_subpages: int = 10,
+) -> None:
+    url = visit.site_url
+
+    id = visit.visit_id
+    crawl_logger = logging.getLogger(f"visit-{visit.visit_id}")
+    crawl_logger.propagate = False
+
+    file_handler = logging.FileHandler(log_dir / f"visit_{id}.log", delay=False)
+    log_formatter = logging.Formatter(
+        fmt="%(asctime)s %(levelname)s %(filename)s %(name)s %(processName)s: %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+    file_handler.setFormatter(log_formatter)
+    crawl_logger.addHandler(file_handler)
+
+    # Only add stdout as handler if desired
+    if not no_stdout:
+        stdout_handler = logging.StreamHandler()
+        stdout_handler.setFormatter(log_formatter)
+        crawl_logger.addHandler(stdout_handler)
+
+    crawl_logger.setLevel(logging.INFO)
+    crawl_logger.info("CookieBlock-ConsentCrawler version %s", ver)
+    crawl_logger.info("Working on %s", url)
+    file_handler.flush()
+
+    with Chrome(
+        seconds_before_processing_page=1,
+        chrome_profile_path=chrome_profile_path,
+        chromedriver_path=chromedriver_path,
+        browser_id=browser_id,
+        crawl=crawl,
+        logger=crawl_logger,
+        **browser_params,  # type: ignore
+    ) as browser:
+        u = URL.from_text(url)
+
+        browser.load_page(u)
+        crawl_logger.info("Loaded url %s", u)
+
+        # bot mitigation
+        crawl_logger.info("Calling bot mitigation")
+        browser.bot_mitigation(max_sleep_seconds=1)
+
+        crawler_type, crawler_state, consent_data, result = browser.crawl_cmps(
+            visit=visit
+        )
+
+        if crawler_type == CrawlerType.FAILED or crawler_state != CrawlState.SUCCESS:
+            browser.collect_cookies(visit=visit)
+            crawl_logger.info(
+                "Aborted crawl crawl to %s [crawl_type: %s; crawler_state: %s]",
+                u,
+                crawler_type.name,
+                crawler_state.name,
+            )
+
+            # Close file handler
+            for handler in crawl_logger.handlers:
+                if isinstance(handler, logging.FileHandler):
+                    handler.close()
+            process_result.put((result, consent_data, []))
+            return
+
+        crawl_logger.info(
+            "Ran %s CMP: %s (Found %s consents)",
+            crawler_type.name,
+            crawler_state.name,
+            len(consent_data),
+        )
+        browser.load_page(u)
+
+        # visit subpages
+        links = list(
+            filter(
+                lambda x: is_on_same_domain(x.url.to_text(), url),
+                browser.get_links(),
+            )
+        )
+        crawl_logger.info("Found %s links", len(links))
+
+        chosen = random.choices(links, k=min(num_subpages, len(links)))
+        for i, l in enumerate(chosen):
+            crawl_logger.info("Subvisiting [%i]: %s", i, l.url.to_text())
+            browser.load_page(l.url)
+            browser.bot_mitigation(max_sleep_seconds=1, num_mouse_moves=2)
+
+        cookies = browser.collect_cookies(visit=visit)
+
+        crawl_logger.info("Sucessfully finished crawl to %s", u)
+
+        proc = psutil.Process()
+        # To detect resource leakage
+        crawl_logger.info("Number of open files: %s", len(proc.open_files()))
+        for f in proc.open_files():
+            crawl_logger.info("\tOpen file: %s", f)
+        crawl_logger.info("Number of connections: %s", len(proc.net_connections()))
+        crawl_logger.info("fds: %s", proc.num_fds())
+
+        process_result.put((result, consent_data, cookies), timeout=1)
+
+        crawl_logger.info("End of crawl to %s", u)
+
+        # Close file handler
+        for handler in crawl_logger.handlers:
+            if isinstance(handler, logging.FileHandler):
+                handler.close()
+                crawl_logger.removeHandler(handler)
+        crawl_logger.info("End(2) of crawl to %s", u)
+
+
+def run_domain_with_timeout(
+    visit: SiteVisit,
+    timeout: int,
+    slist: ListProxy,
+    browser_id: int,
+    no_stdout: bool,
+    crawl: Crawl,
+    browser_params: Dict,
+) -> bool:
+    q: Queue[Tuple[ConsentCrawlResult, List[ConsentData], List[Cookie]]] = Queue(
+        maxsize=1
+    )
+
+    logger = logging.getLogger("cookieblock-consent-crawler")
+    logger.info("Starting site visit to: %s", visit.site_url)
+
+    p = Thread(target=run_domain, args=(visit, q, browser_id, no_stdout, crawl, browser_params))
+    # p = Process(target=run_domain, args=(visit, q, browser_id, no_stdout))
+
+    try:
+        url = visit.site_url
+
+        p.start()
+        p.join(timeout=timeout)
+        logger.info("Process join finished to %s", visit)
+
+        try:
+            logger.info("thread ident: %s", p.ident)
+
+            if p.is_alive():
+                p._stop() # type: ignore
+                logger.info("Terminating thread %s", p.ident)
+        except NoSuchProcess:
+            pass
+
+        slist.append(q.get(timeout=1))
+        return True
+    except (
+        Empty,
+        TimeoutError,
+        urllib3.exceptions.TimeoutError,
+        urllib3.exceptions.MaxRetryError,
+        TimeoutExpired,
+    ) as e:
+        logger.warning("Website %s had a timeout (%s)", visit.site_url, type(e))
+        # This except block should store the websites for later to retry them
+
+        with open("./retry_list.txt", "a", encoding="utf-8") as file:
+            file.write(url)
+
+        slist.append(
+            (
+                ConsentCrawlResult(
+                    report=f"TimeoutError: {visit.site_url}",
+                    browser=visit.browser,
+                    visit=visit,
+                    cmp_type=CrawlerType.FAILED.value,
+                    crawl_state=CrawlState.LIBRARY_ERROR.value,
+                ),
+                [],
+                [],
+            )
+        )
+    except Exception as e:
+        logger.error(
+            "visit_id: %s Failure when crawling %s: %s",
+            visit.visit_id,
+            visit.site_url,
+            str(e),
+        )
+        logger.exception(e)
+        slist.append(
+            (
+                ConsentCrawlResult(
+                    report=f"Failure: {str(e)}",
+                    browser=visit.browser,
+                    visit=visit,
+                    cmp_type=CrawlerType.FAILED.value,
+                    crawl_state=CrawlState.LIBRARY_ERROR.value,
+                ),
+                [],
+                [],
+            )
+        )
+    return False
 
 
 def run_crawler() -> None:
@@ -71,18 +290,10 @@ def run_crawler() -> None:
     logger.addHandler(console_handler)
     logger.setLevel(logging.INFO)
 
-    ver = version("cookieblock-consent-crawler")
     logger.info("Starting cookieblock-consent-crawler version %s", ver)
 
     # Has some WARNING messages that the pool is full
     logging.getLogger("urllib3").setLevel(logging.ERROR)
-
-    log_dir = Path("./logs")
-    log_dir.mkdir(exist_ok=True)
-
-    chrome_profile_path = Path("./chrome_profile/")
-    chromedriver_path = Path("./chromedriver/chromedriver")
-    chrome_path = Path("./chrome/")
 
     if os.path.exists(chrome_profile_path):
         shutil.rmtree(chrome_profile_path)
@@ -239,170 +450,49 @@ def run_crawler() -> None:
     task_id = task.task_id
 
     logger.info("Task: %s", task)
- 
+
     browser_params = {
         "use_temp": True,
         "chrome_path": str(chrome_path.absolute()),
         "headless": headless,
     }
-    
+
     # Add browser config to the database
-    crawl = register_browser_config(task_id=task_id, browser_params=json.dumps(browser_params))
+    crawl = register_browser_config(
+        task_id=task_id, browser_params=json.dumps(browser_params)
+    )
     assert crawl.browser_id
     browser_id = crawl.browser_id
 
     # Debugging
     proc = psutil.Process()
 
-    def run_domain(visit: SiteVisit, process_result: Queue) -> None:
-        url = visit.site_url
+    def check() -> None:
+        file = open("watcher.log", "a+")
+        while True:
+            print("Checking at ", datetime.now(timezone.utc))
+            print("Checking at ", datetime.now(timezone.utc), file=file)
 
-        id = visit.visit_id
-        crawl_logger = logging.getLogger(f"visit-{visit.visit_id}")
-        crawl_logger.propagate = False
+            # children = pmultiprocessing.active_children()
+            #
+            # print("NUMBA:", len(children))
+            # for p in children:
+            #     print(p)
 
-        file_handler = logging.FileHandler(log_dir / f"visit_{id}.log", delay=False)
-        log_formatter = logging.Formatter(
-            fmt="%(asctime)s %(levelname)s %(filename)s %(name)s %(processName)s: %(message)s",
-            datefmt="%Y-%m-%d %H:%M:%S",
-        )
-        file_handler.setFormatter(log_formatter)
-        crawl_logger.addHandler(file_handler)
+            for th in threading.enumerate():
+                assert th
+                assert th.ident
 
-        # Only add stdout as handler if desired
-        if not no_stdout:
-            stdout_handler = logging.StreamHandler()
-            stdout_handler.setFormatter(log_formatter)
-            crawl_logger.addHandler(stdout_handler)
+                print(th, file=file)
+                traceback.print_stack(sys._current_frames()[th.ident], file=file)
+                print("", file=file)
+            file.flush()
+            time.sleep(5)
 
-        crawl_logger.setLevel(logging.INFO)
-        crawl_logger.info("CookieBlock-ConsentCrawler version %s", ver)
-        crawl_logger.info("Working on %s", url)
-        file_handler.flush()
+    watcher = Process(target=check)
+    watcher.start()
 
-        with Chrome(
-            seconds_before_processing_page=1,
-            chrome_profile_path=chrome_profile_path,
-            chromedriver_path=chromedriver_path,
-            browser_id=browser_id,
-            crawl=crawl,
-            logger=crawl_logger,
-            **browser_params, # type: ignore
-        ) as browser:
-            u = URL.from_text(url)
-
-            browser.load_page(u)
-            crawl_logger.info("Loaded url %s", u)
-
-            # bot mitigation
-            crawl_logger.info("Calling bot mitigation")
-            browser.bot_mitigation(max_sleep_seconds=1)
-
-            crawler_type, crawler_state, consent_data, result = browser.crawl_cmps(visit=visit)
-
-            if crawler_type == CrawlerType.FAILED or crawler_state != CrawlState.SUCCESS:
-                browser.collect_cookies(visit=visit)
-                crawl_logger.info("Aborted crawl crawl to %s [crawl_type: %s; crawler_state: %s]", u, crawler_type.name, crawler_state.name)
-
-                # Close file handler
-                for handler in crawl_logger.handlers:
-                    if isinstance(handler, logging.FileHandler):
-                        handler.close()
-                process_result.put((result, consent_data, []))
-                return
-
-            crawl_logger.info(
-                "Ran %s CMP: %s (Found %s consents)", crawler_type.name, crawler_state.name, len(consent_data)
-            )
-            browser.load_page(u)
-
-            # visit subpages
-            links = list(
-                filter(
-                    lambda x: is_on_same_domain(x.url.to_text(), url),
-                    browser.get_links(),
-                )
-            )
-            crawl_logger.info("Found %s links", len(links))
-
-            chosen = random.choices(links, k=min(num_subpages, len(links)))
-            for i, l in enumerate(chosen):
-                crawl_logger.info("Subvisiting [%i]: %s", i, l.url.to_text())
-                browser.load_page(l.url)
-                browser.bot_mitigation(max_sleep_seconds=1, num_mouse_moves=2)
-
-            cookies = browser.collect_cookies(visit=visit)
-
-            crawl_logger.info("Sucessfully finished crawl to %s", u)
-
-            # To detect resource leakage
-            crawl_logger.info("Number of open files: %s", len(proc.open_files()))
-            for f in proc.open_files():
-                crawl_logger.info("\tOpen file: %s", f)
-            crawl_logger.info("Number of connections: %s", len(proc.net_connections()))
-            crawl_logger.info("fds: %s", proc.num_fds())
-
-            process_result.put((result, consent_data, cookies))
-            
-            crawl_logger.info("End of crawl to %s", u)
-
-            # Close file handler
-            for handler in crawl_logger.handlers:
-                if isinstance(handler, logging.FileHandler):
-                    handler.close()
-                    crawl_logger.removeHandler(handler)
-
-    def run_domain_with_timeout(visit: SiteVisit, timeout: int, slist) -> bool:
-        q: Queue[Tuple[ConsentCrawlResult, ]] = Queue(maxsize=1)
-
-        p = Process(target=run_domain, args=(visit, q))
-
-        try:
-            url = visit.site_url
-
-            p.start()
-            p.join(timeout=timeout)
-
-            try:
-                ps_p = psutil.Process(p.pid)
-                logger.info("PID: %s", p.pid)
-
-                ps_p = psutil.Process(p.pid)
-                if ps_p.is_running():
-                    logger.info("Terminating process %s", p)
-                    logger.info("Terminating process %s", ps_p)
-                    
-                    for cp in ps_p.children(True):
-                        cp.terminate()
-                    ps_p.terminate()
-                    logger.info("Sent signals")
-            except NoSuchProcess:
-                pass
-
-            slist.append(q.get(timeout=1))
-            return True
-        except (Empty, TimeoutError, urllib3.exceptions.TimeoutError, urllib3.exceptions.MaxRetryError, TimeoutExpired) as e:
-            logger.warning("Website %s had a timeout (%s)", visit.site_url, type(e))
-            # This except block should store the websites for later to retry them
-
-            try:
-                ps_p = psutil.Process(p.pid)
-                if ps_p.is_alive():
-                    ps_p.terminate()
-            except NoSuchProcess:
-                pass
-
-            with open("./retry_list.txt", "a", encoding="utf-8") as file:
-                file.write(url)
-
-            slist.append((ConsentCrawlResult(report=f"TimeoutError: {visit.site_url}", browser=visit.browser, visit=visit, cmp_type=CrawlerType.FAILED.value, crawl_state=CrawlState.LIBRARY_ERROR.value), [], []))
-        except Exception as e:
-            logger.error("visit_id: %s Failure when crawling %s: %s", visit.visit_id, visit.site_url, str(e))
-            logger.exception(e)
-            slist.append((ConsentCrawlResult(report=f"Failure: {str(e)}", browser=visit.browser, visit=visit, cmp_type=CrawlerType.FAILED.value, crawl_state=CrawlState.LIBRARY_ERROR.value), [], []))
-        return False
-
-    pqdm_args: List[SiteVisit] = []
+    visits: List[SiteVisit] = []
 
     # Prepare all visits in one thread
     with SessionLocal.begin() as session:
@@ -411,18 +501,21 @@ def run_crawler() -> None:
             session.add(visit)
             session.refresh(visit)
             session.refresh(visit.browser)
-            
-            pqdm_args.append(visit)
+
+            visits.append(visit)
 
     timeout: int = args.timeout
-    manager = pmultiprocessing.Manager()
-    slist: ListProxy[Tuple[ConsentCrawlResult, List[ConsentData], List[Cookie]]] = manager.list()
+    manager = multiprocessing.Manager()
+    slist: ListProxy[Tuple[ConsentCrawlResult, List[ConsentData], List[Cookie]]] = (
+        manager.list()
+    )
 
     if num_browsers == 1:
         res = []
-        for i, arg in enumerate(pqdm_args):
-            run_domain_with_timeout(arg, timeout, slist)
-            logger.info("Finished %s/%s", i+1, len(pqdm_args))
+        for i, arg in enumerate(visits):
+            run_domain_with_timeout(arg, timeout, slist, browser_id, no_stdout, crawl, browser_params)
+
+            logger.info("Finished %s/%s", i + 1, len(visits))
     else:
         # Start one instance to patch the chromedriver executable and
         # later start multiple which all do _not_ need to patch the
@@ -454,22 +547,30 @@ def run_crawler() -> None:
 
         n_jobs = min(num_browsers, len(urls))
 
-        pool = multiprocessing.ProcessPool(nodes=n_jobs)
- 
-        res = pool.map(
-            lambda x: run_domain_with_timeout(x, timeout, slist),
-            pqdm_args
+        pool = multiprocessing.pool.Pool(processes=n_jobs)
+
+        res = pool.starmap(
+            run_domain_with_timeout,
+            zip(
+                visits,
+                repeat(timeout),
+                repeat(slist),
+                repeat(browser_id),
+                repeat(no_stdout),
+                repeat(crawl),
+                repeat(browser_params)
+            ),
         )
 
         all(res)
-    logger.info("All %s crawls have finished", len(pqdm_args))
+    logger.info("All %s crawls have finished", len(visits))
 
     logger.info("Number of open files: %s", len(proc.open_files()))
     for f in proc.open_files():
         logger.info("\tOpen file: %s", f)
     logger.info("Number of connections: %s", len(proc.net_connections()))
     logger.info("fds: %s", proc.num_fds())
-    
+
     # Store data in database
     with SessionLocal.begin() as session:
         for result, cds, cookies in tqdm(slist):
@@ -481,6 +582,7 @@ def run_crawler() -> None:
                 session.merge(c)
 
     logger.info("CB-CCrawler has finished.")
+    watcher.kill()
     logging.shutdown()
 
 
@@ -490,6 +592,7 @@ def main() -> None:
     Exit code 1 means that there is something fundamentally wrong and
     cb-cc should not be called again.
     """
+    freeze_support()
 
     logger = logging.getLogger("cookieblock-consent-crawler")
     try:
