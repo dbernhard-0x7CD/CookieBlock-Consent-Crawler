@@ -13,7 +13,6 @@ import time
 import traceback
 import tarfile
 import shutil
-from pqdm.threads import pqdm
 import threading
 import random
 import json
@@ -23,7 +22,8 @@ from multiprocessing import Queue, Process
 from queue import Empty
 from psutil import TimeoutExpired, NoSuchProcess
 from multiprocessing.managers import ListProxy
-import multiprocessing
+from pathos import multiprocessing
+import multiprocessing as pmultiprocessing
 
 from hyperlink import URL
 import urllib3
@@ -404,7 +404,7 @@ def run_crawler() -> None:
             pqdm_args.append(visit)
 
     timeout = 600 # 10 minutes
-    manager = multiprocessing.Manager()
+    manager = pmultiprocessing.Manager()
     slist: ListProxy[Tuple[ConsentCrawlResult, List[ConsentData], List[Cookie]]] = manager.list()
 
     if num_browsers == 1:
@@ -427,13 +427,15 @@ def run_crawler() -> None:
         ) as browser:
             state, content = browser.get_content("chrome://version")
 
-        res = pqdm(
-            pqdm_args,
+        n_jobs = min(num_browsers, len(urls))
+
+        pool = multiprocessing.ProcessPool(nodes=n_jobs)
+ 
+        res = pool.map(
             lambda x: run_domain_with_timeout(x, timeout, slist),
-            n_jobs=min(num_browsers, len(urls)),
-            total=len(urls),
-            exception_behaviour="immediate",
+            pqdm_args
         )
+
         all(res)
     logger.info("All %s crawls have finished", len(pqdm_args))
 
