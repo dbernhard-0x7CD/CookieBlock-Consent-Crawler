@@ -384,8 +384,12 @@ def run_crawler() -> None:
             logger.warning("Website %s had a timeout (%s)", visit.site_url, type(e))
             # This except block should store the websites for later to retry them
 
-            if ps_p.is_running():
-                ps_p.terminate()
+            try:
+                ps_p = psutil.Process(p.pid)
+                if ps_p.is_alive():
+                    ps_p.terminate()
+            except NoSuchProcess:
+                pass
 
             with open("./retry_list.txt", "a", encoding="utf-8") as file:
                 file.write(url)
