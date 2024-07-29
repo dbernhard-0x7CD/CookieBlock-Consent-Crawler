@@ -137,6 +137,12 @@ def run_crawler() -> None:
         default=10,
         type=int
     )
+    parser.add_argument(
+        "--timeout",
+        help="Amount of seconds to spend on one website",
+        default=600,
+        type=int
+    )
 
     args = parser.parse_args()
 
@@ -403,7 +409,7 @@ def run_crawler() -> None:
             
             pqdm_args.append(visit)
 
-    timeout = 600 # 10 minutes
+    timeout: int = args.timeout
     manager = pmultiprocessing.Manager()
     slist: ListProxy[Tuple[ConsentCrawlResult, List[ConsentData], List[Cookie]]] = manager.list()
 
