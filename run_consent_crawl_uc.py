@@ -441,7 +441,7 @@ def run_crawler() -> None:
             ver_pat = r"(Chromium[\s]*\|[\s]*[\d\.]+)"
             groups = re.search(ver_pat, content).groups()
             
-            if len(groups) > 0:
+            if groups and len(groups) > 0:
                 logger.info("Chrome version: %s", groups[0])
             else:
                 logger.error("Unable to detect chrome version in %s", content)
