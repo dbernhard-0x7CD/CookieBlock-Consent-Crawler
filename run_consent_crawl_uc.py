@@ -3,10 +3,11 @@
 import argparse
 import os
 import sys
+import re
 from logging import Logger
 from typing import List, Optional, Tuple
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from importlib.metadata import version
 import time
@@ -436,6 +437,15 @@ def run_crawler() -> None:
             **browser_params, # type: ignore
         ) as browser:
             state, content = browser.get_content("chrome://version")
+            
+            ver_pat = r"(Chromium[\s]*\|[\s]*[\d\.]+)"
+            groups = re.search(ver_pat, content).groups()
+            
+            if len(groups) > 0:
+                logger.info("Chrome version: %s", groups[0])
+            else:
+                logger.error("Unable to detect chrome version in %s", content)
+                raise Exception(f"Unable to detect chrome version in {content}")
 
         n_jobs = min(num_browsers, len(urls))
 
