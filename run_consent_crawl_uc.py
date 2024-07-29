@@ -351,21 +351,30 @@ def run_crawler() -> None:
         q: Queue[Tuple[ConsentCrawlResult, ]] = Queue(maxsize=1)
 
         p = Process(target=run_domain, args=(visit, q))
-        ps_p = psutil.Process(p.pid)
 
         try:
             url = visit.site_url
 
             p.start()
             p.join(timeout=timeout)
-            
-            p.close()
-            
+
+            ps_p = psutil.Process(p.pid)
+            logger.info("PID: %s", p.pid)
+
+            ps_p = psutil.Process(p.pid)
+            if ps_p.is_running():
+                logger.info("Terminating process %s", p)
+                logger.info("Terminating process %s", ps_p)
+                
+                for cp in ps_p.children(True):
+                    cp.terminate()
+                ps_p.terminate()
+                logger.info("Sent signals")
+
             slist.append(q.get(timeout=1))
             return True
         except (Empty, TimeoutError, urllib3.exceptions.TimeoutError, urllib3.exceptions.MaxRetryError, TimeoutExpired) as e:
             logger.warning("Website %s had a timeout (%s)", visit.site_url, type(e))
-            logger.exception(e)
             # This except block should store the websites for later to retry them
 
             if ps_p.is_running():
