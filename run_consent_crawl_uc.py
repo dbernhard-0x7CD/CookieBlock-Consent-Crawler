@@ -20,6 +20,7 @@ import json
 import psutil
 from tqdm import tqdm
 from multiprocessing import Queue, Process
+from queue import Empty
 from psutil import TimeoutExpired
 from multiprocessing.managers import ListProxy
 import multiprocessing
@@ -360,9 +361,9 @@ def run_crawler() -> None:
             
             p.close()
             
-            slist.append(q.get())
+            slist.append(q.get(timeout=1))
             return True
-        except (TimeoutError, urllib3.exceptions.TimeoutError, urllib3.exceptions.MaxRetryError, TimeoutExpired) as e:
+        except (Empty, TimeoutError, urllib3.exceptions.TimeoutError, urllib3.exceptions.MaxRetryError, TimeoutExpired) as e:
             logger.warning("Website %s had a timeout (%s)", visit.site_url, type(e))
             logger.exception(e)
             # This except block should store the websites for later to retry them
