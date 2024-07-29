@@ -136,6 +136,7 @@ def run_crawler() -> None:
         "--num-subpages",
         help="Amount of links to follow when visiting a domain",
         default=10,
+        type=int
     )
 
     args = parser.parse_args()
@@ -215,7 +216,7 @@ def run_crawler() -> None:
         urls = [args.url]
 
     # Start
-    num_subpages = args.num_subpages
+    num_subpages = int(args.num_subpages)
 
     # sort for having the same database as the original. TODO: remove?
     urls = list(sorted(urls))
