@@ -1,6 +1,8 @@
 import logging
 from logging import Logger
 import re
+import sys
+import traceback
 import requests
 import requests.exceptions
 from typing import Tuple, Optional, Dict, Any
@@ -38,3 +40,9 @@ def is_on_same_domain(u1: str, u2: str) -> bool:
     extract1 = tldextract.extract(u1)
     extract2 = tldextract.extract(u2)
     return extract1.domain == extract2.domain
+
+
+def show_thread_stacks(file):
+    for thread_id, frame in sys._current_frames().items():
+        print('\n--- Stack for thread {t} ---'.format(t=thread_id))
+        traceback.print_stack(frame, file=file)
