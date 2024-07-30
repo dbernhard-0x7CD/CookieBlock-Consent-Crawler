@@ -282,7 +282,8 @@ def run_crawler() -> None:
         logger, "%(asctime)s %(levelname)s %(name)s: %(message)s", "%Y-%m-%d %H:%M:%S"
     )
     log_formatter = logging.Formatter(
-        "%(asctime)s %(levelname)s %(name)s %(processName)s: %(message)s", "%Y-%m-%d %H:%M:%S"
+        "%(asctime)s %(levelname)s %(name)s %(processName)s: %(message)s",
+        "%Y-%m-%d %H:%M:%S",
     )
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(log_formatter)
@@ -347,13 +348,13 @@ def run_crawler() -> None:
         "--num-subpages",
         help="Amount of links to follow when visiting a domain",
         default=10,
-        type=int
+        type=int,
     )
     parser.add_argument(
         "--timeout",
         help="Amount of seconds to spend on one website",
         default=600,
-        type=int
+        type=int,
     )
 
     args = parser.parse_args()
@@ -442,7 +443,7 @@ def run_crawler() -> None:
         "data_directory": str(data_path),
         "log_directory": str(log_dir),
         "database_name": str(database_file),
-        "num_browsers": str(num_browsers)
+        "num_browsers": str(num_browsers),
     }
     task = start_task(
         browser_version="Chrome 126", manager_params=json.dumps(parameters)
@@ -527,18 +528,18 @@ def run_crawler() -> None:
             browser_id=browser_id,
             crawl=crawl,
             logger=logger,
-            **browser_params, # type: ignore
+            **browser_params,  # type: ignore
         ) as browser:
             state, content = browser.get_content("chrome://version")
-            
+
             ver_pat = r"(Chromium[\s]*\|[\s]*[\d\.]+)"
             match = re.search(ver_pat, content)
-            
+
             if not match:
                 raise Exception(f"Unable to detect chrome version in {content}")
 
             groups = match.groups()
-            
+
             if groups and len(groups) > 0:
                 logger.info("Chrome version: %s", groups[0])
             else:
