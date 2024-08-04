@@ -233,6 +233,7 @@ def run_domain_with_timeout(
 
         with open("./retry_list.txt", "a", encoding="utf-8") as file:
             file.write(url)
+            file.write("\n")
 
         slist.append(
             (
