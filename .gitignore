@@ -167,3 +167,6 @@ chrome/
 chrome_profile/
 collected_data/
 violation_stats/
+
+# Profiles - as they are too big in size
+profile_consentomatic_*.tar.gz
