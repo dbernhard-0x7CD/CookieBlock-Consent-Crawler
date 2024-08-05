@@ -552,11 +552,14 @@ def run_crawler() -> None:
             it = fut.result()
             try:
                 while True:
+                    i = 0
                     try:
                         all_true |= next(it)
+                        logger.warning("Crawl to %s finished", visits[i])
                     except TimeoutError as e:
-                        logger.warning("Some thing froze")
+                        logger.warning("Crawl to %s froze", visits[i])
                         logger.error(e)
+                    i += 1
             except StopIteration:
                 pass
 
