@@ -519,16 +519,21 @@ def run_crawler() -> None:
 
             logger.info("Finished %s/%s", i + 1, len(visits))
     else:
+
+        logger.info("Starting warmup browser")
         # Start one instance to patch the chromedriver executable and
         # later start multiple which all do _not_ need to patch the
         # chromedriver executable because it is already patched.
+ 
+        null_logger = logging.getLogger("empty")
+        null_logger.setLevel(logging.ERROR)
         with Chrome(
             seconds_before_processing_page=1,
             chrome_profile_path=chrome_profile_path,
             chromedriver_path=chromedriver_path,
             browser_id=browser_id,
             crawl=crawl,
-            logger=logger,
+            logger=null_logger,
             **browser_params,  # type: ignore
         ) as browser:
             state, content = browser.get_content("chrome://version")
@@ -546,6 +551,7 @@ def run_crawler() -> None:
             else:
                 logger.error("Unable to detect chrome version in %s", content)
                 raise Exception(f"Unable to detect chrome version in {content}")
+        logger.info("Warmed up.")
 
         n_jobs = min(num_browsers, len(urls))
 
