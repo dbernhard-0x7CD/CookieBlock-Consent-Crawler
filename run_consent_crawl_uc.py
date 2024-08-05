@@ -26,6 +26,7 @@ from multiprocessing import Queue, Process, freeze_support
 from queue import Empty
 from psutil import TimeoutExpired, NoSuchProcess
 from multiprocessing.managers import ListProxy
+from pebble import ProcessPool, ThreadPool
 
 import multiprocessing
 
@@ -186,7 +187,6 @@ def run_domain(
 
 def run_domain_with_timeout(
     visit: SiteVisit,
-    timeout: int,
     slist: ListProxy,
     browser_id: int,
     no_stdout: bool,
@@ -200,24 +200,11 @@ def run_domain_with_timeout(
     logger = logging.getLogger("cookieblock-consent-crawler")
     logger.info("Starting site visit to: %s", visit.site_url)
 
-    p = Thread(target=run_domain, args=(visit, q, browser_id, no_stdout, crawl, browser_params))
-    # p = Process(target=run_domain, args=(visit, q, browser_id, no_stdout))
-
     try:
         url = visit.site_url
 
-        p.start()
-        p.join(timeout=timeout)
-        logger.info("Process join finished to %s", visit)
-
-        try:
-            logger.info("thread ident: %s", p.ident)
-
-            if p.is_alive():
-                p._stop() # type: ignore
-                logger.info("Terminating thread %s", p.ident)
-        except NoSuchProcess:
-            pass
+        # TODO: remove queue and return return result
+        run_domain(visit, q, browser_id, no_stdout, crawl, browser_params)
 
         slist.append(q.get(timeout=1))
         return True
@@ -472,14 +459,8 @@ def run_crawler() -> None:
     def check() -> None:
         file = open("watcher.log", "a+")
         while True:
-            print("Checking at ", datetime.now(timezone.utc))
+            print("[checker]: Checking at ", datetime.now(timezone.utc))
             print("Checking at ", datetime.now(timezone.utc), file=file)
-
-            # children = pmultiprocessing.active_children()
-            #
-            # print("NUMBA:", len(children))
-            # for p in children:
-            #     print(p)
 
             for th in threading.enumerate():
                 assert th
@@ -491,7 +472,7 @@ def run_crawler() -> None:
             file.flush()
             time.sleep(5)
 
-    watcher = Process(target=check)
+    watcher = Process(target=check, daemon=True)
     watcher.start()
 
     visits: List[SiteVisit] = []
@@ -513,13 +494,14 @@ def run_crawler() -> None:
     )
 
     if num_browsers == 1:
-        res = []
+        res: List[bool] = []
         for i, arg in enumerate(visits):
-            run_domain_with_timeout(arg, timeout, slist, browser_id, no_stdout, crawl, browser_params)
+            r = run_domain_with_timeout(arg, slist, browser_id, no_stdout, crawl, browser_params)
 
             logger.info("Finished %s/%s", i + 1, len(visits))
+            
+            res.append(r)
     else:
-
         logger.info("Starting warmup browser")
         # Start one instance to patch the chromedriver executable and
         # later start multiple which all do _not_ need to patch the
@@ -555,23 +537,31 @@ def run_crawler() -> None:
 
         n_jobs = min(num_browsers, len(urls))
 
-        pool = multiprocessing.pool.Pool(processes=n_jobs)
-
-        res = pool.starmap(
-            run_domain_with_timeout,
-            zip(
+        with ProcessPool(max_workers=n_jobs, max_tasks=1) as pool:
+        # with ThreadPool(max_workers=n_jobs, max_tasks=1) as pool:
+            fut = pool.map(run_domain_with_timeout, 
                 visits,
-                repeat(timeout),
                 repeat(slist),
                 repeat(browser_id),
                 repeat(no_stdout),
                 repeat(crawl),
-                repeat(browser_params)
-            ),
-        )
+                repeat(browser_params),
+                timeout=timeout)
 
-        all(res)
-    logger.info("All %s crawls have finished", len(visits))
+            all_true = True
+            it = fut.result()
+            try:
+                while True:
+                    try:
+                        all_true |= next(it)
+                    except TimeoutError as e:
+                        logger.warning("Some thing froze")
+                        logger.error(e)
+            except StopIteration:
+                pass
+
+            all_succeeded = all_true
+    logger.info("All %s crawls have finished. Success: %s", len(visits), all_succeeded)
 
     logger.info("Number of open files: %s", len(proc.open_files()))
     for f in proc.open_files():
