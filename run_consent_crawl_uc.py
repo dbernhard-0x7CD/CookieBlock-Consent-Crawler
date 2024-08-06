@@ -557,7 +557,7 @@ def run_crawler() -> None:
                 i = 0
                 while True:
                     try:
-                        print("At %s/%s (%.2f %)" % (i, len(visits), i * 100.0 / len(visits)), end='\r')
+                        print("At %s/%s (%.2f %%)" % (i, len(visits), (i * 100.0 / len(visits))), end='\r')
                         all_true |= next(it)
 
                         # logger.warning("Crawl to %s finished", visits[i])
