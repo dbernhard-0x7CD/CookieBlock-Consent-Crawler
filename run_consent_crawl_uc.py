@@ -571,6 +571,10 @@ def run_crawler() -> None:
                         # logger.warning("Crawl to %s finished", visits[i])
                     except TimeoutError as e:
                         logger.warning("Crawl to %s froze", visits[i])
+
+                        with open("./retry_list.txt", "a", encoding="utf-8") as file:
+                            file.write(visits[i].site_url)
+                            file.write("\n")
                         logger.error(e)
                     i += 1
             except StopIteration:
