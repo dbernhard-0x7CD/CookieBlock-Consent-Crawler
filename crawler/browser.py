@@ -956,55 +956,63 @@ class Chrome(CBConsentCrawlerBrowser):
 
         self.logger.info("browser_pid: %s", self.driver.browser_pid)
 
-        # noinspection PyBroadException
-        try:
-            # Ensure chrome is no longer running before removing _temp_dir
+        # Ensure chrome is no longer running before removing _temp_dir
 
-            if not browser_pid is None:
-                p = Process(browser_pid)
-                self.logger.info("Parent PID: %s", p.ppid)
+        if not browser_pid is None:
+            p = Process(browser_pid)
+            self.logger.info("Parent PID: %s", p.ppid)
 
-                i = 0
-                while p.is_running():
-                    self.logger.info("Browser is still running")
+            i = 0
+            while p.is_running():
+                self.logger.info("Chromium browser is still running")
+                try:
+                    p.wait(timeout=10)
+                except TimeoutExpired:
+                    pass
+                
+                if i > 5:
                     try:
-                        p.wait(timeout=10)
-                    except TimeoutExpired:
-                        pass
-                    
-                    if i > 5:
                         self.logger.info("Sending kill/term")
                         p.kill()
                         p.wait(timeout=10)
                         p.terminate()
-                    if i > 10:
-                        raise Exception("Unable to kill browser")
-                    i+= 1
-                # Chrome is gone
-        
-                self.logger.info("Chromium process: %s", self.driver.service.process.pid)
-                if self.driver.service and self.driver.service.process and self.driver.service.process.pid:
-                    chromedriver_pid = self.driver.service.process.pid
-                    self.logger.info("chromedriver PID: %s", chromedriver_pid)
-                    self.logger.info("chromedriver PPID: %s", Process(chromedriver_pid).ppid)
-
-                    try:
-                        if isinstance(chromedriver_pid, int):
-                            chromedriver = Process(chromedriver_pid)
-
-                            self.logger.info("killing")
-                            chromedriver.kill()
-                            
-                            self.logger.info("waiting")
-                            chromedriver.wait(10)
-                            
-                            self.logger.info("terminating check")
-                            if Process(chromedriver_pid).is_running():
-                                self.logger.info("Terminated chromedriver")
-                                chromedriver.terminate()
                     except NoSuchProcess:
+                        break
+                    except TimeoutExpired:
                         pass
+                if i > 10:
+                    self.logger.error("Unable to kill chromium")
+                    raise Exception("Unable to kill browser")
+                i+= 1
+            # Chrome is gone
+        
+            self.logger.info("Chromium process: %s", self.driver.service.process.pid)
+            if self.driver.service and self.driver.service.process and self.driver.service.process.pid:
+                chromedriver_pid = self.driver.service.process.pid
+                self.logger.info("chromedriver PID: %s", chromedriver_pid)
+                self.logger.info("chromedriver PPID: %s", Process(chromedriver_pid).ppid)
 
+                try:
+                    if isinstance(chromedriver_pid, int):
+                        chromedriver = Process(chromedriver_pid)
+
+                        self.logger.info("Sending SIGKILL to chromedriver {}")
+                        chromedriver.kill()
+                        
+                        self.logger.info("waiting")
+                        chromedriver.wait(10)
+                        
+                        self.logger.info("terminating check")
+                        if Process(chromedriver_pid).is_running():
+                            self.logger.info("Chromium is still running. Sending SIGTERM")
+                            chromedriver.terminate()
+                except NoSuchProcess:
+                    pass
+                except TimeoutExpired:
+                    logger.error("Unable to kill chromedriver")
+
+        # noinspection PyBroadException
+        try:
             if self.use_temp:
                 self._temp_dir.cleanup()
             if self.temp_download_directory:
