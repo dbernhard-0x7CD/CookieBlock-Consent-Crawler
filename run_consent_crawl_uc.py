@@ -46,7 +46,7 @@ from crawler.database import (
     ConsentCrawlResult,
     Cookie,
 )
-from crawler.utils import set_log_formatter, is_on_same_domain, show_thread_stacks
+from crawler.utils import set_log_formatter, is_on_same_domain
 from crawler.enums import CrawlerType, CrawlState
 
 
