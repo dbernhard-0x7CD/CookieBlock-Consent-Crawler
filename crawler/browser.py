@@ -1009,7 +1009,7 @@ class Chrome(CBConsentCrawlerBrowser):
                 except NoSuchProcess:
                     pass
                 except TimeoutExpired:
-                    logger.error("Unable to kill chromedriver")
+                    self.logger.error("Unable to kill chromedriver")
 
         # noinspection PyBroadException
         try:
