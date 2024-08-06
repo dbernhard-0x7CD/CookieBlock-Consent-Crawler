@@ -461,18 +461,18 @@ def run_crawler() -> None:
     def check() -> None:
         file = open("watcher.log", "a+")
         proc = psutil.Process()
-        
+
         logger.info("Starting watcher for process: %s", proc)
 
         while True:
             print("Checking at ", datetime.now(timezone.utc), file=file)
 
             children = proc.children(recursive=True)
-            
-            print("Number of all children: %s"% len(children), file=file)
+
+            print("Number of all children: %s" % len(children), file=file)
             file.flush()
-            
-            print("Number of direct children: %s"% len(proc.children()), file=file)
+
+            print("Number of direct children: %s" % len(proc.children()), file=file)
             time.sleep(5)
 
     watcher = Thread(target=check, daemon=True)
@@ -561,7 +561,11 @@ def run_crawler() -> None:
                 i = 0
                 while True:
                     try:
-                        print("At %s/%s (%.2f %%)" % (i, len(visits), (i * 100.0 / len(visits))), end='\r')
+                        print(
+                            "At %s/%s (%.2f %%)"
+                            % (i, len(visits), (i * 100.0 / len(visits))),
+                            end="\r",
+                        )
                         all_true |= next(it)
 
                         # logger.warning("Crawl to %s finished", visits[i])
