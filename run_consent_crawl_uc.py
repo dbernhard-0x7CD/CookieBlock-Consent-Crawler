@@ -458,20 +458,22 @@ def run_crawler() -> None:
 
     def check() -> None:
         file = open("watcher.log", "a+")
+        proc = psutil.Process()
+        
+        logger.info("Starting watcher for process: %s", proc)
+
         while True:
             print("Checking at ", datetime.now(timezone.utc), file=file)
 
-            for th in threading.enumerate():
-                assert th
-                assert th.ident
-
-                print(th, file=file)
-                traceback.print_stack(sys._current_frames()[th.ident], file=file)
-                print("", file=file)
+            children = proc.children(recursive=True)
+            
+            print("Number of all children: %s"% len(children), file=file)
             file.flush()
+            
+            print("Number of direct children: %s"% len(proc.children()), file=file)
             time.sleep(5)
 
-    watcher = Process(target=check, daemon=True)
+    watcher = Thread(target=check, daemon=True)
     watcher.start()
 
     visits: List[SiteVisit] = []
@@ -588,7 +590,6 @@ def run_crawler() -> None:
                 session.merge(c)
 
     logger.info("CB-CCrawler has finished.")
-    watcher.kill()
     logging.shutdown()
 
 
