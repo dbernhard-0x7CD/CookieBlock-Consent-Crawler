@@ -22,7 +22,7 @@ import psutil
 
 from tqdm import tqdm
 from threading import Thread
-from multiprocessing import Queue, Process, freeze_support
+from multiprocessing import Queue
 from queue import Empty
 from psutil import TimeoutExpired, NoSuchProcess
 from multiprocessing.managers import ListProxy
@@ -601,7 +601,6 @@ def main() -> None:
     Exit code 1 means that there is something fundamentally wrong and
     cb-cc should not be called again.
     """
-    freeze_support()
 
     logger = logging.getLogger("cookieblock-consent-crawler")
     try:
