@@ -216,6 +216,7 @@ def run_domain_with_timeout(
         TimeoutExpired,
     ) as e:
         logger.warning("Website %s had a timeout (%s)", visit.site_url, type(e))
+        logger.exception(e)
         # This except block should store the websites for later to retry them
 
         with open("./retry_list.txt", "a", encoding="utf-8") as file:
