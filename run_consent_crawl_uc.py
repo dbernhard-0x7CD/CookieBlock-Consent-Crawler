@@ -112,7 +112,9 @@ def run_domain(
         u = URL.from_text(url)
 
         browser.load_page(u)
-        crawl_logger.info("Loaded url %s", u)
+        crawl_logger.info(
+            "Loaded website %s (chrome pid: %s)", u, browser.driver.browser_pid
+        )
 
         # bot mitigation
         crawl_logger.info("Calling bot mitigation")
