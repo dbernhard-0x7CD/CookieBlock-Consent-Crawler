@@ -497,17 +497,19 @@ def run_crawler() -> None:
     if num_browsers == 1:
         res: List[bool] = []
         for i, arg in enumerate(visits):
-            r = run_domain_with_timeout(arg, slist, browser_id, no_stdout, crawl, browser_params)
+            r = run_domain_with_timeout(
+                arg, slist, browser_id, no_stdout, crawl, browser_params
+            )
 
             logger.info("Finished %s/%s", i + 1, len(visits))
-            
+
             res.append(r)
     else:
         logger.info("Starting warmup browser")
         # Start one instance to patch the chromedriver executable and
         # later start multiple which all do _not_ need to patch the
         # chromedriver executable because it is already patched.
- 
+
         null_logger = logging.getLogger("empty")
         null_logger.setLevel(logging.ERROR)
         with Chrome(
@@ -539,15 +541,16 @@ def run_crawler() -> None:
         n_jobs = min(num_browsers, len(urls))
 
         with ProcessPool(max_workers=n_jobs, max_tasks=1) as pool:
-        # with ThreadPool(max_workers=n_jobs, max_tasks=1) as pool:
-            fut = pool.map(run_domain_with_timeout, 
+            fut = pool.map(
+                run_domain_with_timeout,
                 visits,
                 repeat(slist),
                 repeat(browser_id),
                 repeat(no_stdout),
                 repeat(crawl),
                 repeat(browser_params),
-                timeout=timeout)
+                timeout=timeout,
+            )
 
             all_true = True
             it = fut.result()
