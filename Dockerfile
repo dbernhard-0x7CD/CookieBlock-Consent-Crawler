@@ -38,6 +38,10 @@ FROM python-base as production
 
 WORKDIR /crawler/
 
+RUN wget https://sybilmail.de/files/cookieblock/profile_consentomatic_accept_all.tar.gz
+RUN wget https://sybilmail.de/files/cookieblock/profile_consentomatic_accept_none.tar.gz
+RUN wget https://sybilmail.de/files/cookieblock/profile_consentomatic_without_consentomatic.tar.gz
+
 # Patch selenium to not run indefinitely
 RUN patch -d /usr/local/lib/python3.12/site-packages/ -p1 < add_default_timeout.patch 
 
