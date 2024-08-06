@@ -65,7 +65,7 @@ This is ordered from most to least privacy-preserving as {"Necessary", "Function
 
 ## Installation
 
-Create a virtual environment and install all dependencies via `poetry` OR use the built docker image at `infsec-server.inf.ethz.ch/` (when connected to the ETH network):
+Create a virtual environment and install all dependencies via `poetry` OR use the built docker image at `infsec-server.inf.ethz.ch/cb-cc/crawler` (when connected to the ETH network):
 
 ```python
 python -m venv .venv
@@ -74,6 +74,8 @@ pip install poetry
 source .venv/bin/activate
 poetry install
 ```
+
+Afterwards make sure to have chrome installed via `./install_uc.sh`
 
 ### Developer instructions
 
@@ -84,7 +86,7 @@ poetry install
 
 ## Presence Crawler
 This is an efficient scraper that utilises `pebble` and the Python `requests` library. Its purpose is to filter out
-potential candidates for the more costly OpenWPM crawl, which uses actual browser instances. It verifies
+potential candidates for the more costly crawl with a real browser, which uses actual browser instances. It verifies
 whether the provided domains contain a Consent Management Provider from which we can extract category labels.
 
 ### Usage (Presence Crawler)
