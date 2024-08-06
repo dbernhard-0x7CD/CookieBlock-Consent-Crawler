@@ -577,7 +577,7 @@ def run_crawler() -> None:
     logger.info("Number of connections: %s", len(proc.net_connections()))
     logger.info("fds: %s", proc.num_fds())
 
-    # Store data in database
+    # Store data in database; TODO: this could be done on the fly
     with SessionLocal.begin() as session:
         for result, cds, cookies in tqdm(slist):
             session.merge(result)
