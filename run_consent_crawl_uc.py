@@ -522,7 +522,7 @@ def run_crawler() -> None:
         ) as browser:
             state, content = browser.get_content("chrome://version")
 
-            ver_pat = r"(Chromium[\s]*\|[\s]*[\d\.]+)"
+            ver_pat = r"Chromium[\s]*\|[\s]*([\d\.]+)"
             match = re.search(ver_pat, content)
 
             if not match:
