@@ -991,7 +991,7 @@ class Chrome(CBConsentCrawlerBrowser):
                     try:
                         if isinstance(chromedriver_pid, int):
                             chromedriver = Process(chromedriver_pid)
-                            
+
                             self.logger.info("killing")
                             chromedriver.kill()
                             
