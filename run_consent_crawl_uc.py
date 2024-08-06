@@ -554,11 +554,14 @@ def run_crawler() -> None:
             all_true = True
             it = fut.result()
             try:
+                print("starting")
+                i = 0
                 while True:
-                    i = 0
                     try:
+                        print("At %s/%s (%.2f %)" % (i, len(visits), i * 100.0 / len(visits)), end='\r')
                         all_true |= next(it)
-                        logger.warning("Crawl to %s finished", visits[i])
+
+                        # logger.warning("Crawl to %s finished", visits[i])
                     except TimeoutError as e:
                         logger.warning("Crawl to %s froze", visits[i])
                         logger.error(e)
