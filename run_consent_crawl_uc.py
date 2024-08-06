@@ -460,7 +460,6 @@ def run_crawler() -> None:
     def check() -> None:
         file = open("watcher.log", "a+")
         while True:
-            print("[checker]: Checking at ", datetime.now(timezone.utc))
             print("Checking at ", datetime.now(timezone.utc), file=file)
 
             for th in threading.enumerate():
