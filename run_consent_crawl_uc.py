@@ -198,7 +198,6 @@ def run_domain_with_timeout(
     )
 
     logger = logging.getLogger("cookieblock-consent-crawler")
-    logger.info("Starting site visit to: %s", visit.site_url)
 
     try:
         url = visit.site_url
