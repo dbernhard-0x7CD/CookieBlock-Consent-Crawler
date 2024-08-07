@@ -558,14 +558,8 @@ def run_crawler() -> None:
             it = fut.result()
             try:
                 print("starting")
-                i = 0
-                while True:
+                for i in tqdm(range(len(visits)), total=len(visits), desc="Crawling")
                     try:
-                        print(
-                            "At %s/%s (%.2f %%)"
-                            % (i, len(visits), (i * 100.0 / len(visits))),
-                            end="\r",
-                        )
                         all_true |= next(it)
 
                         # logger.warning("Crawl to %s finished", visits[i])
@@ -576,7 +570,6 @@ def run_crawler() -> None:
                             file.write(visits[i].site_url)
                             file.write("\n")
                         logger.error(e)
-                    i += 1
             except StopIteration:
                 pass
 
