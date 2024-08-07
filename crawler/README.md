@@ -86,6 +86,12 @@ Afterwards make sure to have chrome installed via `./install_uc.sh`
     * branch position may be off by +- 10. This can be accounted for by removing the last digit from the exact branch position
 * Update download links in `./install_uc.sh` for the file `chromedriver_linux64.zip` and `chrome-linux.zip`
 
+## Creating a profile
+* Run `run_consent_crawl_uc.py` with `--launch-browser`
+* Now you can make adjustments to the profile or the settings of the browser
+* When finished (Ctrl+C in the terminal) one can create an archive via
+    * ` tar -acf profile_NAME.tar.gz chrome_profile`
+* This file can then later be used via the `--profile_tar` argument
 
 ### Troubleshooting
 
