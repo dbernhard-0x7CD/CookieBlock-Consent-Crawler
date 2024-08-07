@@ -157,21 +157,27 @@ potential concurrency that can be achieved.
 ### Usage (Consent Crawler)
 The script at `./run_consent_crawl_uc.py` accepts the following arguments:
 
-    run_consent_crawl.py (cookiebot|onetrust|termly|all|none) (--num_browsers <NUM>) (--url <u> | --file <fpath> )... [--use_db <DB_NAME>]
+usage: run_consent_crawl_uc.py [-h] (-f FILE | --launch-browser | --url URL) [-n NUM_BROWSERS]
+        [-d USE_DB] [--profile_tar PROFILE_TAR] [--no-headless] [--no-stdout]
+        [--num-subpages NUM_SUBPAGES] [--timeout TIMEOUT]
 
-    Options:
-        -n --num_browsers <NUM>   Number of browser instances to use in parallel.
-        -d --use_db <DB_NAME>     Use specified database file to add rows to. Will append identities properly.
-        -u --url <u>              URL string to target for crawl. Can take multiple.
-        -f --file <fpath>         Path to file containing one URL per line. Can accept multiple files.
-        -c --csv <csvpath>        Path to csv containing domains in second column. Separator is ",". Can accept multiple.
+options:
+  -h, --help            show this help message and exit
+  -f FILE, --file FILE  Path to file containing one URL per line
+  --launch-browser      Only launches the browser which allows modification of the current profile
+  --url URL             Url to crawl once
+  -n NUM_BROWSERS, --num-browsers NUM_BROWSERS
+                        Number of browsers to use in parallel
+  -d USE_DB, --use-db USE_DB
+                        Use specified database file to add rows to. Format: DATA_PATH/FILENAME.sqlite
+  --profile_tar PROFILE_TAR
+                        Location of a tar file containing the browser profile
+  --no-headless         Start the browser with GUI (headless disabled)
+  --no-stdout           Do not print crawl results to stdout
+  --num-subpages NUM_SUBPAGES
+                        Amount of links to follow when visiting a domain
+  --timeout TIMEOUT     Amount of seconds to spend on one website
 
-    Available modes are:
-        * all        : Try to detect which CMP is used on the website, then retrieve data for that CMP.
-        * cookiebot  : Assume website uses Cookiebot.
-        * onetrust   : Assume website uses OneTrust.
-        * termly     : Assume website uses Termly. (Not yet supported)
-        * none       : Only gather cookies, no consent labels.
 
 ### Arguments (Consent Crawler)
 
