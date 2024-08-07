@@ -594,6 +594,7 @@ def run_crawler() -> None:
 
     logger.info("CB-CCrawler has finished.")
     logging.shutdown()
+    input("Press ENTER to quit this python process")
 
 
 def main() -> None:
