@@ -73,13 +73,6 @@ For more details, please refer to their respective READMEs:
 * [Database Processing](database_processing/README.md)
 * [Cookie Statistics](cookie_statistics_analysis/README.md)
 
-## Upgrading chrome
-* Find branch-position on https://chromiumdash.appspot.com/releases?platform=Linux by clicking on a desired version
-* Search branch-position folder on https://commondatastorage.googleapis.com/chromium-browser-snapshots/index.html?prefix=Linux_x64/
-    * There exists a search field but the
-    * branch position may be off by +- 10. This can be accounted for by removing the last digit from the exact branch position
-* Update download links in `./install_uc.sh` for the file `chromedriver_linux64.zip` and `chrome-linux.zip`
-
 ## Credits and Acknowledgements
 
 __Collaborators:__
