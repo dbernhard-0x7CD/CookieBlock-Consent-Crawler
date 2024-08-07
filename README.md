@@ -37,9 +37,9 @@ The repository is split into two web crawler types, as well as some additional s
 
 In the subfolder `crawler`, the file `run_presence_crawl.py`:
 * This is designated as __"CMP Presence Crawler"__ which uses the Python `requests` library to quickly detect whether a website uses a cookie consent library from one of three different Consent Management Providers (CMP).
-* This crawler serves as a first pass to filter domains that cannot be used for extracting useful data in the slower, OpenWPM-based crawl.
+* This crawler serves as a first pass to filter domains that cannot be used for extracting useful data in the slower __"Consent Crawler"__ crawl .
 
-In the root folder the `run_consent_crawl_uc.py` is the second part:
+In the root folder the `run_consent_crawl_uc.py` script is the second part:
 * It is designated as the __"Consent Crawler"__, which uses the chrome browser to extract both cookies and their corresponding usage purposes if found.
 * The process is slow, but it's the best method for collecting cookie data required for training a predictor.
 
@@ -76,7 +76,7 @@ For more details, please refer to their respective READMEs:
 ## Upgrading chrome
 * Find branch-position on https://chromiumdash.appspot.com/releases?platform=Linux by clicking on a desired version
 * Search branch-position folder on https://commondatastorage.googleapis.com/chromium-browser-snapshots/index.html?prefix=Linux_x64/
-    * There exists a search field ;)
+    * There exists a search field but the
     * branch position may be off by +- 10. This can be accounted for by removing the last digit from the exact branch position
 * Update download links in `./install_uc.sh` for the file `chromedriver_linux64.zip` and `chrome-linux.zip`
 
