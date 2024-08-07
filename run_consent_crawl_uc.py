@@ -558,7 +558,7 @@ def run_crawler() -> None:
             it = fut.result()
             try:
                 print("starting")
-                for i in tqdm(range(len(visits)), total=len(visits), desc="Crawling")
+                for i in tqdm(range(len(visits)), total=len(visits), desc="Crawling"):
                     try:
                         all_true |= next(it)
 
