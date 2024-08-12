@@ -1,4 +1,4 @@
-FROM python:3.12.4-slim-bookworm as python-base
+FROM python:3.12.5-slim-bookworm as python-base
 
 # Python ENV vars, valid in all images that use 'FROM python-base'
 ENV PYTHONUNBUFFERED=1 \
