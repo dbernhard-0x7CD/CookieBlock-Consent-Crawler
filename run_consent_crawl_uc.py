@@ -8,7 +8,7 @@ from itertools import repeat
 from logging import Logger
 from typing import List, Optional, Tuple, Dict, cast
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 from importlib.metadata import version
 import time
@@ -60,13 +60,13 @@ class CrawlerException(Exception):
 class BrowserProcess:
     """Represents a process needed to crawl a given website"""
 
-    def __init__(self, pid: int, website: str, start_time: datetime) -> None:
+    def __init__(self, pid: int, name: str, start_time: datetime) -> None:
         self.pid = pid
-        self.website = website
+        self.name = name
         self.start_time = start_time
 
     def __repr__(self) -> str:
-        return f"PID {self.pid} to {self.website} and started at {self.start_time}"
+        return f"PID {self.pid} to {self.name} and started at {self.start_time}"
 
 log_dir = Path("./logs")
 log_dir.mkdir(exist_ok=True)
@@ -132,10 +132,17 @@ def run_domain(
             browser.driver.service.process.pid,
         )
 
-        # Add all PIDs to queue
+        # Add all PIDs of the browser and chromedriver to the queue
+        now = datetime.now()
+
         process_result.append(
             BrowserProcess(
-                pid=browser.driver.browser_pid, website=url, start_time=datetime.now()
+                pid=browser.driver.browser_pid, name=f"[chrome] crawl to {url}", start_time=now
+            )
+        )
+        process_result.append(
+            BrowserProcess(
+                pid=browser.driver.service.process.pid, name=f"[chromedriver]: crawl to {url}", start_time=now
             )
         )
 
@@ -485,10 +492,26 @@ def run_crawler() -> None:
             children = proc.children(recursive=True)
 
             print("Number of all children: %s" % len(children), file=file)
-            file.flush()
-
             print("Number of direct children: %s" % len(proc.children()), file=file)
             time.sleep(5)
+            
+            print(f"Iterating browser processes ({len(slist)})", file=file)
+            now = datetime.now() - timedelta(seconds=timeout) * 2
+            for b in slist:
+                # print(b, file=file)
+                if b.start_time < now:
+                    try:
+                        browser_proc = psutil.Process(b.pid)
+
+                        if browser_proc.is_running():
+                            print(f"Browser is too old: killing if necessary {b}", file=file)
+
+                            browser_proc.terminate()
+
+                    except NoSuchProcess:
+                        pass
+            print(file=file)
+            file.flush()
 
     watcher = Thread(target=check, daemon=True)
     watcher.start()
@@ -599,8 +622,8 @@ def run_crawler() -> None:
 
     # Store data in database; TODO: this could be done on the fly
     with SessionLocal.begin() as session:
-        for result, cds, cookies in tqdm(slist):
-            session.merge(result)
+        for crawl_result, cds, cookies in result:
+            session.merge(crawl_result)
 
             for cd in cds:
                 session.merge(cd)
