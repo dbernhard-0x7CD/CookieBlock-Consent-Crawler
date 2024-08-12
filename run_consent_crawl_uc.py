@@ -57,6 +57,17 @@ class CrawlerException(Exception):
     """
 
 
+class BrowserProcess:
+    """Represents a process needed to crawl a given website"""
+
+    def __init__(self, pid: int, website: str, start_time: datetime) -> None:
+        self.pid = pid
+        self.website = website
+        self.start_time = start_time
+
+    def __repr__(self) -> str:
+        return f"PID {self.pid} to {self.website} and started at {self.start_time}"
+
 log_dir = Path("./logs")
 log_dir.mkdir(exist_ok=True)
 
@@ -69,13 +80,14 @@ ver = version("cookieblock-consent-crawler")
 
 def run_domain(
     visit: SiteVisit,
-    process_result: Queue,
+    process_result: List[BrowserProcess],
     browser_id: int,
     no_stdout: bool,
     crawl: Crawl,
     browser_params: Dict,
     num_subpages: int = 10,
-) -> None:
+) -> Tuple[ConsentCrawlResult, List[ConsentData], List[Cookie]]:
+    """ """
     url = visit.site_url
 
     id = visit.visit_id
@@ -114,7 +126,17 @@ def run_domain(
 
         browser.load_page(u)
         crawl_logger.info(
-            "Loaded website %s (chrome pid: %s)", u, browser.driver.browser_pid
+            "Loaded website %s (chrome pid: %s, chromedriver: %s)",
+            u,
+            browser.driver.browser_pid,
+            browser.driver.service.process.pid,
+        )
+
+        # Add all PIDs to queue
+        process_result.append(
+            BrowserProcess(
+                pid=browser.driver.browser_pid, website=url, start_time=datetime.now()
+            )
         )
 
         # bot mitigation
@@ -138,8 +160,7 @@ def run_domain(
             for handler in crawl_logger.handlers:
                 if isinstance(handler, logging.FileHandler):
                     handler.close()
-            process_result.put((result, consent_data, []))
-            return
+            return (result, consent_data, [])
 
         crawl_logger.info(
             "Ran %s CMP: %s (Found %s consents)",
@@ -176,8 +197,6 @@ def run_domain(
         crawl_logger.info("Number of connections: %s", len(proc.net_connections()))
         crawl_logger.info("fds: %s", proc.num_fds())
 
-        process_result.put((result, consent_data, cookies), timeout=1)
-
         crawl_logger.info("End of crawl to %s", u)
 
         # Close file handler
@@ -187,56 +206,50 @@ def run_domain(
                 crawl_logger.removeHandler(handler)
         crawl_logger.info("End(2) of crawl to %s", u)
 
+        return (result, consent_data, cookies)
+
 
 def run_domain_with_timeout(
     visit: SiteVisit,
-    slist: ListProxy,
+    proc_list: List[BrowserProcess],
     browser_id: int,
     no_stdout: bool,
     crawl: Crawl,
     browser_params: Dict,
-) -> bool:
-    q: Queue[Tuple[ConsentCrawlResult, List[ConsentData], List[Cookie]]] = Queue(
-        maxsize=1
-    )
-
+) -> Tuple[ConsentCrawlResult, List[ConsentData], List[Cookie]]:
     logger = logging.getLogger("cookieblock-consent-crawler")
 
     try:
         url = visit.site_url
 
-        # TODO: remove queue and return return result
-        run_domain(visit, q, browser_id, no_stdout, crawl, browser_params)
-
-        slist.append(q.get(timeout=1))
-        return True
+        return run_domain(visit, proc_list, browser_id, no_stdout, crawl, browser_params)
     except (
         Empty,
         TimeoutError,
-        TimeoutException, # selenium
+        TimeoutException,  # selenium
         urllib3.exceptions.TimeoutError,
         urllib3.exceptions.MaxRetryError,
         TimeoutExpired,
     ) as e:
-        logger.warning("Website %s had a timeout (Exception %s)", visit.site_url, type(e))
+        logger.warning(
+            "Website %s had a timeout (Exception %s)", visit.site_url, type(e)
+        )
         # This except block should store the websites for later to retry them
 
         with open("./retry_list.txt", "a", encoding="utf-8") as file:
             file.write(url)
             file.write("\n")
 
-        slist.append(
-            (
-                ConsentCrawlResult(
-                    report=f"TimeoutError: {visit.site_url}",
-                    browser=visit.browser,
-                    visit=visit,
-                    cmp_type=CrawlerType.FAILED.value,
-                    crawl_state=CrawlState.LIBRARY_ERROR.value,
-                ),
-                [],
-                [],
-            )
+        return (
+            ConsentCrawlResult(
+                report=f"Failure: TimeoutError: {visit.site_url}",
+                browser=visit.browser,
+                visit=visit,
+                cmp_type=CrawlerType.FAILED.value,
+                crawl_state=CrawlState.LIBRARY_ERROR.value,
+            ),
+            [],
+            [],
         )
     except Exception as e:
         logger.error(
@@ -246,20 +259,17 @@ def run_domain_with_timeout(
             str(e),
         )
         logger.exception(e)
-        slist.append(
-            (
-                ConsentCrawlResult(
-                    report=f"Failure: {str(e)}",
-                    browser=visit.browser,
-                    visit=visit,
-                    cmp_type=CrawlerType.FAILED.value,
-                    crawl_state=CrawlState.LIBRARY_ERROR.value,
-                ),
-                [],
-                [],
-            )
+        return (
+            ConsentCrawlResult(
+                report=f"Failure: {str(e)}",
+                browser=visit.browser,
+                visit=visit,
+                cmp_type=CrawlerType.FAILED.value,
+                crawl_state=CrawlState.LIBRARY_ERROR.value,
+            ),
+            [],
+            [],
         )
-    return False
 
 
 def run_crawler() -> None:
@@ -426,6 +436,10 @@ def run_crawler() -> None:
 
     # Start
     num_subpages = int(args.num_subpages)
+    timeout: int = args.timeout
+
+    manager = multiprocessing.Manager()
+    slist: List[int] = manager.list()
 
     # sort for having the same database as the original. TODO: remove?
     urls = list(sorted(urls))
@@ -491,12 +505,6 @@ def run_crawler() -> None:
 
             visits.append(visit)
 
-    timeout: int = args.timeout
-    manager = multiprocessing.Manager()
-    slist: ListProxy[Tuple[ConsentCrawlResult, List[ConsentData], List[Cookie]]] = (
-        manager.list()
-    )
-
     if num_browsers == 1:
         res: List[bool] = []
         for i, arg in enumerate(visits):
@@ -561,11 +569,14 @@ def run_crawler() -> None:
                 print("starting")
                 for i in tqdm(range(len(visits)), total=len(visits), desc="Crawling"):
                     try:
-                        all_true |= next(it)
+                        next_result: Tuple[ConsentCrawlResult, List, List] = next(it)
 
+                        # if next_result[0].report 
                         # logger.warning("Crawl to %s finished", visits[i])
                     except TimeoutError as e:
                         logger.warning("Crawl to %s froze", visits[i])
+                        
+                        # TODO: now kill the PIDs of this task
 
                         with open("./retry_list.txt", "a", encoding="utf-8") as file:
                             file.write(visits[i].site_url)
