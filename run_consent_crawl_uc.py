@@ -6,7 +6,7 @@ import sys
 import re
 from itertools import repeat
 from logging import Logger
-from typing import List, Optional, Tuple, Dict
+from typing import List, Optional, Tuple, Dict, cast
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
@@ -439,7 +439,7 @@ def run_crawler() -> None:
     timeout: int = args.timeout
 
     manager = multiprocessing.Manager()
-    slist: List[int] = manager.list()
+    slist: List[BrowserProcess] = cast(List[BrowserProcess], manager.list())
 
     # sort for having the same database as the original. TODO: remove?
     urls = list(sorted(urls))
@@ -505,8 +505,9 @@ def run_crawler() -> None:
 
             visits.append(visit)
 
+    result: List[Tuple[ConsentCrawlResult, List[ConsentData], List[Cookie]]] = []
+
     if num_browsers == 1:
-        res: List[bool] = []
         for i, arg in enumerate(visits):
             r = run_domain_with_timeout(
                 arg, slist, browser_id, no_stdout, crawl, browser_params
@@ -514,7 +515,7 @@ def run_crawler() -> None:
 
             logger.info("Finished %s/%s", i + 1, len(visits))
 
-            res.append(r)
+            result.append(r)
     else:
         logger.info("Starting warmup browser")
         # Start one instance to patch the chromedriver executable and
@@ -569,7 +570,9 @@ def run_crawler() -> None:
                 print("starting")
                 for i in tqdm(range(len(visits)), total=len(visits), desc="Crawling"):
                     try:
-                        next_result: Tuple[ConsentCrawlResult, List, List] = next(it)
+                        next_result  = cast(Tuple[ConsentCrawlResult, List[ConsentData], List[Cookie]], next(it))
+
+                        result.append(next_result)
 
                         # if next_result[0].report 
                         # logger.warning("Crawl to %s finished", visits[i])
