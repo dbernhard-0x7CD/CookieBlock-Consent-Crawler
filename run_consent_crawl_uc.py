@@ -24,7 +24,6 @@ import psutil
 from tqdm import tqdm
 from threading import Thread
 from multiprocessing import Queue, Process
-from queue import Empty
 from psutil import TimeoutExpired, NoSuchProcess
 from multiprocessing.managers import ListProxy
 from pebble import ProcessPool, ThreadPool
@@ -238,7 +237,6 @@ def run_domain_with_timeout(
 
         return run_domain(visit, proc_list, browser_id, no_stdout, crawl, browser_params)
     except (
-        Empty,
         TimeoutError,
         TimeoutException,  # selenium
         WebDriverException,  # selenium
