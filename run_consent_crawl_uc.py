@@ -1,4 +1,5 @@
 #!/bin/bash
+from __future__ import annotations
 
 import argparse
 import os
@@ -22,7 +23,7 @@ import psutil
 
 from tqdm import tqdm
 from threading import Thread
-from multiprocessing import Queue
+from multiprocessing import Queue, Process
 from queue import Empty
 from psutil import TimeoutExpired, NoSuchProcess
 from multiprocessing.managers import ListProxy
@@ -65,8 +66,14 @@ class BrowserProcess:
         self.name = name
         self.start_time = start_time
 
-    def __repr__(self) -> str:
+    def __str__(self) -> str:
         return f"PID {self.pid} to {self.name} and started at {self.start_time}"
+
+    def __eq__(self, o: object) -> bool:
+        return "pid" in o.__dict__ and isinstance(o, BrowserProcess) and o.pid == self.pid
+
+    def __repr__(self) -> str:
+        return f"PID {self.pid}, {self.name}"
 
 log_dir = Path("./logs")
 log_dir.mkdir(exist_ok=True)
@@ -80,7 +87,7 @@ ver = version("cookieblock-consent-crawler")
 
 def run_domain(
     visit: SiteVisit,
-    process_result: List[BrowserProcess],
+    process_result: ListProxy[BrowserProcess],
     browser_id: int,
     no_stdout: bool,
     crawl: Crawl,
@@ -218,7 +225,7 @@ def run_domain(
 
 def run_domain_with_timeout(
     visit: SiteVisit,
-    proc_list: List[BrowserProcess],
+    proc_list: ListProxy[BrowserProcess],
     browser_id: int,
     no_stdout: bool,
     crawl: Crawl,
@@ -446,7 +453,7 @@ def run_crawler() -> None:
     timeout: int = args.timeout
 
     manager = multiprocessing.Manager()
-    slist: List[BrowserProcess] = cast(List[BrowserProcess], manager.list())
+    slist: ListProxy[BrowserProcess] = manager.list()
 
     # sort for having the same database as the original. TODO: remove?
     urls = list(sorted(urls))
@@ -494,26 +501,35 @@ def run_crawler() -> None:
             print("Number of all children: %s" % len(children), file=file)
             print("Number of direct children: %s" % len(proc.children()), file=file)
             time.sleep(5)
-            
+ 
             print(f"Iterating browser processes ({len(slist)})", file=file)
             now = datetime.now() - timedelta(seconds=timeout) * 2
-            for b in slist:
-                # print(b, file=file)
-                if b.start_time < now:
-                    try:
-                        browser_proc = psutil.Process(b.pid)
 
-                        if browser_proc.is_running():
-                            print(f"Browser is too old: killing if necessary {b}", file=file)
+            to_remove = list()
+            for b in list(slist):
+                try:
+                    browser_proc = psutil.Process(b.pid)
+                    # print(b, file=file)
+                    if b.start_time < now:
+    
+                            if browser_proc.is_running():
+                                print(f"Browser is too old: {b}. Trying to kill", file=file)
+    
+                                browser_proc.terminate()
+                except NoSuchProcess:
+                    to_remove.append(b)
 
-                            browser_proc.terminate()
+            for x in to_remove:
+                try:
+                    slist.remove(x)
+                    # print(f"REMOVING: {x}", file=file)
+                except ValueError:
+                    pass
 
-                    except NoSuchProcess:
-                        pass
             print(file=file)
             file.flush()
 
-    watcher = Thread(target=check, daemon=True)
+    watcher = Process(target=check, daemon=True)
     watcher.start()
 
     visits: List[SiteVisit] = []
@@ -632,6 +648,20 @@ def run_crawler() -> None:
 
     logger.info("CB-CCrawler has finished.")
     logging.shutdown()
+
+    # Make sure all browsers are down
+    for b in list(slist):
+        try:
+            browser_proc = psutil.Process(b.pid)
+    
+            if browser_proc.is_running():
+                print(f"Browser is too old: {b}. Trying to kill", file=file)
+    
+                browser_proc.terminate()
+        except NoSuchProcess:
+            pass
+
+    watcher.kill()
     input("Press ENTER to quit this python process")
 
 
