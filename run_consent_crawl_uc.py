@@ -28,7 +28,7 @@ from queue import Empty
 from psutil import TimeoutExpired, NoSuchProcess
 from multiprocessing.managers import ListProxy
 from pebble import ProcessPool, ThreadPool
-from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import TimeoutException, WebDriverException
 
 import multiprocessing
 
@@ -241,12 +241,13 @@ def run_domain_with_timeout(
         Empty,
         TimeoutError,
         TimeoutException,  # selenium
+        WebDriverException,  # selenium
         urllib3.exceptions.TimeoutError,
         urllib3.exceptions.MaxRetryError,
         TimeoutExpired,
     ) as e:
         logger.warning(
-            "Website %s had a timeout (Exception %s)", visit.site_url, type(e)
+            "Website %s had an exception (%s)", visit.site_url, type(e)
         )
         # This except block should store the websites for later to retry them
 
@@ -265,7 +266,7 @@ def run_domain_with_timeout(
             [],
             [],
         )
-    except Exception as e:
+    except Exception as e: # Currently unknown exceptions
         logger.error(
             "visit_id: %s Failure when crawling %s: %s",
             visit.visit_id,
