@@ -653,8 +653,6 @@ def run_crawler() -> None:
             browser_proc = psutil.Process(b.pid)
     
             if browser_proc.is_running():
-                print(f"Browser is too old: {b}. Trying to kill", file=file)
-    
                 browser_proc.terminate()
         except NoSuchProcess:
             pass
