@@ -544,17 +544,21 @@ def run_crawler() -> None:
 
             visits.append(visit)
 
-    result: List[Tuple[ConsentCrawlResult, List[ConsentData], List[Cookie]]] = []
-
     if num_browsers == 1:
-        for i, arg in enumerate(visits):
-            r = run_domain_with_timeout(
-                arg, slist, browser_id, no_stdout, crawl, browser_params
-            )
+        with SessionLocal.begin() as session:
+            for i, arg in enumerate(visits):
+                crawl_result, cds, cookies = run_domain_with_timeout(
+                    arg, slist, browser_id, no_stdout, crawl, browser_params
+                )
 
-            logger.info("Finished %s/%s", i + 1, len(visits))
+                logger.info("Finished %s/%s", i + 1, len(visits))
 
-            result.append(r)
+                session.merge(crawl_result)
+
+                for cd in cds:
+                    session.merge(cd)
+                for c in cookies:
+                    session.merge(c)
     else:
         logger.info("Starting warmup browser")
         # Start one instance to patch the chromedriver executable and
@@ -607,23 +611,27 @@ def run_crawler() -> None:
             it = fut.result()
             try:
                 print("starting")
-                for i in tqdm(range(len(visits)), total=len(visits), desc="Crawling"):
-                    try:
-                        next_result  = cast(Tuple[ConsentCrawlResult, List[ConsentData], List[Cookie]], next(it))
+                with SessionLocal.begin() as session:
+                    for i in tqdm(range(len(visits)), total=len(visits), desc="Crawling"):
+                        try:
+                            crawl_result, cds, cookies  = cast(Tuple[ConsentCrawlResult, List[ConsentData], List[Cookie]], next(it))
 
-                        result.append(next_result)
+                            session.merge(crawl_result)
 
-                        # if next_result[0].report 
-                        # logger.warning("Crawl to %s finished", visits[i])
-                    except TimeoutError as e:
-                        logger.warning("Crawl to %s froze", visits[i])
-                        
-                        # TODO: now kill the PIDs of this task
+                            for cd in cds:
+                                session.merge(cd)
+                            for c in cookies:
+                                session.merge(c)
 
-                        with open("./retry_list.txt", "a", encoding="utf-8") as file:
-                            file.write(visits[i].site_url)
-                            file.write("\n")
-                        logger.error(e)
+                            # TODO: warn of unseccessfull crawls; if next_result[0].report 
+                            # logger.warning("Crawl to %s finished", visits[i])
+                        except TimeoutError as e:
+                            logger.warning("Crawl to %s froze", visits[i])
+                            
+                            with open("./retry_list.txt", "a", encoding="utf-8") as file:
+                                file.write(visits[i].site_url)
+                                file.write("\n")
+                            logger.error(e)
             except StopIteration:
                 pass
 
@@ -635,16 +643,6 @@ def run_crawler() -> None:
         logger.info("\tOpen file: %s", f)
     logger.info("Number of connections: %s", len(proc.net_connections()))
     logger.info("fds: %s", proc.num_fds())
-
-    # Store data in database; TODO: this could be done on the fly
-    with SessionLocal.begin() as session:
-        for crawl_result, cds, cookies in result:
-            session.merge(crawl_result)
-
-            for cd in cds:
-                session.merge(cd)
-            for c in cookies:
-                session.merge(c)
 
     logger.info("CB-CCrawler has finished.")
     logging.shutdown()
