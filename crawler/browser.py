@@ -990,12 +990,10 @@ class Chrome(CBConsentCrawlerBrowser):
             if self.driver.service and self.driver.service.process and self.driver.service.process.pid:
                 chromedriver_pid = self.driver.service.process.pid
                 self.logger.info("chromedriver PID: %s", chromedriver_pid)
-                try:
-                    self.logger.info("chromedriver PPID: %s", Process(chromedriver_pid).ppid)
-                except NoSuchProcess:
-                    self.logger.info("chromedriver not yet started")
 
                 try:
+                    self.logger.info("chromedriver PPID: %s", Process(chromedriver_pid).ppid)
+
                     if isinstance(chromedriver_pid, int):
                         chromedriver = Process(chromedriver_pid)
 
