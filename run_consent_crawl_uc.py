@@ -521,7 +521,6 @@ def run_crawler() -> None:
             for x in to_remove:
                 try:
                     slist.remove(x)
-                    # print(f"REMOVING: {x}", file=file)
                 except ValueError:
                     pass
 
