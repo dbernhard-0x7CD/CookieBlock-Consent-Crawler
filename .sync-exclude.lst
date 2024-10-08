@@ -3,3 +3,5 @@ chrome_profile/
 chrome/
 *.tar.gz
 huge_list*
+crawl_*
+crawl_*/**
