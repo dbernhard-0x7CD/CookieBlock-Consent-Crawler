@@ -170,3 +170,5 @@ violation_stats/
 
 # Profiles - as they are too big in size
 profile_consentomatic_*.tar.gz
+
+crawl_*
