@@ -500,7 +500,7 @@ def run_crawler() -> None:
             print("Number of all children: %s" % len(children), file=file)
             print("Number of direct children: %s" % len(proc.children()), file=file)
             time.sleep(5)
- 
+
             print(f"Iterating browser processes ({len(slist)})", file=file)
             now = datetime.now() - timedelta(seconds=timeout) * 2
 
@@ -510,10 +510,10 @@ def run_crawler() -> None:
                     browser_proc = psutil.Process(b.pid)
                     # print(b, file=file)
                     if b.start_time < now:
-    
+
                             if browser_proc.is_running():
                                 print(f"Browser is too old: {b}. Trying to kill", file=file)
-    
+
                                 browser_proc.terminate()
                 except NoSuchProcess:
                     to_remove.append(b)
@@ -625,7 +625,7 @@ def run_crawler() -> None:
                             # logger.warning("Crawl to %s finished", visits[i])
                         except TimeoutError as e:
                             logger.warning("Crawl to %s froze", visits[i])
-                            
+
                             with open("./retry_list.txt", "a", encoding="utf-8") as file:
                                 file.write(visits[i].site_url)
                                 file.write("\n")
@@ -649,7 +649,7 @@ def run_crawler() -> None:
     for b in list(slist):
         try:
             browser_proc = psutil.Process(b.pid)
-    
+
             if browser_proc.is_running():
                 browser_proc.terminate()
         except NoSuchProcess:

@@ -184,7 +184,7 @@ def main() -> int:
 
     # enable dictionary access by column name
     conn = sqlite3.connect(database_path)
-    
+
     print(f"Connecting to {database_path}")
     conn.row_factory = sqlite3.Row
 
