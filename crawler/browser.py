@@ -560,11 +560,11 @@ class CBConsentCrawlerBrowser(Browser):
         function getCookieBlockHistory() {
             return new Promise((resolve, reject) => {
                 var request = window.indexedDB.open("CookieBlockHistory", 1);
-        
+
                 request.onerror = function(event) {
                     reject("Error opening IndexedDB: " + event.target.errorCode);
                 };
-        
+
                 request.onsuccess = function(event) {
                     var db = event.target.result;
                     var transaction = db.transaction(["cookies"], "readonly");
@@ -577,18 +577,18 @@ class CBConsentCrawlerBrowser(Browser):
                             cursor.continue();
                         }
                     };
-        
+
                     transaction.oncomplete = function() {
                         resolve(JSON.stringify(data));
                     };
-        
+
                     transaction.onerror = function(event) {
                         reject("Transaction error: " + event.target.errorCode);
                     };
                 };
             });
         }
-        
+
         // Usage:
         return getCookieBlockHistory().then(data => {
             return data;
@@ -973,7 +973,7 @@ class Chrome(CBConsentCrawlerBrowser):
                     p.wait(timeout=10)
                 except TimeoutExpired:
                     pass
-                
+
                 if i > 5:
                     try:
                         self.logger.info("Sending kill/term")
@@ -989,7 +989,7 @@ class Chrome(CBConsentCrawlerBrowser):
                     raise Exception("Unable to kill browser")
                 i+= 1
             # Chrome is gone
-        
+
             if self.driver.service and self.driver.service.process and self.driver.service.process.pid:
                 chromedriver_pid = self.driver.service.process.pid
                 self.logger.info("chromedriver PID: %s", chromedriver_pid)
@@ -1002,10 +1002,10 @@ class Chrome(CBConsentCrawlerBrowser):
 
                         self.logger.info("Sending SIGKILL to chromedriver {}")
                         chromedriver.kill()
-                        
+
                         self.logger.info("waiting")
                         chromedriver.wait(10)
-                        
+
                         self.logger.info("terminating check")
                         if Process(chromedriver_pid).is_running():
                             self.logger.info("Chromium is still running. Sending SIGTERM")
@@ -1023,6 +1023,6 @@ class Chrome(CBConsentCrawlerBrowser):
                 self.temp_download_directory.cleanup()
         except Exception as e:
             self.logger.warning(
-                "Unable to remove the temporary directory %s", e, stack_info=False 
+                "Unable to remove the temporary directory %s", e, stack_info=False
             )
 
