@@ -34,7 +34,7 @@ RUN pip install poetry && poetry install && \
     poetry cache clear --all -n . && \
     rm -rf /root/.cache
 
-FROM python-base as production
+FROM python-base AS production
 
 WORKDIR /crawler/
 
