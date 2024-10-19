@@ -328,7 +328,7 @@ def run_crawler() -> None:
         help="Only launches the browser which allows modification of the current profile",
         action="store_true",
     )
-    run_group.add_argument("--url", help="Url to crawl once")
+    run_group.add_argument("-u", "--url", help="Url to crawl once")
 
     parser.add_argument(
         "-n",
