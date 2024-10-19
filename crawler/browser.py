@@ -598,7 +598,11 @@ class CBConsentCrawlerBrowser(Browser):
         """
         indexeddb_data = self.execute_script(indexeddb_script)
 
-        cookies = json.loads(indexeddb_data)
+        try:
+            cookies = json.loads(indexeddb_data)
+        except TypeError as e:
+            print(e)
+            cookies = []
 
         self.logger.info("There are %i actual cookies stored.", len(cookies))
 
