@@ -542,6 +542,35 @@ def run_crawler() -> None:
 
             visits.append(visit)
 
+    # Run a warmup browser to check if the current profile works
+    # Also patches the executable for patching the chromedriver executable
+    # to run concurrently and not need patching in each thread.
+    # Also prints the browser version.
+
+    logger.info("Starting warmup browser")
+    null_logger = logging.getLogger("empty")
+    null_logger.setLevel(logging.ERROR)
+
+    with Chrome(
+        seconds_before_processing_page=1,
+        chrome_profile_path=chrome_profile_path,
+        chromedriver_path=chromedriver_path,
+        browser_id=browser_id,
+        crawl=crawl,
+        logger=null_logger,
+        **browser_params,  # type: ignore
+    ) as browser:
+        _, content = browser.get_content("chrome://version")
+
+        ver_pat = r"Chromium[\s]*\|[\s]*([\d\.]+)"
+        match = re.search(ver_pat, content)
+
+        if not match or not match.groups() or len(match.groups()) == 0:
+            raise RuntimeError(f"Unable to detect chrome version in {content}")
+
+        groups = match.groups()
+        logger.info("Chrome version: %s", groups[0])
+
     if num_browsers == 1:
         with SessionLocal.begin() as session:
             for i, arg in enumerate(visits):
@@ -557,40 +586,8 @@ def run_crawler() -> None:
                     session.merge(cd)
                 for c in cookies:
                     session.merge(c)
+        logger.info("%s crawls have finished.", len(visits))
     else:
-        logger.info("Starting warmup browser")
-        # Start one instance to patch the chromedriver executable and
-        # later start multiple which all do _not_ need to patch the
-        # chromedriver executable because it is already patched.
-
-        null_logger = logging.getLogger("empty")
-        null_logger.setLevel(logging.ERROR)
-        with Chrome(
-            seconds_before_processing_page=1,
-            chrome_profile_path=chrome_profile_path,
-            chromedriver_path=chromedriver_path,
-            browser_id=browser_id,
-            crawl=crawl,
-            logger=null_logger,
-            **browser_params,  # type: ignore
-        ) as browser:
-            state, content = browser.get_content("chrome://version")
-
-            ver_pat = r"Chromium[\s]*\|[\s]*([\d\.]+)"
-            match = re.search(ver_pat, content)
-
-            if not match:
-                raise Exception(f"Unable to detect chrome version in {content}")
-
-            groups = match.groups()
-
-            if groups and len(groups) > 0:
-                logger.info("Chrome version: %s", groups[0])
-            else:
-                logger.error("Unable to detect chrome version in %s", content)
-                raise Exception(f"Unable to detect chrome version in {content}")
-        logger.info("Warmed up.")
-
         n_jobs = min(num_browsers, len(urls))
 
         with ProcessPool(max_workers=n_jobs, max_tasks=1) as pool:
