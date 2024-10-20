@@ -631,7 +631,7 @@ def run_crawler() -> None:
                 pass
 
             all_succeeded = all_true
-    logger.info("All %s crawls have finished. Success: %s", len(visits), all_succeeded)
+        logger.info("All %s crawls have finished. Success: %s", len(visits), all_succeeded)
 
     logger.info("Number of open files: %s", len(proc.open_files()))
     for f in proc.open_files():
