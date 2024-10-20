@@ -27,7 +27,7 @@ It automatically retrieves purpose categories for cookies if possible, and brows
 Currently supported by the scripts are the Consent Management Providers:
 * __Cookiebot__
 * __OneTrust__
-* __Termly__
+* (not yet) __Termly__
 
 Due to the GDPR, websites that offer their services to users connecting from countries in the
 EU are required to request consent for storing cookies on the browser. This is commonly
@@ -249,9 +249,10 @@ This folder contains the following subfolders and scripts:
 
     `collected_data/` : This is the default target directory for the consent webcrawler output.
 
-    `crawler_profile_*/`: Contains the Firefox (~v80) browser profile used with OpenWPM. 3 different configurations are included.
-                        The profile includes a pre-configured install of Consent-O-Matic that references a custom Termly ruleset found at:
-                        https://github.com/dibollinger/Consent-O-Matic/blob/termly_rule/termly_rules.json
+    `chrome_profile/`:  Contains the chrome profile data. The following profiles can be downloaded and extracted into this folder:
+            * https://sybilmail.de/files/cookieblock/profile_consentomatic_accept_all.tar.gz
+            * https://sybilmail.de/files/cookieblock/profile_consentomatic_accept_none.tar.gz
+            * https://sybilmail.de/files/cookieblock/profile_consentomatic_without_consentomatic.tar.gz
 
     `filtered_domains/`: Target directory for the presence crawler output.
 
@@ -266,7 +267,7 @@ This folder contains the following subfolders and scripts:
 ## License
 The additions made to this framework (instrumentation, crawling scripts) are licensed under GNU GPLv3, see LICENSE.
 
-OpenWPM is licensed under GNU GPLv3, see [license](LICENSE). Additional code has been included from
+Code has been included from
 [FourthParty](https://github.com/fourthparty/fourthparty) and
 [Privacy Badger](https://github.com/EFForg/privacybadgerfirefox), both of which
 are licensed GPLv3+.

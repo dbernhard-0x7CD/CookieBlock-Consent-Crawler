@@ -13,7 +13,8 @@
 
 This repository contains code for two webcrawlers that were used to gather cookie
 data from websites, and to extract usage purpose for those cookies from corresponding
-cookie notices. These crawlers enabled the collection of training data for the
+cookie notices.
+These crawlers enabled the collection of training data for the
 tree ensemble model used in the CookieBlock browser extension.
 
 ### CookieBlock
@@ -114,7 +115,7 @@ https://karelkubicek.github.io/post/cookieblock
 
 ## License
 
-__Copyright © 2021-2022 Dino Bollinger, Karel Kubíček__
+__Copyright © 2021-2022 Dino Bollinger, Karel Kubíček, David Bernhard__
 
 All code and data contained within the `crawler/` folder is licensed under GPLv3 license.
 
