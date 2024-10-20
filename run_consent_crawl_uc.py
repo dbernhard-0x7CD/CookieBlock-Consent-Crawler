@@ -618,7 +618,7 @@ def run_crawler() -> None:
                             for c in cookies:
                                 session.merge(c)
 
-                            # TODO: warn of unseccessfull crawls; if next_result[0].report 
+                            # TODO: warn of unseccessfull crawls; if next_result[0].report
                             # logger.warning("Crawl to %s finished", visits[i])
                         except TimeoutError as e:
                             logger.warning("Crawl to %s froze", visits[i])
