@@ -706,14 +706,14 @@ class OnetrustCMP(AbstractCMP):
                 0,
                 CrawlState.NO_COOKIES,
                 f"ONETRUST: VARIANT A: Could not extract any cookies for ddid: {dd_id}.",
-                data
+                []
             )
         else:
             return (
                 cookie_count,
                 CrawlState.SUCCESS,
                 f"ONETRUST: VARIANT A: Cookies Extracted: {cookie_count}",
-                []
+                data
             )
 
     def _variantB_try_retrieve_jsurl(
