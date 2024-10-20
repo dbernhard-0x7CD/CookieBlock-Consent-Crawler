@@ -165,7 +165,7 @@ options:
   -h, --help            show this help message and exit
   -f FILE, --file FILE  Path to file containing one URL per line
   --launch-browser      Only launches the browser which allows modification of the current profile
-  --url URL             Url to crawl once
+  -u --url URL          Url to crawl once
   -n NUM_BROWSERS, --num-browsers NUM_BROWSERS
                         Number of browsers to use in parallel
   -d USE_DB, --use-db USE_DB
@@ -257,8 +257,9 @@ This folder contains the following subfolders and scripts:
 
     `logs/`: Target directory for log files.
 
-    `run_consent_crawl.py`: This script forms the entry point for the crawler that makes use of the OpenWPM framework,
-                            which retrieves cookies, cookie categories, and builds a SQLite3 database storing this data.
+    `run_consent_crawl_uc.py`: This script forms the entry point for the crawler that makes use of the Selenium library to instrument
+                               a real browser. This crawler retrieves cookies, cookie categories, and builds a SQLite3 database from the
+                               collected data.
 
     `run_presence_crawl.py`: Efficient crawl that only utilises the python requests library.
 
