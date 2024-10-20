@@ -11,8 +11,6 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import TimeoutException, StaleElementReferenceException
 
-# import js2py
-
 from crawler.enums import CookieCategory, CrawlState, PageState
 from crawler.utils import uuid_pattern
 from crawler.database import ConsentData, Crawl, SiteVisit
