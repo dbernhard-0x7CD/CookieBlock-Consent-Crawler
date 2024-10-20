@@ -25,7 +25,7 @@ RUN apt-get update && \
 RUN apt-get remove -y chromium
 
 # Copy needed files
-COPY install_uc.sh poetry.lock pyproject.toml run_consent_crawl_uc.py README.md /crawler/
+COPY add_default_timeout.patch install_uc.sh poetry.lock pyproject.toml run_consent_crawl_uc.py README.md /crawler/
 COPY ./crawler/ /crawler/crawler/
 
 WORKDIR /crawler/
@@ -41,5 +41,8 @@ WORKDIR /crawler/
 RUN wget https://sybilmail.de/files/cookieblock/profile_consentomatic_accept_all.tar.gz
 RUN wget https://sybilmail.de/files/cookieblock/profile_consentomatic_accept_none.tar.gz
 RUN wget https://sybilmail.de/files/cookieblock/profile_consentomatic_without_consentomatic.tar.gz
+
+# Patch selenium to not run indefinitely
+RUN patch -d /usr/local/lib/python3.12/site-packages/ -p1 < add_default_timeout.patch 
 
 RUN ./install_uc.sh
