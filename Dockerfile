@@ -24,6 +24,9 @@ RUN apt-get update && \
 
 RUN apt-get remove -y chromium
 
+# Clean cache
+RUN apt-get clean
+
 # Copy needed files
 COPY install_uc.sh poetry.lock pyproject.toml run_consent_crawl_uc.py README.md /crawler/
 COPY ./crawler/ /crawler/crawler/
