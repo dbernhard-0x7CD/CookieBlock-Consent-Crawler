@@ -238,7 +238,6 @@ def run_domain_with_timeout(
         return run_domain(visit, proc_list, browser_id, no_stdout, crawl, browser_params)
     except (
         TimeoutError,
-        TimeoutException,  # selenium
         WebDriverException,  # selenium
         urllib3.exceptions.TimeoutError,
         urllib3.exceptions.MaxRetryError,
