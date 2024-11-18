@@ -441,7 +441,7 @@ def run_crawler() -> None:
     if file_crawllist:
         with open(file_crawllist, "r", encoding="utf-8") as fo:
             urls = [x.strip() for x in fo.readlines()]
-            urls = list(filter(lambda x: not x.strip() == "", urls))
+            urls = list(filter(lambda x: x.strip() != "", urls))
     else:
         assert args.url
         urls = [args.url]
