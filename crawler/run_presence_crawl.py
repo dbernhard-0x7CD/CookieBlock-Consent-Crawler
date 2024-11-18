@@ -164,7 +164,7 @@ def run_reachability_check(input_domain: str) -> Tuple[Optional[str], int]:
 
         try:
             # fake chrome user agent
-            headers = {'User-Agent': "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.77 Safari/537.36"}
+            headers = {'User-Agent': "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36"}
             r = requests.get(completed_url, timeout=(connect_timeout, load_timeout), headers=headers)
         except (rexcepts.TooManyRedirects, rexcepts.SSLError,
                 rexcepts.URLRequired, rexcepts.MissingSchema) as ex:
