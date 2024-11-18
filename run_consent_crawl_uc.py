@@ -485,6 +485,12 @@ def run_crawler() -> None:
     # Debugging
     proc = psutil.Process()
 
+    # Checks all running chrome processes.
+    # Some processes that are spawned by this process launch the
+    # chromedriver and chrome processes.
+    # If these are killed the children of them (chrome/chromedriver)
+    # are adopted by the container.
+    # We iterate over all processes and kill those that are too old.
     def check() -> None:
         file = open("watcher.log", "a+")
         proc = psutil.Process()
@@ -492,7 +498,27 @@ def run_crawler() -> None:
         logger.info("Starting watcher for process: %s", proc)
 
         while True:
-            print("Checking at ", datetime.now(timezone.utc), file=file)
+            current_time = datetime.now()
+
+            print("Checking at ", current_time, file=file)
+
+            # Kill browser processes that are older than X minutes
+            # Iterate over all processes as each pebble worker
+            # is its own process, and if he dies the chrome/chromedriver child
+            # process is adopted by the docker container init process.
+            x: psutil.Process
+
+            for x in psutil.process_iter():
+                if "chrome" not in x.name:
+                    continue
+
+                if x._create_time:
+                    # Kill if older than four times the timeout
+                    if (current_time.timestamp() - x._create_time) >= timeout * 4:
+                        print("Found too old process: ", x, file=file)
+                        x.kill()
+                else:
+                    print("Process without starttime found: ", x, file=file)
 
             children = proc.children(recursive=True)
 
