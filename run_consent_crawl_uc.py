@@ -509,7 +509,7 @@ def run_crawler() -> None:
             x: psutil.Process
 
             for x in psutil.process_iter():
-                if "chrome" not in x.name:
+                if "chrome" not in x.name():
                     continue
 
                 if x._create_time:
