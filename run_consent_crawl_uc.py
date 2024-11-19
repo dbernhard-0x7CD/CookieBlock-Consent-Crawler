@@ -520,34 +520,12 @@ def run_crawler() -> None:
                 else:
                     print("Process without starttime found: ", x, file=file)
 
+            file.flush()
             children = proc.children(recursive=True)
 
             print("Number of all children: %s" % len(children), file=file)
             print("Number of direct children: %s" % len(proc.children()), file=file)
-            time.sleep(5)
-
-            print(f"Iterating browser processes ({len(slist)})", file=file)
-            now = datetime.now() - timedelta(seconds=timeout) * 2
-
-            to_remove = list()
-            for b in list(slist):
-                try:
-                    browser_proc = psutil.Process(b.pid)
-                    # print(b, file=file)
-                    if b.start_time < now:
-
-                            if browser_proc.is_running():
-                                print(f"Browser is too old: {b}. Trying to kill", file=file)
-
-                                browser_proc.terminate()
-                except NoSuchProcess:
-                    to_remove.append(b)
-
-            for x in to_remove:
-                try:
-                    slist.remove(x)
-                except ValueError:
-                    pass
+            time.sleep(10)
 
             print(file=file)
             file.flush()
