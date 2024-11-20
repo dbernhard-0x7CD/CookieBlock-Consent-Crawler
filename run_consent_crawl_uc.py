@@ -512,19 +512,18 @@ def run_crawler() -> None:
                 if "chrome" not in x.name():
                     continue
 
-                if x._create_time:
+                print("Looking at ", x.name, file=file)
+                if x.create_time():
                     # Kill if older than four times the timeout
                     if (current_time.timestamp() - x.create_time()) >= timeout * 4:
                         print("Found too old process: ", x, file=file)
+                        file.flush()
                         x.kill()
+                        x.terminate()
                 else:
                     print("Process without starttime found: ", x, file=file)
 
             file.flush()
-            children = proc.children(recursive=True)
-
-            print("Number of all children: %s" % len(children), file=file)
-            print("Number of direct children: %s" % len(proc.children()), file=file)
             time.sleep(10)
 
             print(file=file)
