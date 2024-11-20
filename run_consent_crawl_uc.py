@@ -514,7 +514,7 @@ def run_crawler() -> None:
 
                 if x._create_time:
                     # Kill if older than four times the timeout
-                    if (current_time.timestamp() - x._create_time) >= timeout * 4:
+                    if (current_time.timestamp() - x.create_time()) >= timeout * 4:
                         print("Found too old process: ", x, file=file)
                         x.kill()
                 else:
