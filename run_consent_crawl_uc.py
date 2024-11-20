@@ -509,19 +509,22 @@ def run_crawler() -> None:
             x: psutil.Process
 
             for x in psutil.process_iter():
-                if "chrome" not in x.name():
-                    continue
+                try:
+                    if "chrome" not in x.name():
+                        continue
 
-                print("Looking at ", x.name, file=file)
-                if x.create_time():
-                    # Kill if older than four times the timeout
-                    if (current_time.timestamp() - x.create_time()) >= timeout * 4:
-                        print("Found too old process: ", x, file=file)
-                        file.flush()
-                        x.kill()
-                        x.terminate()
-                else:
-                    print("Process without starttime found: ", x, file=file)
+                    print("Looking at ", x.name, file=file)
+                    if x.create_time():
+                        # Kill if older than four times the timeout
+                        if (current_time.timestamp() - x.create_time()) >= timeout * 4:
+                            print("Found too old process: ", x, file=file)
+                            file.flush()
+                            x.kill()
+                            x.terminate()
+                    else:
+                        print("Process without starttime found: ", x, file=file)
+                except Exception:
+                    pass
 
             file.flush()
             time.sleep(10)
