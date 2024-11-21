@@ -657,8 +657,8 @@ def run_crawler() -> None:
         except NoSuchProcess:
             pass
 
-    watcher.kill()
     input("Press ENTER to quit this python process")
+    watcher.kill()
 
 
 def main() -> None:
