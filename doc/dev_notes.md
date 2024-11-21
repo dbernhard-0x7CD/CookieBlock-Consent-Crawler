@@ -1,0 +1,47 @@
+# Useful SQL Queries
+
+```SQL
+-- consent_data
+SELECT * FROM consent_crawl_results results
+    INNER JOIN site_visits sv on sv.visit_id = results.visit_id
+    order by site_rank
+```
+
+```SQL
+-- count amount of websites per cmp_type
+SELECT results.cmp_type, count(*) FROM consent_crawl_results results
+    group by results.cmp_type
+```
+
+```SQL
+-- cookies we gave consent to
+SELECT DISTINCT c.visit_id,
+        s.site_url,
+        ccr.cmp_type as cmp_type,
+        ccr.crawl_state,
+        c.name as consent_name,
+        c.domain as consent_domain,
+        c.purpose,
+        c.cat_id,
+        c.cat_name,
+        c.type_name,
+        c.type_id,
+        c.expiry as consent_expiry
+FROM consent_data c
+JOIN site_visits s ON s.visit_id == c.visit_id
+JOIN consent_crawl_results ccr ON ccr.visit_id == c.visit_id
+```
+
+```SQL
+-- actual cookies
+SELECT * FROM javascript_cookies
+    INNER JOIN consent_crawl_results ccr on ccr.visit_id = javascript_cookies.visit_id
+    order by ccr.visit_id
+```
+
+```SQL
+-- count cmp_types of actual cookies
+SELECT ccr.cmp_type, count(*) FROM javascript_cookies
+    INNER JOIN consent_crawl_results ccr on ccr.visit_id = javascript_cookies.visit_id
+    group by ccr.cmp_type
+```
