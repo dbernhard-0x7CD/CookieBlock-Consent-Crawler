@@ -513,7 +513,7 @@ def run_crawler() -> None:
                     if "chrome" not in x.name():
                         continue
 
-                    print("Looking at ", x.name, file=file)
+                    print("Looking at ", x.name(), ", started at: ", x.create_time(), file=file)
                     if x.create_time():
                         # Kill if older than four times the timeout
                         if (current_time.timestamp() - x.create_time()) >= timeout * 4:
