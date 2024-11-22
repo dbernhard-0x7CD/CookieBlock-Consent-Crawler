@@ -611,11 +611,11 @@ class CBConsentCrawlerBrowser(Browser):
         for x in cookies:
             self.logger.debug("Storing cookie (DEBUG OUTPUT)\n%s\n", x)
 
-            if (not "variable_data" in x) or len(x["variable_data"]) == 0:
+            if "variable_data" not in x or len(x["variable_data"]) == 0:
                 raise RuntimeError("Unexpected. Variable_data missing in cookie")
 
             def host_only_fn(var_data: Dict[str, Any], prop: str) -> Optional[int]:
-                if not prop in var_data:
+                if prop not in var_data:
                     return None
                 return 1 if var_data[prop] else 0
 
@@ -663,7 +663,7 @@ class CBConsentCrawlerBrowser(Browser):
                 result.append(js_cookie)
 
                 # Warn if timestamp was generated
-                if not "timestamp" in var_data:
+                if "timestamp" not in var_data:
                     self.logger.error(
                         "timestamp missing in cookie: %s on %s", x, visit.site_url
                     )
