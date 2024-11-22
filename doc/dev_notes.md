@@ -1,10 +1,20 @@
 # Useful SQL Queries
 
+Select result of a crawl to a website. Includes how many cookies we gave consented to:
 ```SQL
 -- consent_data
 SELECT * FROM consent_crawl_results results
     INNER JOIN site_visits sv on sv.visit_id = results.visit_id
     order by site_rank
+```
+
+Count number of crawl_states for a specified cmp_type:
+```SQL
+SELECT ccr.crawl_state, count(*)
+FROM consent_crawl_results ccr
+-- JOIN consent_data cd ON ccr.visit_id == cd.visit_id
+where ccr.cmp_type = 0 -- 0 is cookiebot; 1 is onetrust
+group by ccr.crawl_state
 ```
 
 ```SQL
