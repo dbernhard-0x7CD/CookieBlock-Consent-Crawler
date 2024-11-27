@@ -10,6 +10,7 @@ ENV PYTHONUNBUFFERED=1 \
     DEBIAN_FRONTEND=noninteractive \
     SETUP_PATH=/opt \
     POETRY_VIRTUALENVS_CREATE=false \
+    TZ=Europe/Zurich \
     LANG=C.UTF-8
 
 # Based on the ones above
