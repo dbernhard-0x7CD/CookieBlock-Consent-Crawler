@@ -538,8 +538,9 @@ def run_crawler() -> None:
     visits: List[SiteVisit] = []
 
     # Prepare all visits in one thread
+    logging.info("Creating visits and browsers")
     with SessionLocal.begin() as session:
-        for url in urls:
+        for url in tqdm(urls):
             visit = start_crawl(browser_id=browser_id, url=url)
             session.add(visit)
             session.refresh(visit)
