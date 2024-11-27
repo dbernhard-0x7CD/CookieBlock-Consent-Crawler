@@ -658,7 +658,7 @@ def run_crawler() -> None:
         except NoSuchProcess:
             pass
 
-    input("Press ENTER to quit this python process")
+    logging.info("All browser should be stopped.")
     watcher.kill()
 
 
