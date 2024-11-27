@@ -6,10 +6,10 @@
 services:
   regular1:
     restart: "no"
-    image: infsec-server.inf.ethz.ch/cb-cc/crawler:0.24
+    image: infsec-server.inf.ethz.ch/cb-cc/crawler:0.25
     command: >
       sh -c "\
-              presence_crawl --numthreads 256 -f list.txt --batches 1 && \
+              presence_crawl --numthreads 256 -f list.txt --batches 100 && \
               cat ./filtered_domains/cookiebot_responses.txt ./filtered_domains/onetrust_responses.txt > ./consent_crawl_list.txt && \
               consent_crawl -n 12 --profile_tar profile_consentomatic_accept_all.tar.gz --file ./consent_crawl_list.txt"
     stop_grace_period: 1m           # Leaves some time to stop the crawler
