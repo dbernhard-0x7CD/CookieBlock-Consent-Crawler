@@ -433,7 +433,7 @@ def run_crawler() -> None:
     initialize_base_db(
         db_url="sqlite:///" + str(db_file),
         create=create,
-        alembic_root_dir=Path(__file__).parent / "crawler",
+        alembic_root_dir=Path(__file__).parent,
         pool_size=int(4 + num_browsers * 1.5),
     )
     logger.info("Finished database setup")
