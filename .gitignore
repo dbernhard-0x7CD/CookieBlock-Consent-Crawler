@@ -172,3 +172,6 @@ violation_stats/
 profile_consentomatic_*.tar.gz
 
 crawl_*
+
+docker-compose/filtered_domains/
+docker-compose/collected_data/
