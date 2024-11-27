@@ -5,7 +5,7 @@ description = "A webcrawler used to gather cookie data from websites as well as 
 authors = ["Karel Kubicek", "Dino Bollinger", "David Bernhard"]
 readme = "README.md"
 
-packages = [{ include = "run_consent_crawl_uc.py" }, { include = "crawler" }]
+packages = [{ include = "crawler" }]
 
 [tool.poetry.scripts]
 presence_crawl = "crawler.run_presence_crawl:main"
