@@ -67,6 +67,7 @@ The repository contains additional subfolders with utility data that are related
   test the crawler, and some scripts to retrieve domain sources and filter out duplicate domains.
 * The folder `database_processing` offers scripts to further process the databases collected by the
   consent crawler, and to extract a JSON formatted file of each unique cookie in the database.
+  * The file `extract_cookies_from_db.py` is used to generate a JSON file which can be used as trainingdata
 * The scripts in `cookie_statistics_analysis` uses the JSON file produced through `extract_cookies_from_db.py` to compute several statistics from the collected cookies. It also contains scripts that were used to automatically query cookie categories from Cookiepedia.
 
 For more details, please refer to their respective READMEs:
