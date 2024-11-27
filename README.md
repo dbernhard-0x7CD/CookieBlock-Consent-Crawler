@@ -36,18 +36,18 @@ The repository is split into two web crawler types, as well as some additional s
 
 ### Main Crawler Scripts
 
-In the subfolder `crawler`, the file `run_presence_crawl.py`:
+The file `crawler/run_presence_crawl.py` has the purpose:
 * This is designated as __"CMP Presence Crawler"__ which uses the Python `requests` library to quickly detect whether a website uses a cookie consent library from one of three different Consent Management Providers (CMP).
 * This crawler serves as a first pass to filter domains that cannot be used for extracting useful data in the slower __"Consent Crawler"__ crawl .
 
-In the root folder the `run_consent_crawl_uc.py` script is the second part:
-* It is designated as the __"Consent Crawler"__, which uses the chrome browser to extract both cookies and their corresponding usage purposes if found.
+The file `crawler/run_consent_crawl_uc.py` resembles the second part:
+* It is designated as the __"Consent Crawler"__, which uses a chrome browser to extract both cookies and their corresponding usage purposes if found.
 * The process is slow, but it's the best method for collecting cookie data required for training a predictor.
 
 Currently, the web crawlers support cookie banners from the following Consent Management Providers:
 * Cookiebot
 * OneTrust (includes OptAnon, CookiePro and CookieLaw)
-* (Not yet supported in UC) Termly
+* (Not yet supported) Termly
 
 It also uses a fork of the Consent-O-Matic extension by _Janus Bager Kristensen et al._ to automatically provide affirmative consent to cookie banners.
 This allows the web crawler to gather more cookies than would normally be possible.

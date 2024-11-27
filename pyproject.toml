@@ -9,7 +9,7 @@ packages = [{ include = "run_consent_crawl_uc.py" }, { include = "crawler" }]
 
 [tool.poetry.scripts]
 presence_crawl = "crawler.run_presence_crawl:main"
-consent_crawl = "run_consent_crawl_uc:main"
+consent_crawl = "crawler.run_consent_crawl_uc:main"
 
 [tool.poetry.dependencies]
 tqdm = "^4.66.4"
