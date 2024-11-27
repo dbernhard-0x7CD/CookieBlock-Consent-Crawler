@@ -316,8 +316,8 @@ def main():
 
     # split generator computation
     num_sites = len(sites)
-    splits = int(cargs["--batches"])
-    chunksize = num_sites // splits
+    splits = min(int(cargs["--batches"]), num_sites)
+    chunksize = num_sites // splits if num_sites >= splits else 1
     chunks = (sites[i:min(i+chunksize, num_sites)] for i in range(0, num_sites, chunksize))
 
     outdir = "./filtered_domains"
