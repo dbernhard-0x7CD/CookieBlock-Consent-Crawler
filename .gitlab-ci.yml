@@ -37,7 +37,7 @@ tests:
     - echo "Static type checking"
     - mypy
       --ignore-missing-imports
-      run_consent_crawl_uc.py
+      crawler/run_consent_crawl_uc.py
       crawler/utils.py
       crawler/browser.py
       crawler/database.py
