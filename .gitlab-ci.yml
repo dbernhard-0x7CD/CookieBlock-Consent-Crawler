@@ -35,16 +35,7 @@ tests:
     - python --version
     - rm -f coverage.xml
     - echo "Static type checking"
-    - mypy
-      --ignore-missing-imports
-      crawler/run_consent_crawl_uc.py
-      crawler/utils.py
-      crawler/browser.py
-      crawler/database.py
-      crawler/enums.py
-      crawler/cmps/onetrust.py
-      crawler/cmps/cookiebot.py
-      crawler/cmps/abstract_cmp.py
+    - ./scripts/run-tests.sh
 
 # This creates a docker image from each tag with the git tagname as the container tagname
 # The built image gets published on infsec-server.inf.ethz.ch
