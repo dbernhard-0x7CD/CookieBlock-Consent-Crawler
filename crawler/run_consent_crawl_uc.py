@@ -57,23 +57,6 @@ class CrawlerException(Exception):
     """
 
 
-class BrowserProcess:
-    """Represents a process needed to crawl a given website"""
-
-    def __init__(self, pid: int, name: str, start_time: datetime) -> None:
-        self.pid = pid
-        self.name = name
-        self.start_time = start_time
-
-    def __str__(self) -> str:
-        return f"PID {self.pid} to {self.name} and started at {self.start_time}"
-
-    def __eq__(self, o: object) -> bool:
-        return "pid" in o.__dict__ and isinstance(o, BrowserProcess) and o.pid == self.pid
-
-    def __repr__(self) -> str:
-        return f"PID {self.pid}, {self.name}"
-
 log_dir = Path("./logs")
 log_dir.mkdir(exist_ok=True)
 
@@ -86,7 +69,6 @@ ver = version("cookieblock-consent-crawler")
 
 def run_domain(
     visit: SiteVisit,
-    process_result: ListProxy[BrowserProcess],
     browser_id: int,
     no_stdout: bool,
     crawl: Crawl,
@@ -140,17 +122,6 @@ def run_domain(
 
         # Add all PIDs of the browser and chromedriver to the queue
         now = datetime.now()
-
-        process_result.append(
-            BrowserProcess(
-                pid=browser.driver.browser_pid, name=f"[chrome] crawl to {url}", start_time=now
-            )
-        )
-        process_result.append(
-            BrowserProcess(
-                pid=browser.driver.service.process.pid, name=f"[chromedriver]: crawl to {url}", start_time=now
-            )
-        )
 
         # bot mitigation
         crawl_logger.info("Calling bot mitigation")
@@ -224,7 +195,6 @@ def run_domain(
 
 def run_domain_with_timeout(
     visit: SiteVisit,
-    proc_list: ListProxy[BrowserProcess],
     browser_id: int,
     no_stdout: bool,
     crawl: Crawl,
@@ -235,7 +205,7 @@ def run_domain_with_timeout(
     try:
         url = visit.site_url
 
-        return run_domain(visit, proc_list, browser_id, no_stdout, crawl, browser_params)
+        return run_domain(visit, browser_id, no_stdout, crawl, browser_params)
     except (
         TimeoutError,
         WebDriverException,  # selenium
@@ -450,9 +420,6 @@ def run_crawler() -> None:
     num_subpages = int(args.num_subpages)
     timeout: int = args.timeout
 
-    manager = multiprocessing.Manager()
-    slist: ListProxy[BrowserProcess] = manager.list()
-
     # sort for having the same database as the original. TODO: remove?
     urls = list(sorted(urls))
 
@@ -581,7 +548,7 @@ def run_crawler() -> None:
         with SessionLocal.begin() as session:
             for i, arg in enumerate(visits):
                 crawl_result, cds, cookies = run_domain_with_timeout(
-                    arg, slist, browser_id, no_stdout, crawl, browser_params
+                    arg, browser_id, no_stdout, crawl, browser_params
                 )
 
                 logger.info("Finished %s/%s", i + 1, len(visits))
@@ -600,7 +567,6 @@ def run_crawler() -> None:
             fut = pool.map(
                 run_domain_with_timeout,
                 visits,
-                repeat(slist),
                 repeat(browser_id),
                 repeat(no_stdout),
                 repeat(crawl),
@@ -647,16 +613,6 @@ def run_crawler() -> None:
 
     logger.info("CB-CCrawler has finished.")
     logging.shutdown()
-
-    # Make sure all browsers are down
-    for b in list(slist):
-        try:
-            browser_proc = psutil.Process(b.pid)
-
-            if browser_proc.is_running():
-                browser_proc.terminate()
-        except NoSuchProcess:
-            pass
 
     logging.info("All browser should be stopped.")
     watcher.kill()
