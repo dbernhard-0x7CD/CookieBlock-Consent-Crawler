@@ -35,7 +35,7 @@ import requests
 import requests.exceptions as rexcepts
 from docopt import docopt
 
-from pebble import ProcessPool
+from pebble import ThreadPool
 from pebble.common import ProcessExpired
 
 import logging
@@ -330,7 +330,7 @@ def main():
     finished_domains = set()
 
     try:
-        with ProcessPool(num_threads) as pool:
+        with ThreadPool(num_threads) as pool:
             crawled_site_batch: List[Tuple]
             for c in chunks:
                 cr_count = 0
