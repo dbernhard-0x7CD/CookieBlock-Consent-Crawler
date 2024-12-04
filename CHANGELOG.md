@@ -1,5 +1,10 @@
 # CookieBlock - ConsentCrawler Changelog
 
+## 0.7.26 - 04.12.2024
+* No longer track started chromium processes as this is now handled with the watcher checking all processes with 'chrome' in the process name
+* Store results in the sqlite database as they come and not in one bulk at the end
+    * Needed to implement resumable crawls
+
 ## 0.7.25 - 27.11.2024
 * Allow running with a batchsize bigger than the number of websites
 
