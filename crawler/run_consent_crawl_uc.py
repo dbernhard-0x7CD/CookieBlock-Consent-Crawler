@@ -28,6 +28,7 @@ from psutil import TimeoutExpired, NoSuchProcess
 from multiprocessing.managers import ListProxy
 from pebble import ProcessPool, ThreadPool
 from selenium.common.exceptions import TimeoutException, WebDriverException
+from sqlalchemy import select
 
 import multiprocessing
 
@@ -298,6 +299,7 @@ def run_crawler() -> None:
         action="store_true",
     )
     run_group.add_argument("-u", "--url", help="Url to crawl once")
+    run_group.add_argument("--resume", help="Resume crawl in given database.", action="store_true")
 
     parser.add_argument(
         "-n",
@@ -399,9 +401,6 @@ def run_crawler() -> None:
             time.sleep(60 * 60)  # wait one hour
         return
 
-    if args.resume:
-        logger.info("Resuming crawl")
-
     if is_sqlite:
         logger.info("Using data_path %s and file %s", data_path, database_file)
 
@@ -427,46 +426,87 @@ def run_crawler() -> None:
 
     logger.info("Finished database setup")
 
-    if file_crawllist:
-        with open(file_crawllist, "r", encoding="utf-8") as fo:
-            urls = [x.strip() for x in fo.readlines()]
-            urls = list(filter(lambda x: x.strip() != "", urls))
-    else:
-        assert args.url
-        urls = [args.url]
+    visits: List[SiteVisit] = []
 
     # Start
     num_subpages = int(args.num_subpages)
     timeout: int = args.timeout
 
-    # sort for having the same database as the original. TODO: remove?
-    urls = list(sorted(urls))
+    if args.resume:
+        if not args.use_db:
+            logging.error("--use-db needed!")
+            return
+        logger.info("Resuming crawl")
 
-    parameters = {
-        "data_directory": str(data_path),
-        "log_directory": str(log_dir),
-        "database_name": str(database_file),
-        "num_browsers": str(num_browsers),
-    }
-    task = start_task(
-        browser_version="Chrome 126", manager_params=json.dumps(parameters)
-    )
-    task_id = task.task_id
+        visits = []
+        with SessionLocal.begin() as session:
 
-    logger.info("Task: %s", task)
+            finished_site_visits_query = select(ConsentCrawlResult.visit_id)
+            ids = list(session.execute(finished_site_visits_query).scalars())
 
-    browser_params = {
-        "use_temp": True,
-        "chrome_path": str(chrome_path.absolute()),
-        "headless": headless,
-    }
+            # print("done: ", ids)
 
-    # Add browser config to the database
-    crawl = register_browser_config(
-        task_id=task_id, browser_params=json.dumps(browser_params)
-    )
-    assert crawl.browser_id
-    browser_id = crawl.browser_id
+            unfinished_visits = list(session.execute(select(SiteVisit).filter(SiteVisit.visit_id.notin_(ids))).scalars())
+
+            if len(unfinished_visits) == 0:
+                logging.error("Crawl already finished")
+                return
+            # print(unfinished_visits)
+
+            visits = unfinished_visits
+            browser_id = unfinished_visits[0].browser_id
+            crawls = list(session.execute(select(Crawl)).scalars())
+
+            # print(crawls)
+            crawl = crawls[0]
+            browser_params = json.loads(crawls[0].browser_params)
+    else:
+        # Load new sites
+        if file_crawllist:
+            with open(file_crawllist, "r", encoding="utf-8") as fo:
+                urls = [x.strip() for x in fo.readlines()]
+                urls = list(filter(lambda x: x.strip() != "", urls))
+        else:
+            assert args.url
+            urls = [args.url]
+
+        parameters = {
+            "data_directory": str(data_path),
+            "log_directory": str(log_dir),
+            "database_name": str(database_file),
+            "num_browsers": str(num_browsers),
+        }
+        task = start_task(
+            browser_version="Chrome 126", manager_params=json.dumps(parameters)
+        )
+        task_id = task.task_id
+
+        logger.info("Task: %s", task)
+
+        browser_params = {
+            "use_temp": True,
+            "chrome_path": str(chrome_path.absolute()),
+            "headless": headless,
+        }
+
+        # Add browser config to the database
+        crawl = register_browser_config(
+            task_id=task_id, browser_params=json.dumps(browser_params)
+        )
+        assert crawl.browser_id
+        browser_id = crawl.browser_id
+
+
+        # Prepare all visits in one thread
+        logging.info("Creating visits and browsers")
+        with SessionLocal.begin() as session:
+            for url in tqdm(urls):
+                visit = start_crawl(browser_id=browser_id, url=url)
+                session.add(visit)
+                session.refresh(visit)
+                session.refresh(visit.browser)
+
+                visits.append(visit)
 
     # Debugging
     proc = psutil.Process()
@@ -521,18 +561,6 @@ def run_crawler() -> None:
     watcher = Process(target=check, daemon=True)
     watcher.start()
 
-    visits: List[SiteVisit] = []
-
-    # Prepare all visits in one thread
-    logging.info("Creating visits and browsers")
-    with SessionLocal.begin() as session:
-        for url in tqdm(urls):
-            visit = start_crawl(browser_id=browser_id, url=url)
-            session.add(visit)
-            session.refresh(visit)
-            session.refresh(visit.browser)
-
-            visits.append(visit)
 
     # Run a warmup browser to check if the current profile works
     # Also patches the executable for patching the chromedriver executable
@@ -565,7 +593,11 @@ def run_crawler() -> None:
 
     if num_browsers == 1:
         with SessionLocal.begin() as session:
+            crawl = session.merge(crawl)
+
             for i, arg in enumerate(visits):
+                arg = session.merge(arg)
+
                 crawl_result, cds, cookies = run_domain_with_timeout(
                     arg, browser_id, no_stdout, crawl, browser_params
                 )
