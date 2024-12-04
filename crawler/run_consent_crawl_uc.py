@@ -280,6 +280,7 @@ def run_crawler() -> None:
     # Has some WARNING messages that the pool is full
     logging.getLogger("urllib3").setLevel(logging.ERROR)
 
+    # Clear existing profile
     if os.path.exists(chrome_profile_path):
         shutil.rmtree(chrome_profile_path)
 
