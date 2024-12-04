@@ -578,9 +578,9 @@ def run_crawler() -> None:
             it = fut.result()
             try:
                 print("starting")
-                with SessionLocal.begin() as session:
-                    for i in tqdm(range(len(visits)), total=len(visits), desc="Crawling"):
-                        try:
+                for i in tqdm(range(len(visits)), total=len(visits), desc="Crawling"):
+                    try:
+                        with SessionLocal.begin() as session:
                             crawl_result, cds, cookies  = cast(Tuple[ConsentCrawlResult, List[ConsentData], List[Cookie]], next(it))
 
                             session.merge(crawl_result)
@@ -592,13 +592,13 @@ def run_crawler() -> None:
 
                             # TODO: warn of unseccessfull crawls; if next_result[0].report
                             # logger.warning("Crawl to %s finished", visits[i])
-                        except TimeoutError as e:
-                            logger.warning("Crawl to %s froze", visits[i])
+                    except TimeoutError as e:
+                        logger.warning("Crawl to %s froze", visits[i])
 
-                            with open("./retry_list.txt", "a", encoding="utf-8") as file:
-                                file.write(visits[i].site_url)
-                                file.write("\n")
-                            logger.error(e)
+                        with open("./retry_list.txt", "a", encoding="utf-8") as file:
+                            file.write(visits[i].site_url)
+                            file.write("\n")
+                        logger.error(e)
             except StopIteration:
                 pass
 
