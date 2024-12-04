@@ -217,28 +217,6 @@ def initialize_base_db(
 
         logger.info("Created database.")
 
-def create_tables(engine: Engine) -> None:
-    # Try multiple times in case of network issues
-    tries = 3
-    for i in range(tries):
-        try:
-            if create:
-                logger.info("Creating initial database structure")
-                Base.metadata.create_all(bind=engine, checkfirst=True)
-                config = alembic.config.Config(file_=str(alembic_root_dir / "alembic.ini"))
-                config.set_main_option("script_location", str(alembic_root_dir / "alembic"))
-                config.attributes["configure_logger"] = False
-                alembic.command.stamp(config, "head")
-
-                logger.info("Created database.")
-        except psycopg2.OperationalError as e:
-            if i == tries - 1:
-                raise e
-            if "could not translate host name" in str(
-                e
-            ) or "No address associated with hostname" in str(e):
-                continue
-            raise e
 
 def start_task(browser_version: str, manager_params: Optional[str]) -> Task:
     with SessionLocal.begin() as session:

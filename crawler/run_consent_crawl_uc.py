@@ -420,7 +420,7 @@ def run_crawler() -> None:
     else:
         initialize_base_db(
             db_url=args.use_db,
-            create=False, # has to be created manually
+            create=True, # has to be created manually
             alembic_root_dir=Path(__file__).parent,
             pool_size=int(4 + num_browsers * 1.5),
         )
