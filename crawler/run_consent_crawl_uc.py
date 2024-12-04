@@ -354,12 +354,18 @@ def run_crawler() -> None:
     else:
         num_browsers = 1
 
+    is_sqlite = True
     if args.use_db:
-        splitted = os.path.split(args.use_db)
-        if len(splitted) != 2:
-            raise CrawlerException("--use_db is wrongly formatted")
-        data_path = splitted[0]
-        database_file = splitted[1]
+        if str(args.use_db).startswith("postgresql://"):
+            is_sqlite = False
+            data_path = ""
+            database_file = args.use_db
+        else:
+            splitted = os.path.split(args.use_db)
+            if len(splitted) != 2:
+                raise CrawlerException("--use_db is wrongly formatted")
+            data_path = splitted[0]
+            database_file = splitted[1]
     else:
         now = datetime.now().strftime("%Y%m%d_%H%M%S")
         data_path = "./collected_data"
@@ -378,8 +384,6 @@ def run_crawler() -> None:
         # Simply use existing
         pass
 
-    os.makedirs(data_path, exist_ok=True)
-
     if args.launch_browser:
         with Chrome(
             seconds_before_processing_page=1,
@@ -395,17 +399,32 @@ def run_crawler() -> None:
             time.sleep(60 * 60)  # wait one hour
         return
 
-    logger.info("Using data_path %s and file %s", data_path, database_file)
+    if args.resume:
+        logger.info("Resuming crawl")
 
-    # Connect to sqlite
-    db_file = Path(data_path) / database_file
-    create = not db_file.exists()
-    initialize_base_db(
-        db_url="sqlite:///" + str(db_file),
-        create=create,
-        alembic_root_dir=Path(__file__).parent,
-        pool_size=int(4 + num_browsers * 1.5),
-    )
+    if is_sqlite:
+        logger.info("Using data_path %s and file %s", data_path, database_file)
+
+        os.makedirs(data_path, exist_ok=True)
+
+        # Connect to sqlite
+        db_file = Path(data_path) / database_file
+        create = not db_file.exists()
+
+        initialize_base_db(
+            db_url="sqlite:///" + str(db_file),
+            create=create,
+            alembic_root_dir=Path(__file__).parent,
+            pool_size=int(4 + num_browsers * 1.5),
+        )
+    else:
+        initialize_base_db(
+            db_url=args.use_db,
+            create=False, # has to be created manually
+            alembic_root_dir=Path(__file__).parent,
+            pool_size=int(4 + num_browsers * 1.5),
+        )
+
     logger.info("Finished database setup")
 
     if file_crawllist:
