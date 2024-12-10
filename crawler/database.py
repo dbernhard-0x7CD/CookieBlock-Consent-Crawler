@@ -32,7 +32,7 @@ from crawler.enums import CrawlState, CrawlerType
 
 """
 We do not want to use expire after commit to still have access to attributes from objects.
-If 'expire_on_commit' is set to true all attributes of instances are marked out of date and 
+If 'expire_on_commit' is set to true all attributes of instances are marked out of date and
 the next time they are accessed a query will be issued. This is not desired to not overload
 the database.
 """
@@ -241,7 +241,6 @@ def start_crawl(browser_id: int, url: str) -> SiteVisit:
     with SessionLocal.begin() as session:
         visit = SiteVisit(browser_id=browser_id, site_url=url, site_rank=-1)
         session.add(visit)
-        
     return visit
 
 
