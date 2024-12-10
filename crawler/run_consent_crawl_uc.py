@@ -505,15 +505,18 @@ def run_crawler() -> None:
 
 
         # Prepare all visits in one thread
-        logging.info("Creating visits and browsers")
+        logger.info("Creating visits and browsers")
         with SessionLocal.begin() as session:
-            for url in tqdm(urls):
-                visit = start_crawl(browser_id=browser_id, url=url)
+            visits = [ SiteVisit(browser_id=browser_id, site_url=u, site_rank=-1) for u in urls]
+
+            session.add_all(visits)
+        logger.info("Created visits")
+
+        with SessionLocal.begin() as session:
+            for visit in tqdm(visits, desc="Populating visits"):
                 session.add(visit)
                 session.refresh(visit)
                 session.refresh(visit.browser)
-
-                visits.append(visit)
 
     # Debugging
     proc = psutil.Process()
