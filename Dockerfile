@@ -21,7 +21,7 @@ ENV VIRTUAL_ENV=$SETUP_PATH/venv \
 RUN apt-get update && \
     apt-get install -y wget unzip python3-pip vim curl && \
     apt-get install -y chromium && \
-    apt-get install -y build-essential git pkg-config libpq-dev
+    apt-get install -y build-essential git pkg-config libpq-dev rsync
 
 RUN apt-get remove -y chromium
 
