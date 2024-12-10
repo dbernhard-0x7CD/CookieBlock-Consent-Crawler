@@ -812,10 +812,8 @@ class Chrome(CBConsentCrawlerBrowser):
         if self.proxy:
             options.add_argument(f"--proxy-server={self.proxy}")
 
+        # Or use --shm-size=4G when starting docker container
         options.add_argument("--disable-dev-shm-usage")
-
-        # if Config().CHROME_DISABLE_SHM:
-        #     options.add_argument("--disable-dev-shm-usage")
 
         prefs = {
             "download_restrictions": 0,  # Allows the browser to download all content; https://chromeenterprise.google/policies/?policy=DownloadRestrictions
