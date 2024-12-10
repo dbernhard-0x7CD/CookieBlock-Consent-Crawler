@@ -79,11 +79,11 @@ def run_domain(
     """ """
     url = visit.site_url
 
-    id = visit.visit_id
+    visit_id = visit.visit_id
     crawl_logger = logging.getLogger(f"visit-{visit.visit_id}")
     crawl_logger.propagate = False
 
-    file_handler = logging.FileHandler(log_dir / f"visit_{id}.log", delay=False)
+    file_handler = logging.FileHandler(log_dir / f"visit_{visit_id}.log", delay=False)
     log_formatter = logging.Formatter(
         fmt="%(asctime)s %(levelname)s %(filename)s %(name)s %(processName)s: %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
