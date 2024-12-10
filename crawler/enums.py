@@ -18,6 +18,7 @@ class PageState(Enum):
     HTTP_ERROR = 12
     TCP_ERROR = 13
     UNKNOWN_ERROR = 14
+    WRONG_URL = 15
 
 
 class CookieTuple(NamedTuple):

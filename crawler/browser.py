@@ -47,6 +47,7 @@ from selenium.common.exceptions import (
     UnexpectedAlertPresentException,
     StaleElementReferenceException,
     MoveTargetOutOfBoundsException,
+    InvalidArgumentException,
 )
 from selenium.webdriver import ActionChains
 from selenium.webdriver.common.by import By
@@ -66,7 +67,6 @@ from crawler.enums import PageState, CookieTuple, CrawlerType, CrawlState
 
 from crawler.cmps.cookiebot import CookiebotCMP
 from crawler.cmps.onetrust import OnetrustCMP
-
 # from crawler.cmps.termly import check_termly_presence, internal_termly_scrape
 
 FuncT = TypeVar("FuncT", bound=Callable[..., Any])
@@ -220,6 +220,9 @@ class Browser(ABC):
         except TimeoutException:
             self.logger.warning("Timeout on: %s", url)
             return PageState.TIMEOUT
+        except InvalidArgumentException:
+            # Happens if the protocol is missing (not only then)
+            return PageState.WRONG_URL
         except WebDriverException as e:
             if "net::ERR_NAME_NOT_RESOLVED" in str(e.msg):
                 return PageState.DNS_ERROR

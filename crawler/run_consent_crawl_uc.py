@@ -49,7 +49,7 @@ from crawler.database import (
     Cookie,
 )
 from crawler.utils import set_log_formatter, is_on_same_domain
-from crawler.enums import CrawlerType, CrawlState
+from crawler.enums import CrawlerType, CrawlState, PageState
 
 
 class CrawlerException(Exception):
@@ -99,6 +99,11 @@ def run_domain(
 
     crawl_logger.setLevel(logging.INFO)
     crawl_logger.info("CookieBlock-ConsentCrawler version %s", ver)
+
+    # Add missing protocol
+    if not (url.startswith("http://") or url.startswith("https://")):
+        url = "https://" + url
+
     crawl_logger.info("Working on %s", url)
     file_handler.flush()
 
@@ -113,12 +118,18 @@ def run_domain(
     ) as browser:
         u = URL.from_text(url)
 
-        browser.load_page(u)
+        page_state = browser.load_page(u)
+
+        if page_state in [ PageState.HTTP_ERROR, PageState.WRONG_URL ]:
+            crawl_logger.warning("Unable to connect to %s due to: %s", u, page_state)
+            u = URL.from_text(url.replace("https://", "http://"))
+
         crawl_logger.info(
-            "Loaded website %s (chrome pid: %s, chromedriver: %s)",
+            "Loaded website %s (chrome pid: %s, chromedriver: %s) with status %s",
             u,
             browser.driver.browser_pid,
             browser.driver.service.process.pid,
+            page_state
         )
 
         # Add all PIDs of the browser and chromedriver to the queue
