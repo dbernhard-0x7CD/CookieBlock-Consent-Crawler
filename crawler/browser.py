@@ -243,9 +243,7 @@ class Browser(ABC):
             self.logger.info("Pressing escape")
             self._press_key(Keys.ESCAPE)
         except (
-            UnexpectedAlertPresentException,
             WebDriverException,
-            TimeoutException,
         ) as e:
             self.logger.exception(e)
             # Also continue
