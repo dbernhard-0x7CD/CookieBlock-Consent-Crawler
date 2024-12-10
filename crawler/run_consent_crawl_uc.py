@@ -527,9 +527,8 @@ def run_crawler() -> None:
     # We iterate over all processes and kill those that are too old.
     def check() -> None:
         file = open("watcher.log", "a+")
-        proc = psutil.Process()
 
-        logger.info("Starting watcher for process: %s", proc)
+        logger.info("Starting watcher")
 
         while True:
             current_time = datetime.now()
