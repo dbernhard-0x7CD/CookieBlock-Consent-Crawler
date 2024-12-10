@@ -963,7 +963,7 @@ class Chrome(CBConsentCrawlerBrowser):
 
         if not browser_pid is None:
             p = Process(browser_pid)
-            self.logger.info("Parent PID: %s", p.ppid)
+            self.logger.info("Parent PID: %s", p.ppid())
 
             i = 0
             while p.is_running():
@@ -994,12 +994,12 @@ class Chrome(CBConsentCrawlerBrowser):
                 self.logger.info("chromedriver PID: %s", chromedriver_pid)
 
                 try:
-                    self.logger.info("chromedriver PPID: %s", Process(chromedriver_pid).ppid)
+                    self.logger.info("chromedriver PPID: %s", Process(chromedriver_pid).ppid())
 
                     if isinstance(chromedriver_pid, int):
                         chromedriver = Process(chromedriver_pid)
 
-                        self.logger.info("Sending SIGKILL to chromedriver {}")
+                        self.logger.info("Sending SIGKILL to chromedriver")
                         chromedriver.kill()
 
                         self.logger.info("waiting")
