@@ -1,6 +1,8 @@
 
 ###############################################################################
 # This file is the docker-compose used for crawls.
+# Adapt the -n argument in the service 'crawler' command for more or less
+# parallelism.
 ###############################################################################
 
 services:
