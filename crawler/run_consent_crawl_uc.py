@@ -445,20 +445,16 @@ def run_crawler() -> None:
             finished_site_visits_query = select(ConsentCrawlResult.visit_id)
             ids = list(session.execute(finished_site_visits_query).scalars())
 
-            # print("done: ", ids)
-
             unfinished_visits = list(session.execute(select(SiteVisit).filter(SiteVisit.visit_id.notin_(ids))).scalars())
 
             if len(unfinished_visits) == 0:
                 logging.error("Crawl already finished")
                 return
-            # print(unfinished_visits)
 
             visits = unfinished_visits
             browser_id = unfinished_visits[0].browser_id
             crawls = list(session.execute(select(Crawl)).scalars())
 
-            # print(crawls)
             crawl = crawls[0]
             browser_params = json.loads(crawls[0].browser_params)
     else:
