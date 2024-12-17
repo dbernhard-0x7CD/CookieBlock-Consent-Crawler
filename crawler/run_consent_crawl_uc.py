@@ -659,6 +659,12 @@ def run_crawler() -> None:
                             file.write(visits[i].site_url)
                             file.write("\n")
                         logger.error(e)
+                    except Exception as e:
+                        logger.error("Error when crawling %s", visits[i])
+                        with open("./retry_list.txt", "a", encoding="utf-8") as file:
+                            file.write(visits[i].site_url)
+                            file.write("\n")
+                        logger.error(e)
             except StopIteration:
                 pass
 
