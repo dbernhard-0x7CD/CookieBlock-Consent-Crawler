@@ -961,7 +961,7 @@ class Chrome(CBConsentCrawlerBrowser):
 
         # Ensure chrome is no longer running before removing _temp_dir
 
-        if not browser_pid is None:
+        if browser_pid is not None:
             p = Process(browser_pid)
             self.logger.info("Parent PID: %s", p.ppid())
 
