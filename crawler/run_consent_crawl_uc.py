@@ -19,6 +19,7 @@ import threading
 import random
 import json
 import psutil
+from urllib.parse import urlparse
 
 from tqdm import tqdm
 from threading import Thread
@@ -77,6 +78,9 @@ def run_domain(
 ) -> Tuple[ConsentCrawlResult, List[ConsentData], List[Cookie]]:
     """ """
     url = visit.site_url
+
+    if urlparse(url).netloc == "":
+        raise RuntimeError(f"Invalid URL: {url}")
 
     visit_id = visit.visit_id
     crawl_logger = logging.getLogger(f"visit-{visit.visit_id}")
