@@ -1,6 +1,6 @@
 # Useful SQL Queries
 
-Select result of a crawl to a website. Includes how many cookies we gave consented to:
+# Select result of a crawl to a website. Includes how many cookies we gave consent to:
 ```SQL
 -- consent_data
 SELECT * FROM consent_crawl_results results
@@ -8,7 +8,7 @@ SELECT * FROM consent_crawl_results results
     order by site_rank
 ```
 
-Count number of crawl_states for a specified cmp_type:
+# Count number of crawl_states for a specified cmp_type:
 ```SQL
 SELECT ccr.crawl_state, count(*)
 FROM consent_crawl_results ccr
@@ -17,6 +17,14 @@ where ccr.cmp_type = 0 -- 0 is cookiebot; 1 is onetrust
 group by ccr.crawl_state
 ```
 
+# Get all URLs for Cookiebot and Onetrust from gathered CMP data
+```SQL
+SELECT site_url FROM site_visits sv
+    LEFT JOIN consent_crawl_results results ON sv.visit_id = results.visit_id
+    WHERE results.cmp_type IN (0, 1)
+```
+
+# Count the number of websites per cmp_type (0 is cookiebot; 1 is onetrust)
 ```SQL
 -- count amount of websites per cmp_type
 SELECT results.cmp_type, count(*) FROM consent_crawl_results results
