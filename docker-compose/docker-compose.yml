@@ -6,6 +6,7 @@
 # Create file 'list.txt' next to this file. This defines the URLs that will be crawled.
 # Currently only Cookiebot and Onetrust is supported.
 # Run: `docker compose up` in this files parent directory.
+# The trainingdata.json will be in ./output_trainingdata/
 ###############################################################################
 
 services:
