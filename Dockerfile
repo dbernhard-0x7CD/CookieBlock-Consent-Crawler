@@ -31,6 +31,7 @@ RUN apt-get clean
 # Copy needed files
 COPY install_uc.sh poetry.lock pyproject.toml README.md /crawler/
 COPY ./crawler/ /crawler/crawler/
+COPY ./database_processing/ /crawler/database_processing/
 
 WORKDIR /crawler/
 
