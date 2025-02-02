@@ -23,7 +23,7 @@ services:
                             --file ./consent_crawl_list.txt \\
                             --use-db ./collected_data/crawl.sqlite && \
               python /crawler/database_processing/extract_cookies_from_db.py ./collected_data/crawl.sqlite && \
-              cp ./training_data_output*.json ./output_trainingdata/ && \
+              cp ./training_data_output/*.json ./output_trainingdata/ && \
               ls -lah"
     stop_grace_period: 1m           # Leaves some time to stop the crawler
     stop_signal: SIGINT             # Same as Ctrl+C
