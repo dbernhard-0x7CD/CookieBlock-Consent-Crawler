@@ -7,7 +7,7 @@ url=""
 resume=false
 num_browsers=1
 batch_size=-1
-db_arg=""
+use_db=""
 profile_tar=""
 no_headless=false
 no_stdout=false
@@ -25,9 +25,9 @@ usage() {
   echo "  --launch-browser                Only launches the browser which allows modification of the current profile"
   echo "  -u, --url <url>                 Url to crawl once"
   echo "  --resume                        Resume crawl in given database."
-  echo "  -n, --num_browsers <num>, --num-browsers <num> Number of browsers to use in parallel (default: 1)"
-  echo "  --batch_size <size>, --batch-size <size> Number of websites to process in a batch (default: -1)"
-  echo "  -d, --use_db <db>, --use-db <db> Use specified database file to add rows to. Format: DATA_PATH/FILENAME.sqlite"
+  echo "  -n, --num-browsers <num>        Number of browsers to use in parallel (default: 1)"
+  echo "  --batch-size <size>             Number of websites to process in a batch (default: -1)"
+  echo "  -d, --use-db <db>               Use specified database file to add rows to. Format: DATA_PATH/FILENAME.sqlite"
   echo "  --profile_tar <tar>             Location of a tar file containing the browser profile"
   echo "  --no-headless                   Start the browser with GUI (headless disabled)"
   echo "  --no-stdout                     Do not print crawl results to stdout"
@@ -54,19 +54,19 @@ while [[ $# -gt 0 ]]; do
     --resume)
       resume=true
       ;;
-    -n|--num_browsers|--num-browsers)
+    -n|--num-browsers)
       num_browsers="$2"
       shift
       ;;
-    --batch_size|--batch-size)
+    --batch-size)
       batch_size="$2"
       shift
       ;;
-    -d|--use_db|--use-db)
+    -d|--use-db)
       use_db="$2"
       shift
       ;;
-    --profile_tar)
+    --profile-tar)
       profile_tar="$2"
       shift
       ;;
@@ -132,9 +132,9 @@ if [[ $batch_size -gt 0 ]]; then
     echo "Total URLs: $total_urls, Batch size: $batch_size, Number of batches: $num_batches"
 
     # If no DB argument is provided, generate a new DB name
-    if [[ -z $db_arg ]]; then
+    if [[ -z $use_db ]]; then
         timestamp=$(date +%Y%m%d_%H%M%S)
-        db_arg="./collected_data/crawl_data_${timestamp}.sqlite"
+        use_db="./collected_data/crawl_data_${timestamp}.sqlite"
     fi
 else
     num_batches=1
@@ -148,23 +148,23 @@ echo "URL: $url"
 echo "Resume: $resume"
 echo "Num Browsers: $num_browsers"
 echo "Batch Size: $batch_size"
-echo "Use DB: $db_arg"
+echo "Use DB: $use_db"
 echo "Profile Tar: $profile_tar"
 echo "No Headless: $no_headless"
 echo "No Stdout: $no_stdout"
 echo "Num Subpages: $num_subpages"
 echo "Timeout: $timeout"
 
-args_command="--num_browsers $num_browsers --batch-size $batch_size --use-db $db_arg --profile-tar $profile_tar --num-subpages $num_subpages --timeout $timeout"
+args_command="--num-browsers $num_browsers --batch-size $batch_size --use-db $use_db --profile-tar $profile_tar --num-subpages $num_subpages --timeout $timeout"
 if [[ $no_headless == true ]]; then
-    args_command+=" --no_headless"
+    args_command+=" --no-headless"
 fi
 if [[ $no_stdout == true ]]; then
-    args_command+=" --no_stdout"
+    args_command+=" --no-stdout"
 fi
 
 # Run the script in batches
-for ((i=1; i<=num_batches; i++)); do
+for ((local i=1; i<=num_batches; i++)); do
     echo "Running batch $i of $num_batches"
     if [[ $i -eq 1 ]]; then
         if [[ $url_file ]]; then

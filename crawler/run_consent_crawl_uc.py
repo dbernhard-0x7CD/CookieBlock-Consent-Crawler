@@ -317,7 +317,6 @@ def _parse_arguments() -> argparse.Namespace:
 
     parser.add_argument(
         "-n",
-        "--num_browsers",
         "--num-browsers",
         help="Number of browsers to use in parallel",
         dest="num_browsers",
@@ -326,7 +325,6 @@ def _parse_arguments() -> argparse.Namespace:
     )
 
     parser.add_argument(
-        "--batch_size",
         "--batch-size",
         help="Number of websites to process in a batch",
         dest="batch_size",
@@ -335,13 +333,12 @@ def _parse_arguments() -> argparse.Namespace:
     )
     parser.add_argument(
         "-d",
-        "--use_db",
         "--use-db",
         help="Use specified database file to add rows to. Format: DATA_PATH/FILENAME.sqlite",
         dest="use_db",
     )
     parser.add_argument(
-        "--profile_tar", help="Location of a tar file containing the browser profile"
+        "--profile-tar", help="Location of a tar file containing the browser profile"
     )
     parser.add_argument(
         "--no-headless",
