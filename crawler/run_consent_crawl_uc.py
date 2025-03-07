@@ -26,6 +26,7 @@ from psutil import TimeoutExpired
 from pebble import ProcessPool
 from selenium.common.exceptions import WebDriverException
 from sqlalchemy import select
+from sqlalchemy.orm import joinedload
 from hyperlink import URL
 import urllib3
 
@@ -325,6 +326,14 @@ def _parse_arguments() -> argparse.Namespace:
     )
 
     parser.add_argument(
+        "--offset",
+        help="From which website to start the crawl",
+        dest="offset",
+        default=-1,
+        type=int,
+    )
+
+    parser.add_argument(
         "--batch-size",
         help="Number of websites to process in a batch",
         dest="batch_size",
@@ -378,8 +387,8 @@ def _args_check(args: argparse.Namespace) -> None:
     # simple checks
     if args.file and (not os.path.exists(args.file)):
         raise ArgumentsException(f"File at {args.file} does not exist")
-    if args.resume and not args.use_db:
-        raise ArgumentsException("--use-db is required when using --resume")
+    if args.resume and (not args.use_db or not args.offset >= 0):
+        raise ArgumentsException("--use-db and --offset are required when using --resume")
     if args.no_headless and args.launch_browser:
         raise ArgumentsException("--launch-browser cannot be combined with --no_headless")
     if args.num_browsers and args.num_browsers < 1:
@@ -547,23 +556,22 @@ def run_crawler(logger: Logger) -> None:
 
         visits = []
         with SessionLocal.begin() as session:
-            finished_site_visits_query = select(ConsentCrawlResult.visit_id)
-            ids = list(session.execute(finished_site_visits_query).scalars())
+            unfinished_visits_query = select(SiteVisit).order_by(SiteVisit.visit_id)
 
-            unfinished_visits = list(
-                session.execute(
-                    select(SiteVisit).filter(SiteVisit.visit_id.notin_(ids))
-                ).scalars()
+            if args.offset >= 0:
+                unfinished_visits_query = unfinished_visits_query.offset(args.offset)
+
+            if args.batch_size > 0:
+                unfinished_visits_query = unfinished_visits_query.limit(args.batch_size)
+
+            visits = list(
+                session.execute(unfinished_visits_query).scalars()
             )
 
-            if len(unfinished_visits) == 0:
+            if len(visits) == 0:
                 logging.error("Crawl already finished")
                 return
-            if args.batch_size > 0:
-                visits = unfinished_visits[: args.batch_size]
-            else:
-                visits = unfinished_visits
-            browser_id = unfinished_visits[0].browser_id
+            browser_id = visits[0].browser_id
             crawls = list(session.execute(select(Crawl)).scalars())
 
             crawl = crawls[0]

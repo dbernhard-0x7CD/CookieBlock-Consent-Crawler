@@ -175,8 +175,9 @@ for ((i=1; i<=num_batches; i++)); do
             python ./crawler/run_consent_crawl_uc.py $args_command --url $url
         fi
     else
-        echo "python ./crawler/run_consent_crawl_uc.py $args_command --resume"
-        python ./crawler/run_consent_crawl_uc.py $args_command --resume
+        offset=$(( (i-1) * batch_size ))
+        echo "python ./crawler/run_consent_crawl_uc.py $args_command --resume --offset $offset"
+        python ./crawler/run_consent_crawl_uc.py $args_command --resume --offset $offset
     fi
 
     exit_code=$?
