@@ -1,5 +1,117 @@
 #!/bin/bash
 
+# Default values
+url_file=""
+launch_browser=false
+url=""
+resume=false
+num_browsers=1
+batch_size=-1
+db_arg=""
+profile_tar=""
+no_headless=false
+no_stdout=false
+num_subpages=10
+timeout=600
+
+# Print all arguments
+echo "Arguments: $@"
+
+# Function to display usage and exit
+usage() {
+  echo "Usage: $0 [OPTIONS]"
+  echo "Options:"
+  echo "  -f, --file <file>               Path to file containing one URL per line"
+  echo "  --launch-browser                Only launches the browser which allows modification of the current profile"
+  echo "  -u, --url <url>                 Url to crawl once"
+  echo "  --resume                        Resume crawl in given database."
+  echo "  -n, --num_browsers <num>, --num-browsers <num> Number of browsers to use in parallel (default: 1)"
+  echo "  --batch_size <size>, --batch-size <size> Number of websites to process in a batch (default: -1)"
+  echo "  -d, --use_db <db>, --use-db <db> Use specified database file to add rows to. Format: DATA_PATH/FILENAME.sqlite"
+  echo "  --profile_tar <tar>             Location of a tar file containing the browser profile"
+  echo "  --no-headless                   Start the browser with GUI (headless disabled)"
+  echo "  --no-stdout                     Do not print crawl results to stdout"
+  echo "  --num-subpages <num>            Amount of links to follow when visiting a domain (default: 10)"
+  echo "  --timeout <seconds>             Amount of seconds to spend on one website (default: 600)"
+  exit 1
+}
+
+# Parse command-line arguments
+while [[ $# -gt 0 ]]; do
+  key="$1"
+  case $key in
+    -f|--file)
+      url_file="$2"
+      shift
+      ;;
+    --launch-browser)
+      launch_browser=true
+      ;;
+    -u|--url)
+      url="$2"
+      shift
+      ;;
+    --resume)
+      resume=true
+      ;;
+    -n|--num_browsers|--num-browsers)
+      num_browsers="$2"
+      shift
+      ;;
+    --batch_size|--batch-size)
+      batch_size="$2"
+      shift
+      ;;
+    -d|--use_db|--use-db)
+      use_db="$2"
+      shift
+      ;;
+    --profile_tar)
+      profile_tar="$2"
+      shift
+      ;;
+    --no-headless)
+      no_headless=true
+      ;;
+    --no-stdout)
+      no_stdout=true
+      ;;
+    --num-subpages)
+      num_subpages="$2"
+      shift
+      ;;
+    --timeout)
+      timeout="$2"
+      shift
+      ;;
+    -h|--help)
+      usage
+      ;;
+    *)
+      usage
+      ;;
+  esac
+  shift
+done
+
+# Mutually exclusive group check
+if [[ -n "$url_file" && ($launch_browser == true || -n "$url" || $resume == true) ]]; then
+  echo "Error: -f/--file is mutually exclusive with --launch-browser, -u/--url, and --resume."
+  usage
+elif [[ $launch_browser == true && (-n "$url_file" || -n "$url" || $resume == true) ]]; then
+  echo "Error: --launch-browser is mutually exclusive with -f/--file, -u/--url, and --resume."
+  usage
+elif [[ -n "$url" && (-n "$url_file" || $launch_browser == true || $resume == true) ]]; then
+  echo "Error: -u/--url is mutually exclusive with -f/--file, --launch-browser, and --resume."
+  usage
+elif [[ $resume == true && (-n "$url_file" || $launch_browser == true || -n "$url") ]]; then
+  echo "Error: --resume is mutually exclusive with -f/--file, --launch-browser, and -u/--url."
+  usage
+elif [[ -z "$url_file" && $launch_browser == false && -z "$url" && $resume == false ]]; then
+  echo "Error: One of -f/--file, --launch-browser, -u/--url, or --resume is required."
+  usage
+fi
+
 # Function to kill all chrome processes
 kill_chrome_processes() {
     pkill -f chrome
@@ -9,28 +121,8 @@ kill_chrome_processes() {
     echo "Number of zombie chrome processes: $zombie_count"
 }
 
-# Print all arguments
-echo "Arguments: $@"
-
-# Check if --batch-size argument is provided
-batch_size=0
-for arg in "$@"; do
-    if [[ $arg == --batch-size=* || $arg == --batch_size=* ]]; then
-        batch_size=${arg#*=}
-        break
-    fi
-done
-
 # If batch-size is provided, compute number of batches
 if [[ $batch_size -gt 0 ]]; then
-    url_file=""
-    for arg in "$@"; do
-        if [[ $arg == -f=* || $arg == --file=* ]]; then
-            url_file=${arg#*=}
-            break
-        fi
-    done
-
     if [[ -z $url_file ]]; then
         echo "Error: URL file not specified. Use -f or --file to specify the file."
         exit 1
@@ -39,37 +131,38 @@ if [[ $batch_size -gt 0 ]]; then
     num_batches=$(( (total_urls + batch_size - 1) / batch_size ))
     echo "Total URLs: $total_urls, Batch size: $batch_size, Number of batches: $num_batches"
 
-    # And check if -d, --use_db, or --use-db argument is provided
-    db_arg=""
-    for arg in "$@"; do
-        if [[ $arg == -d=* || $arg == --use_db=* || $arg == --use-db=* ]]; then
-            db_arg=$arg
-            break
-        fi
-    done
-
     # If no DB argument is provided, generate a new DB name
     if [[ -z $db_arg ]]; then
         timestamp=$(date +%Y%m%d_%H%M%S)
-        db_name="./collected_data/crawl_data_${timestamp}.sqlite"
-        db_arg="--use_db=$db_name"
-        args=("$@" "$db_arg")
-        set -- "${args[@]}"
+        db_arg="./collected_data/crawl_data_${timestamp}.sqlite"
     fi
 else
     num_batches=1
 fi
 
 # Print updated arguments
-echo "Updated arguments: $@"
+# Example usage of parsed arguments
+echo "File: $url_file"
+echo "Launch Browser: $launch_browser"
+echo "URL: $url"
+echo "Resume: $resume"
+echo "Num Browsers: $num_browsers"
+echo "Batch Size: $batch_size"
+echo "Use DB: $db_arg"
+echo "Profile Tar: $profile_tar"
+echo "No Headless: $no_headless"
+echo "No Stdout: $no_stdout"
+echo "Num Subpages: $num_subpages"
+echo "Timeout: $timeout"
+echo "--file "$url_file" --num_browsers $num_browsers --batch_size $batch_size --use_db $db_arg --profile_tar $profile_tar --no_headless $no_headless --no_stdout $no_stdout --num_subpages $num_subpages --timeout $timeout"
 
 # Run the script in batches
 for ((i=1; i<=num_batches; i++)); do
     echo "Running batch $i of $num_batches"
     if [[ $i -eq 1 ]]; then
-        python ./crawler/run_consent_crawl_uc.py "$@"
+        python ./crawler/run_consent_crawl_uc.py --file "$url_file" --num_browsers $num_browsers --batch_size $batch_size --use_db $db_arg --profile_tar $profile_tar --no_headless $no_headless --no_stdout $no_stdout --num_subpages $num_subpages --timeout $timeout
     else
-        python ./crawler/run_consent_crawl_uc.py "$@" --resume
+        python ./crawler/run_consent_crawl_uc.py --file "$url_file" --num_browsers $num_browsers --batch_size $batch_size --use_db $db_arg --profile_tar $profile_tar --no_headless $no_headless --no_stdout $no_stdout --num_subpages $num_subpages --timeout $timeout --resume
     fi
 
     exit_code=$?
