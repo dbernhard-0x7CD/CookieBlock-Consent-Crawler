@@ -86,9 +86,6 @@ class CookiebotCMP(AbstractCMP):
             1. Resulting crawl state.
             2. Error report, or number of extracted cookies if successful.
         """
-        assert webdriver.browser_id
-
-        browser_id = webdriver.browser_id
 
         # try to retrieve cookiebot ID required to access cc.js
         result = self._try_retrieve_cbid_all_variants(webdriver)
@@ -104,12 +101,12 @@ class CookiebotCMP(AbstractCMP):
             "COOKIEBOT: Cookiebot UUID = %s, TLD = %s (browser_id: %s)",
             cbid,
             tld,
-            browser_id,
+            self.browser_id,
         )
 
         # retrieve cc.js file from cookiebot cdn domain using the requests library
         referer = self._try_find_correct_referer(
-            webdriver.driver.page_source, browser_id, cbid, tld, url
+            webdriver.driver.page_source, cbid, tld, url
         )
 
         cc_url = f"https://consent.cookiebot.{tld}/{cbid}/cc.js?referer={referer}"
@@ -120,7 +117,7 @@ class CookiebotCMP(AbstractCMP):
 
         if state != PageState.OK or response is None:
             self.logger.error(
-                f"COOKIEBOT: Failed to retrieve cc.js for {cc_url} -- Details: response: {response}; state: {state} (browser_id, {browser_id})"
+                f"COOKIEBOT: Failed to retrieve cc.js for {cc_url} -- Details: response: {response}; state: {state} (browser_id, {self.browser_id})"
             )
             return CrawlState.LIBRARY_ERROR, f"PageState of {cc_url} is {state}", []
 
@@ -129,21 +126,21 @@ class CookiebotCMP(AbstractCMP):
 
         if "CookieConsent.setOutOfRegion" in js_contents:
             msg = 'COOKIEBOT: Received an out-of-region response from %s' % cc_url
-            self.logger.error("%s (browser_id %s)", msg, browser_id)
+            self.logger.error("%s (browser_id %s)", msg, self.browser_id)
             return CrawlState.REGION_BLOCK, msg, []
         elif re.search(
             "cookiedomainwarning='Error: .* is not a valid domain.", js_contents
         ):
             msg = f"COOKIEBOT: Unrecognized referer: {referer}."
-            self.logger.error("%s (browser_id %s)", msg, browser_id)
+            self.logger.error("%s (browser_id %s)", msg, self.browser_id)
             return CrawlState.LIBRARY_ERROR, msg, []
         elif len(js_contents.strip()) == 0:
             msg = f'COOKIEBOT: Empty response when trying to retrieve "{cc_url}".'
-            self.logger.error("%s (browser_id %s)", msg, browser_id)
+            self.logger.error("%s (browser_id %s)", msg, self.browser_id)
             return CrawlState.MALFORM_RESP, msg, []
 
         self.logger.info(
-            f'COOKIEBOT: Successfully accessed "https://consent.cookiebot.{tld}/{cbid}/cc.js" (browser_id: {browser_id})'
+            f'COOKIEBOT: Successfully accessed "https://consent.cookiebot.{tld}/{cbid}/cc.js" (browser_id: {self.browser_id})'
         )
 
         # finally, if we arrived here we (most likely) found our cookie category data
@@ -190,22 +187,22 @@ class CookiebotCMP(AbstractCMP):
         # to be violated, this try-except block catches it
         except Exception as ex:
             msg = f"COOKIEBOT: Failed to extract cookie data from {cc_url}: {type(ex)} {ex}"
-            self.logger.error("%s (browser_id %s", msg, browser_id)
+            self.logger.error("%s (browser_id %s", msg, self.browser_id)
             return CrawlState.MALFORM_RESP, msg, []
 
         if cookie_count == 0:
             msg = f"COOKIEBOT: No cookies found in {cc_url}"
-            self.logger.error("%s (browser_id %s", msg, browser_id)
+            self.logger.error("%s (browser_id %s", msg, self.browser_id)
             return CrawlState.NO_COOKIES, msg, []
 
         self.logger.info(
-            f"COOKIEBOT: Extracted {cookie_count} cookie entries. (browser_id {browser_id})"
+            f"COOKIEBOT: Extracted {cookie_count} cookie entries. (browser_id {self.browser_id})"
         )
 
         return CrawlState.SUCCESS, f"Extracted {cookie_count} cookie entries.", data
 
     def _exists_script_tag_with_cbid(
-        self, driver: WebDriver, browser_id: int
+        self, driver: WebDriver
     ) -> Union[bool, WebElement]:
         """
         Variant 1 Pattern: Utility class to check if there exists a script
@@ -225,7 +222,7 @@ class CookiebotCMP(AbstractCMP):
         return False
 
     def _find_cbid_script_tag(
-        self, driver: WebDriver, browser_id: int, timeout: int = 5
+        self, driver: WebDriver, timeout: int = 5
     ) -> Optional[Tuple[str, str]]:
         """
         Wait for the Cookie Bot ID to be found, and return it if this occurs.
@@ -239,7 +236,7 @@ class CookiebotCMP(AbstractCMP):
                 WebElement,
                 wait.until(
                     lambda x: self._exists_script_tag_with_cbid(
-                        driver=x, browser_id=browser_id
+                        driver=x
                     )
                 ),
             )
@@ -268,16 +265,13 @@ class CookiebotCMP(AbstractCMP):
         :param webdriver: Selenium webdriver
         :return CBID, or None if not found.
         """
-        assert browser.browser_id
-
-        browser_id = browser.browser_id
 
         # Try to find the Cookie Bot ID inside of a script tag, using the cbid attribute.
         maybe_cbid = browser.execute_in_IFrames(self._find_cbid_script_tag, timeout=3)
 
         if maybe_cbid:
             self.logger.info(
-                f"COOKIEBOT: Found Cookiebot ID using Variant 1, tld: {maybe_cbid[1]} (browser_id {browser_id})"
+                f"COOKIEBOT: Found Cookiebot ID using Variant 1, tld: {maybe_cbid[1]} (browser_id {self.browser_id})"
             )
 
             return maybe_cbid
@@ -291,16 +285,16 @@ class CookiebotCMP(AbstractCMP):
             if variant_2:
                 self.logger.info(
                     "COOKIEBOT: Found Cookiebot ID using Variant 2 (browser_id %s)",
-                    browser_id,
+                    self.browser_id,
                 )
 
                 return variant_2.group(2), variant_2.group(1)
             elif variant_3:
                 self.logger.info(
                     "COOKIEBOT: Found Cookiebot ID using Variant 3 (browser_id %s)",
-                    browser_id,
+                    self.browser_id,
                 )
-                
+
                 if len(variant_3.groups()) == 3:
                     return variant_3.group(2), variant_3.group(1)
                 else:
@@ -308,12 +302,12 @@ class CookiebotCMP(AbstractCMP):
             else:
                 self.logger.error(
                     "COOKIEBOT: Could not find the Cookiebot ID (browser_id: %s)",
-                    browser_id,
+                    self.browser_id,
                 )
                 return None
 
     def _try_find_correct_referer(
-        self, source: str, browser_id: Optional[int], cbid: str, tld: str, fallback: str
+        self, source: str, cbid: str, tld: str, fallback: str
     ) -> str:
         """
         The referer required to access the Cookiebot data may differ from the site the request
@@ -332,12 +326,12 @@ class CookiebotCMP(AbstractCMP):
         if m:
             new_referer = m.group(2)
             self.logger.info(
-                "COOKIEBOT: Found referer: %s (browser_id %s)", new_referer, browser_id
+                "COOKIEBOT: Found referer: %s (browser_id %s)", new_referer, self.browser_id
             )
             return new_referer
         else:
             self.logger.info(
                 "COOKIEBOT: No referer specified, using default. (browser_id: %s)",
-                browser_id,
+                self.browser_id,
             )
             return fallback

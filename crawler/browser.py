@@ -451,8 +451,8 @@ class CBConsentCrawlerBrowser(Browser):
 
         results: Dict[CrawlerType, Any] = dict()
 
-        cookiebot_cmp = CookiebotCMP(self.logger)
-        onetrust_cmp = OnetrustCMP(self.logger)
+        cookiebot_cmp = CookiebotCMP(self.logger, self.browser_id)
+        onetrust_cmp = OnetrustCMP(self.logger, self.browser_id)
 
         # Presence check before full crawl process
         presence_check_methods = {
@@ -516,7 +516,7 @@ class CBConsentCrawlerBrowser(Browser):
                 "This instance cannot be used to crawl as 'crawl' was not set when initializing this browser"
             )
 
-        result = command(self.driver, self.browser_id, timeout)
+        result = command(self.driver, timeout)
         if result:
             return result
         else:
@@ -527,7 +527,7 @@ class CBConsentCrawlerBrowser(Browser):
                 try:
                     self.driver.switch_to.default_content()
                     self.driver.switch_to.frame(iframe)
-                    result = command(self.driver, self.browser_id, timeout=0)
+                    result = command(self.driver, timeout=0)
                     if result:
                         self.driver.switch_to.default_content()
                         return result

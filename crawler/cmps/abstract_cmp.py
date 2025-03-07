@@ -15,13 +15,14 @@ if TYPE_CHECKING:
 
 class AbstractCMP(ABC):
 
-    def __init__(self, logger: Logger, name: str):
+    def __init__(self, logger: Logger, name: str, browser_id: int):
         """
         Abstracts a Content Management Platform detector and scraper.
-        
+
         """
         self.logger = logger
         self.name = name
+        self.browser_id = browser_id
 
     @abstractmethod
     def check_presence(self, webdriver: WebDriver) -> bool:
