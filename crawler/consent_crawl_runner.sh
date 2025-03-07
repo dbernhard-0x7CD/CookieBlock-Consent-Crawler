@@ -65,9 +65,9 @@ echo "Updated arguments: $@"
 for ((i=1; i<=num_batches; i++)); do
     echo "Running batch $i of $num_batches"
     if [[ $i -eq 1 ]]; then
-        python run_consent_crawl_uc.py "$@"
+        python ./crawler/run_consent_crawl_uc.py "$@"
     else
-        python run_consent_crawl_uc.py "$@" --resume
+        python ./crawler/run_consent_crawl_uc.py "$@" --resume
     fi
 
     exit_code=$?
