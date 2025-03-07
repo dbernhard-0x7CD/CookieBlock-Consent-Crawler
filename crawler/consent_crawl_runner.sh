@@ -168,8 +168,8 @@ for ((i=1; i<=num_batches; i++)); do
     echo "Running batch $i of $num_batches"
     if [[ $i -eq 1 ]]; then
         if [[ $url_file ]]; then
-            echo "python ./crawler/run_consent_crawl_uc.py $args_command  --url_file $url_file"
-            python ./crawler/run_consent_crawl_uc.py $args_command --url_file $url_file
+            echo "python ./crawler/run_consent_crawl_uc.py $args_command  --file $url_file"
+            python ./crawler/run_consent_crawl_uc.py $args_command --file $url_file
         else
             echo "python ./crawler/run_consent_crawl_uc.py $args_command --url $url"
             python ./crawler/run_consent_crawl_uc.py $args_command --url $url
