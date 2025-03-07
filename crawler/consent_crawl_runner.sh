@@ -37,6 +37,7 @@ if [[ $batch_size -gt 0 ]]; then
     fi
     total_urls=$(wc -l < "$url_file")
     num_batches=$(( (total_urls + batch_size - 1) / batch_size ))
+    echo "Total URLs: $total_urls, Batch size: $batch_size, Number of batches: $num_batches"
 
     # And check if -d, --use_db, or --use-db argument is provided
     db_arg=""
@@ -52,7 +53,8 @@ if [[ $batch_size -gt 0 ]]; then
         timestamp=$(date +%Y%m%d_%H%M%S)
         db_name="./collected_data/crawl_data_${timestamp}.sqlite"
         db_arg="--use_db=$db_name"
-        set -- "$@" "$db_arg"
+        args=("$@" "$db_arg")
+        set -- "${args[@]}"
     fi
 else
     num_batches=1
