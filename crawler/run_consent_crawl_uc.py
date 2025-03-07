@@ -6,32 +6,26 @@ import sys
 import re
 from itertools import repeat
 from logging import Logger
-from typing import List, Optional, Tuple, Dict, cast
+from typing import List, Tuple, Dict, cast
 import logging
-from datetime import datetime, timezone, timedelta
+from datetime import datetime
 from pathlib import Path
 from importlib.metadata import version
 import time
 import traceback
 import tarfile
 import shutil
-import threading
 import random
 import json
 import psutil
 from urllib.parse import urlparse
 
 from tqdm import tqdm
-from threading import Thread
-from multiprocessing import Queue, Process
-from psutil import TimeoutExpired, NoSuchProcess
-from multiprocessing.managers import ListProxy
-from pebble import ProcessPool, ThreadPool
-from selenium.common.exceptions import TimeoutException, WebDriverException
+from multiprocessing import Process
+from psutil import TimeoutExpired
+from pebble import ProcessPool
+from selenium.common.exceptions import WebDriverException
 from sqlalchemy import select
-
-import multiprocessing
-
 from hyperlink import URL
 import urllib3
 
@@ -42,7 +36,6 @@ from crawler.database import (
     SessionLocal,
     start_task,
     Crawl,
-    start_crawl,
     register_browser_config,
     ConsentData,
     ConsentCrawlResult,
@@ -56,7 +49,10 @@ class CrawlerException(Exception):
     """
     Indicates that the crawler has some unrecoverable error and should stop crawling.
     """
-
+class ArgumentsException(Exception):
+    """
+    Indicates that the configuration is incalid and therefore we cannot start the crawl.
+    """
 
 log_dir = Path("./logs")
 log_dir.mkdir(exist_ok=True)
@@ -123,7 +119,7 @@ def run_domain(
 
         page_state = browser.load_page(u)
 
-        if page_state in [ PageState.HTTP_ERROR, PageState.WRONG_URL ]:
+        if page_state in [PageState.HTTP_ERROR, PageState.WRONG_URL]:
             crawl_logger.warning("Unable to connect to %s due to: %s", u, page_state)
             u = URL.from_text(url.replace("https://", "http://"))
 
@@ -132,7 +128,7 @@ def run_domain(
             u,
             browser.driver.browser_pid,
             browser.driver.service.process.pid,
-            page_state
+            page_state,
         )
 
         # Add all PIDs of the browser and chromedriver to the queue
@@ -228,12 +224,10 @@ def run_domain_with_timeout(
         urllib3.exceptions.MaxRetryError,
         TimeoutExpired,
     ) as e:
-        logger.warning(
-            "Website %s had an exception (%s)", visit.site_url, type(e)
-        )
+        logger.warning("Website %s had an exception (%s)", visit.site_url, type(e))
         # This except block should store the websites for later to retry them
 
-        with open("./retry_list.txt", "a", encoding="utf-8") as file:
+        with open("./collected_data/retry_list.txt", "a", encoding="utf-8") as file:
             file.write(url)
             file.write("\n")
 
@@ -248,7 +242,7 @@ def run_domain_with_timeout(
             [],
             [],
         )
-    except Exception as e: # Currently unknown exceptions
+    except Exception as e:  # Currently unknown exceptions
         logger.error(
             "visit_id: %s Failure when crawling %s: %s",
             visit.visit_id,
@@ -269,10 +263,7 @@ def run_domain_with_timeout(
         )
 
 
-def run_crawler() -> None:
-    """
-    This file contains all the main functionality and the entry point.
-    """
+def _setup_logger():
     logger = logging.getLogger("cookieblock-consent-crawler")
     logger.propagate = False
 
@@ -293,14 +284,16 @@ def run_crawler() -> None:
 
     # Has some WARNING messages that the pool is full
     logging.getLogger("urllib3").setLevel(logging.ERROR)
+    return logger
 
-    # Clear existing profile
-    if os.path.exists(chrome_profile_path):
-        shutil.rmtree(chrome_profile_path)
 
-    os.makedirs(chrome_profile_path, exist_ok=True)
+def _parse_arguments() -> argparse.Namespace:
+    """
+    Parse the input arguments.
 
-    # Parse the input arguments
+    Returns:
+        argparse.Namespace: The parsed arguments
+    """
     parser = argparse.ArgumentParser()
 
     run_group = parser.add_mutually_exclusive_group(required=True)
@@ -312,9 +305,17 @@ def run_crawler() -> None:
         "--launch-browser",
         help="Only launches the browser which allows modification of the current profile",
         action="store_true",
+        default=False,
+        type=bool,
     )
     run_group.add_argument("-u", "--url", help="Url to crawl once")
-    run_group.add_argument("--resume", help="Resume crawl in given database.", action="store_true")
+    run_group.add_argument(
+        "--resume",
+        help="Resume crawl in given database.",
+        action="store_true",
+        default=False,
+        type=bool,
+    )
 
     parser.add_argument(
         "-n",
@@ -322,6 +323,8 @@ def run_crawler() -> None:
         "--num-browsers",
         help="Number of browsers to use in parallel",
         dest="num_browsers",
+        default=1,
+        type=int,
     )
     parser.add_argument(
         "-d",
@@ -337,12 +340,15 @@ def run_crawler() -> None:
         "--no-headless",
         help="Start the browser with GUI (headless disabled)",
         action="store_true",
+        default=False,
+        type=bool,
     )
     parser.add_argument(
         "--no-stdout",
         help="Do not print crawl results to stdout",
         action="store_true",
         default=False,
+        type=bool,
     )
     parser.add_argument(
         "--num-subpages",
@@ -357,20 +363,49 @@ def run_crawler() -> None:
         type=int,
     )
 
-    args = parser.parse_args()
+    return parser.parse_args()
 
-    file_crawllist = args.file
 
-    no_stdout: bool = args.no_stdout
+def _args_check(args: argparse.Namespace) -> None:
+    """
+    Check the input arguments.
 
-    if file_crawllist and (not os.path.exists(file_crawllist)):
-        raise CrawlerException(f"File at {file_crawllist} does not exist")
+    Args:
+        args (argparse.Namespace): The parsed arguments
+    """
+    # simple checks
+    if args.file and args.url:
+        raise ArgumentsException("Cannot use both --file and --url")
+    if args.file and (not os.path.exists(args.file)):
+        raise ArgumentsException(f"File at {args.file} does not exist")
+    if args.resume and not args.use_db:
+        raise ArgumentsException("--use-db is required when using --resume")
+    if args.no_headless and args.launch_browser:
+        raise ArgumentsException("--launch-browser cannot be combined with --no_headless")
+    if not args.file and not args.url:
+        raise ArgumentsException("Either --file or --url is required")
+    if args.num_browsers and args.num_browsers < 1:
+        raise ArgumentsException("Number of browsers must be at least 1")
+    if args.num_subpages and args.num_subpages < 0:
+        raise ArgumentsException("Number of subpages must be at least 0")
+    if args.timeout and args.timeout < 0:
+        raise ArgumentsException("Timeout must be at least 0")
 
-    if args.num_browsers:
-        num_browsers = int(args.num_browsers)
+    # checks with preparations
+    if args.profile_tar:
+        if not os.path.exists(args.profile_tar):
+            raise ArgumentsException(f"File at {args.profile_tar} does not exist")
+        with tarfile.open(args.profile_tar, errorlevel=0) as tfile:
+            tfile.extractall(".", filter="data")
     else:
-        num_browsers = 1
+        # Simply use existing
+        pass
 
+
+def _database_setup(logger: Logger, args: argparse.Namespace) -> Tuple[str, str]:
+    """
+    Setup the database.
+    """
     is_sqlite = True
     if args.use_db:
         if str(args.use_db).startswith("postgresql://"):
@@ -388,18 +423,107 @@ def run_crawler() -> None:
         data_path = "./collected_data"
         database_file = f"crawl_data_{now}.sqlite"
 
-    headless = True
-    if args.no_headless:
-        headless = False
+    if is_sqlite:
+        logger.info("Using data_path %s and file %s", data_path, database_file)
 
-    if args.profile_tar:
-        if not os.path.exists(args.profile_tar):
-            raise CrawlerException(f"File at {args.profile_tar} does not exist")
-        with tarfile.open(args.profile_tar, errorlevel=0) as tfile:
-            tfile.extractall(".", filter="data")
+        os.makedirs(data_path, exist_ok=True)
+
+        # Connect to sqlite
+        db_file = Path(data_path) / database_file
+        create = not db_file.exists()
+
+        initialize_base_db(
+            db_url="sqlite:///" + str(db_file),
+            create=create,
+            alembic_root_dir=Path(__file__).parent,
+            pool_size=int(4 + args.num_browsers * 1.5),
+        )
     else:
-        # Simply use existing
-        pass
+        initialize_base_db(
+            db_url=args.use_db,
+            create=True,
+            alembic_root_dir=Path(__file__).parent,
+            pool_size=int(4 + args.num_browsers * 1.5),
+        )
+
+    logger.info("Finished database setup")
+    return data_path, database_file
+
+
+def _check(logger: Logger, args: argparse.Namespace) -> None:
+    """
+    Checks all running chrome processes.
+    Some processes that are spawned by this process launch the chromedriver and chrome processes.
+    If these are killed the children of them (chrome/chromedriver) are adopted by the container.
+    We iterate over all processes and kill those that are too old.
+    """
+    file = open("watcher.log", "a+")
+
+    logger.info("Starting watcher")
+
+    while True:
+        current_time = datetime.now()
+
+        print("Checking at ", current_time, file=file)
+
+        # Kill browser processes that are older than X minutes
+        # Iterate over all processes as each pebble worker
+        # is its own process, and if he dies the chrome/chromedriver child
+        # process is adopted by the docker container init process.
+        proc: psutil.Process
+
+        for proc in psutil.process_iter():
+            try:
+                if "chrome" not in proc.name():
+                    continue
+
+                # Kill if older than four times the timeout
+                if (
+                    proc.create_time()
+                    and (current_time.timestamp() - proc.create_time())
+                    >= args.timeout * 4
+                ):
+                    print("Found too old process: ", proc, file=file)
+
+                    if proc.status() == psutil.STATUS_ZOMBIE:
+                        try:
+                            # Attempt to reap the zombie by waiting for it
+                            os.waitpid(proc.pid, os.WNOHANG)
+                            print(f"Reaped zombie process: {proc.pid}")
+                        except ChildProcessError as e:
+                            print(e)
+                            pass  # Zombie process might be gone by now
+                    else:
+                        file.flush()
+                        proc.kill()
+                        proc.wait(timeout=10)
+                        print("Killed", file=file)
+                else:
+                    print("Process without starttime found: ", proc, file=file)
+                file.flush()
+            except Exception as e:
+                print(e, file=file)
+                pass
+
+        file.flush()
+        time.sleep(10)
+
+        print(file=file)
+        file.flush()
+
+
+def run_crawler(logger: Logger) -> None:
+    """
+    This file contains all the main functionality and the entry point.
+    """
+    # Clear existing profile
+    if os.path.exists(chrome_profile_path):
+        shutil.rmtree(chrome_profile_path)
+
+    os.makedirs(chrome_profile_path, exist_ok=True)
+
+    args = _parse_arguments()
+    _args_check(args)
 
     if args.launch_browser:
         with Chrome(
@@ -416,50 +540,23 @@ def run_crawler() -> None:
             time.sleep(60 * 60)  # wait one hour
         return
 
-    if is_sqlite:
-        logger.info("Using data_path %s and file %s", data_path, database_file)
-
-        os.makedirs(data_path, exist_ok=True)
-
-        # Connect to sqlite
-        db_file = Path(data_path) / database_file
-        create = not db_file.exists()
-
-        initialize_base_db(
-            db_url="sqlite:///" + str(db_file),
-            create=create,
-            alembic_root_dir=Path(__file__).parent,
-            pool_size=int(4 + num_browsers * 1.5),
-        )
-    else:
-        initialize_base_db(
-            db_url=args.use_db,
-            create=True,
-            alembic_root_dir=Path(__file__).parent,
-            pool_size=int(4 + num_browsers * 1.5),
-        )
-
-    logger.info("Finished database setup")
+    data_path, database_file = _database_setup(logger, args)
 
     visits: List[SiteVisit] = []
 
-    # Start
-    num_subpages = int(args.num_subpages)
-    timeout: int = args.timeout
-
     if args.resume:
-        if not args.use_db:
-            logging.error("--use-db needed!")
-            return
         logger.info("Resuming crawl")
 
         visits = []
         with SessionLocal.begin() as session:
-
             finished_site_visits_query = select(ConsentCrawlResult.visit_id)
             ids = list(session.execute(finished_site_visits_query).scalars())
 
-            unfinished_visits = list(session.execute(select(SiteVisit).filter(SiteVisit.visit_id.notin_(ids))).scalars())
+            unfinished_visits = list(
+                session.execute(
+                    select(SiteVisit).filter(SiteVisit.visit_id.notin_(ids))
+                ).scalars()
+            )
 
             if len(unfinished_visits) == 0:
                 logging.error("Crawl already finished")
@@ -473,8 +570,8 @@ def run_crawler() -> None:
             browser_params = json.loads(crawls[0].browser_params)
     else:
         # Load new sites
-        if file_crawllist:
-            with open(file_crawllist, "r", encoding="utf-8") as fo:
+        if args.file:
+            with open(args.file, "r", encoding="utf-8") as fo:
                 urls = [x.strip() for x in fo.readlines()]
                 urls = list(filter(lambda x: x.strip() != "", urls))
         else:
@@ -485,7 +582,7 @@ def run_crawler() -> None:
             "data_directory": str(data_path),
             "log_directory": str(log_dir),
             "database_name": str(database_file),
-            "num_browsers": str(num_browsers),
+            "num_browsers": str(args.num_browsers),
         }
         task = start_task(
             browser_version="Chrome 126", manager_params=json.dumps(parameters)
@@ -497,7 +594,7 @@ def run_crawler() -> None:
         browser_params = {
             "use_temp": True,
             "chrome_path": str(chrome_path.absolute()),
-            "headless": headless,
+            "headless": not (args.no_headless),
         }
 
         # Add browser config to the database
@@ -507,11 +604,12 @@ def run_crawler() -> None:
         assert crawl.browser_id
         browser_id = crawl.browser_id
 
-
         # Prepare all visits in one thread
         logger.info("Creating visits and browsers")
         with SessionLocal.begin() as session:
-            visits = [ SiteVisit(browser_id=browser_id, site_url=u, site_rank=-1) for u in urls]
+            visits = [
+                SiteVisit(browser_id=browser_id, site_url=u, site_rank=-1) for u in urls
+            ]
 
             session.add_all(visits)
         logger.info("Created visits")
@@ -525,66 +623,8 @@ def run_crawler() -> None:
     # Debugging
     proc = psutil.Process()
 
-    # Checks all running chrome processes.
-    # Some processes that are spawned by this process launch the
-    # chromedriver and chrome processes.
-    # If these are killed the children of them (chrome/chromedriver)
-    # are adopted by the container.
-    # We iterate over all processes and kill those that are too old.
-    def check() -> None:
-        file = open("watcher.log", "a+")
-
-        logger.info("Starting watcher")
-
-        while True:
-            current_time = datetime.now()
-
-            print("Checking at ", current_time, file=file)
-
-            # Kill browser processes that are older than X minutes
-            # Iterate over all processes as each pebble worker
-            # is its own process, and if he dies the chrome/chromedriver child
-            # process is adopted by the docker container init process.
-            proc: psutil.Process
-
-            for proc in psutil.process_iter():
-                try:
-                    if "chrome" not in proc.name():
-                        continue
-
-                    # Kill if older than four times the timeout
-                    if proc.create_time() and (current_time.timestamp() - proc.create_time()) >= timeout * 4:
-                        print("Found too old process: ", proc, file=file)
-
-                        if proc.status() == psutil.STATUS_ZOMBIE:
-                            try:
-                                # Attempt to reap the zombie by waiting for it
-                                os.waitpid(proc.pid, os.WNOHANG)
-                                print(f"Reaped zombie process: {proc.pid}")
-                            except ChildProcessError as e:
-                                print(e)
-                                pass  # Zombie process might be gone by now
-                        else:
-                            file.flush()
-                            proc.kill()
-                            proc.wait(timeout=10)
-                            print("Killed", file=file)
-                    else:
-                        print("Process without starttime found: ", x, file=file)
-                    file.flush()
-                except Exception as e:
-                    print(e, file=file)
-                    pass
-
-            file.flush()
-            time.sleep(10)
-
-            print(file=file)
-            file.flush()
-
-    watcher = Process(target=check, daemon=True)
+    watcher = Process(target=_check, args=(logger, args), daemon=True)
     watcher.start()
-
 
     # Run a warmup browser to check if the current profile works
     # Also patches the executable for patching the chromedriver executable
@@ -615,7 +655,7 @@ def run_crawler() -> None:
         groups = match.groups()
         logger.info("Chrome version: %s", groups[0])
 
-    if num_browsers == 1:
+    if args.num_browsers == 1:
         with SessionLocal.begin() as session:
             crawl = session.merge(crawl)
 
@@ -623,7 +663,7 @@ def run_crawler() -> None:
                 arg = session.merge(arg)
 
                 crawl_result, cds, cookies = run_domain_with_timeout(
-                    arg, browser_id, no_stdout, crawl, browser_params
+                    arg, browser_id, args.no_stdout, crawl, browser_params
                 )
 
                 logger.info("Finished %s/%s", i + 1, len(visits))
@@ -636,17 +676,17 @@ def run_crawler() -> None:
                     session.merge(c)
         logger.info("%s crawls have finished.", len(visits))
     else:
-        n_jobs = min(num_browsers, len(urls))
+        n_jobs = min(args.num_browsers, len(urls))
 
         with ProcessPool(max_workers=n_jobs, max_tasks=1) as pool:
             fut = pool.map(
                 run_domain_with_timeout,
                 visits,
                 repeat(browser_id),
-                repeat(no_stdout),
+                repeat(args.no_stdout),
                 repeat(crawl),
                 repeat(browser_params),
-                timeout=timeout,
+                timeout=args.timeout,
             )
 
             all_true = True
@@ -656,7 +696,12 @@ def run_crawler() -> None:
                 for i in tqdm(range(len(visits)), total=len(visits), desc="Crawling"):
                     try:
                         with SessionLocal.begin() as session:
-                            crawl_result, cds, cookies  = cast(Tuple[ConsentCrawlResult, List[ConsentData], List[Cookie]], next(it))
+                            crawl_result, cds, cookies = cast(
+                                Tuple[
+                                    ConsentCrawlResult, List[ConsentData], List[Cookie]
+                                ],
+                                next(it),
+                            )
 
                             session.merge(crawl_result)
 
@@ -684,7 +729,9 @@ def run_crawler() -> None:
                 pass
 
             all_succeeded = all_true
-        logger.info("All %s crawls have finished. Success: %s", len(visits), all_succeeded)
+        logger.info(
+            "All %s crawls have finished. Success: %s", len(visits), all_succeeded
+        )
 
     logger.info("Number of open files: %s", len(proc.open_files()))
     for f in proc.open_files():
@@ -706,9 +753,9 @@ def main() -> None:
     cb-cc should not be called again.
     """
 
-    logger = logging.getLogger("cookieblock-consent-crawler")
+    logger = _setup_logger()
     try:
-        run_crawler()
+        run_crawler(logger)
 
     # pylint: disable=broad-exception-caught
     except CrawlerException as e:
