@@ -58,9 +58,9 @@ fi
 # Run the script in batches
 for ((i=1; i<=num_batches; i++)); do
     if [[ $i -eq 1 ]]; then
-        python3 run_consent_crawl_uc.py "$@"
+        python run_consent_crawl_uc.py "$@"
     else
-        python3 run_consent_crawl_uc.py "$@" --resume
+        python run_consent_crawl_uc.py "$@" --resume
     fi
 
     exit_code=$?
