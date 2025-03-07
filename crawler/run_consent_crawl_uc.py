@@ -324,6 +324,15 @@ def _parse_arguments() -> argparse.Namespace:
         default=1,
         type=int,
     )
+
+    parser.add_argument(
+        "--batch_size",
+        "--batch-size",
+        help="Number of websites to process in a batch",
+        dest="batch_size",
+        default=-1,
+        type=int,
+    )
     parser.add_argument(
         "-d",
         "--use_db",
@@ -442,7 +451,7 @@ def _database_setup(logger: Logger, args: argparse.Namespace) -> Tuple[str, str]
     return data_path, database_file
 
 
-def _check(logger: Logger, args: argparse.Namespace) -> None:
+def _kill_browsers_deamon(logger: Logger, args: argparse.Namespace) -> None:
     """
     Checks all running chrome processes.
     Some processes that are spawned by this process launch the chromedriver and chrome processes.
@@ -553,8 +562,10 @@ def run_crawler(logger: Logger) -> None:
             if len(unfinished_visits) == 0:
                 logging.error("Crawl already finished")
                 return
-
-            visits = unfinished_visits
+            if args.batch_size > 0:
+                visits = unfinished_visits[: args.batch_size]
+            else:
+                visits = unfinished_visits
             browser_id = unfinished_visits[0].browser_id
             crawls = list(session.execute(select(Crawl)).scalars())
 
@@ -612,10 +623,13 @@ def run_crawler(logger: Logger) -> None:
                 session.refresh(visit)
                 session.refresh(visit.browser)
 
+        if args.batch_size > 0:
+            visits = visits[: args.batch_size]
+
     # Debugging
     proc = psutil.Process()
 
-    watcher = Process(target=_check, args=(logger, args), daemon=True)
+    watcher = Process(target=_kill_browsers_deamon, args=(logger, args), daemon=True)
     watcher.start()
 
     # Run a warmup browser to check if the current profile works
@@ -668,7 +682,7 @@ def run_crawler(logger: Logger) -> None:
                     session.merge(c)
         logger.info("%s crawls have finished.", len(visits))
     else:
-        n_jobs = min(args.num_browsers, len(urls))
+        n_jobs = min(args.num_browsers, len(visits))
 
         with ProcessPool(max_workers=n_jobs, max_tasks=1) as pool:
             fut = pool.map(
