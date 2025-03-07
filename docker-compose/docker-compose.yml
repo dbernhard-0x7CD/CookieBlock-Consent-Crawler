@@ -19,9 +19,10 @@ services:
               cat ./filtered_domains/cookiebot_responses.txt > ./consent_crawl_list.txt && \
               cat ./filtered_domains/onetrust_responses.txt >> ./consent_crawl_list.txt && \
               consent_crawl -n 12 \\
-                            --profile_tar profile_consentomatic_accept_all.tar.gz \\
+                            --profile-tar profile_consentomatic_accept_all.tar.gz \\
                             --file ./consent_crawl_list.txt \\
-                            --use-db ./collected_data/crawl.sqlite && \
+                            --use-db ./collected_data/crawl.sqlite \\
+                            --batch-size 1000 && \
               python /crawler/database_processing/extract_cookies_from_db.py ./collected_data/crawl.sqlite && \
               cp ./training_data_output/*.json ./output_trainingdata/ && \
               ls -lah"
