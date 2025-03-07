@@ -545,24 +545,35 @@ def run_crawler() -> None:
             # Iterate over all processes as each pebble worker
             # is its own process, and if he dies the chrome/chromedriver child
             # process is adopted by the docker container init process.
-            x: psutil.Process
+            proc: psutil.Process
 
-            for x in psutil.process_iter():
+            for proc in psutil.process_iter():
                 try:
-                    if "chrome" not in x.name():
+                    if "chrome" not in proc.name():
                         continue
 
-                    print("Looking at ", x.name(), ", started at: ", x.create_time(), file=file)
-                    if x.create_time():
-                        # Kill if older than four times the timeout
-                        if (current_time.timestamp() - x.create_time()) >= timeout * 4:
-                            print("Found too old process: ", x, file=file)
+                    # Kill if older than four times the timeout
+                    if proc.create_time() and (current_time.timestamp() - proc.create_time()) >= timeout * 4:
+                        print("Found too old process: ", proc, file=file)
+
+                        if proc.status() == psutil.STATUS_ZOMBIE:
+                            try:
+                                # Attempt to reap the zombie by waiting for it
+                                os.waitpid(proc.pid, os.WNOHANG)
+                                print(f"Reaped zombie process: {proc.pid}")
+                            except ChildProcessError as e:
+                                print(e)
+                                pass  # Zombie process might be gone by now
+                        else:
                             file.flush()
-                            x.kill()
-                            x.terminate()
+                            proc.kill()
+                            proc.wait(timeout=10)
+                            print("Killed", file=file)
                     else:
                         print("Process without starttime found: ", x, file=file)
-                except Exception:
+                    file.flush()
+                except Exception as e:
+                    print(e, file=file)
                     pass
 
             file.flush()
