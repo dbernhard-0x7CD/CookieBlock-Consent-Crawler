@@ -155,22 +155,28 @@ echo "No Stdout: $no_stdout"
 echo "Num Subpages: $num_subpages"
 echo "Timeout: $timeout"
 
-args_command="--file $url_file --num_browsers $num_browsers --batch_size $batch_size --use_db $db_arg --profile_tar $profile_tar --num_subpages $num_subpages --timeout $timeout"
+args_command="--num_browsers $num_browsers --batch_size $batch_size --use_db $db_arg --profile_tar $profile_tar --num_subpages $num_subpages --timeout $timeout"
 if [[ $no_headless == true ]]; then
     args_command+=" --no_headless"
 fi
 if [[ $no_stdout == true ]]; then
     args_command+=" --no_stdout"
 fi
-echo "Command: $args_command"
 
 # Run the script in batches
 for ((i=1; i<=num_batches; i++)); do
     echo "Running batch $i of $num_batches"
     if [[ $i -eq 1 ]]; then
-        python ./crawler/run_consent_crawl_uc.py "$args_command"
+        if [[ $url_file ]]; then
+            echo "python ./crawler/run_consent_crawl_uc.py $args_command  --url_file $url_file"
+            python ./crawler/run_consent_crawl_uc.py $args_command --url_file $url_file
+        else
+            echo "python ./crawler/run_consent_crawl_uc.py $args_command --url $url"
+            python ./crawler/run_consent_crawl_uc.py $args_command --url $url
+        fi
     else
-        python ./crawler/run_consent_crawl_uc.py "$args_command" --resume
+        echo "python ./crawler/run_consent_crawl_uc.py $args_command --resume"
+        python ./crawler/run_consent_crawl_uc.py $args_command --resume
     fi
 
     exit_code=$?
