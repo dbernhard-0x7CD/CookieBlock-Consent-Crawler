@@ -306,7 +306,6 @@ def _parse_arguments() -> argparse.Namespace:
         help="Only launches the browser which allows modification of the current profile",
         action="store_true",
         default=False,
-        type=bool,
     )
     run_group.add_argument("-u", "--url", help="Url to crawl once")
     run_group.add_argument(
@@ -314,7 +313,6 @@ def _parse_arguments() -> argparse.Namespace:
         help="Resume crawl in given database.",
         action="store_true",
         default=False,
-        type=bool,
     )
 
     parser.add_argument(
@@ -341,14 +339,12 @@ def _parse_arguments() -> argparse.Namespace:
         help="Start the browser with GUI (headless disabled)",
         action="store_true",
         default=False,
-        type=bool,
     )
     parser.add_argument(
         "--no-stdout",
         help="Do not print crawl results to stdout",
         action="store_true",
         default=False,
-        type=bool,
     )
     parser.add_argument(
         "--num-subpages",
@@ -374,16 +370,12 @@ def _args_check(args: argparse.Namespace) -> None:
         args (argparse.Namespace): The parsed arguments
     """
     # simple checks
-    if args.file and args.url:
-        raise ArgumentsException("Cannot use both --file and --url")
     if args.file and (not os.path.exists(args.file)):
         raise ArgumentsException(f"File at {args.file} does not exist")
     if args.resume and not args.use_db:
         raise ArgumentsException("--use-db is required when using --resume")
     if args.no_headless and args.launch_browser:
         raise ArgumentsException("--launch-browser cannot be combined with --no_headless")
-    if not args.file and not args.url:
-        raise ArgumentsException("Either --file or --url is required")
     if args.num_browsers and args.num_browsers < 1:
         raise ArgumentsException("Number of browsers must be at least 1")
     if args.num_subpages and args.num_subpages < 0:
