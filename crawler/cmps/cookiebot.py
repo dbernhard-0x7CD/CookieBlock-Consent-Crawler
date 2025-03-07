@@ -64,8 +64,8 @@ category_patterns = {
 
 class CookiebotCMP(AbstractCMP):
 
-    def __init__(self, logger: Logger) -> None:
-        super().__init__(name="Cookiebot", logger=logger)
+    def __init__(self, logger: Logger, browser_id: int) -> None:
+        super().__init__(name="Cookiebot", logger=logger, browser_id=browser_id)
 
     def check_presence(self, webdriver: WebDriver) -> bool:
         """Check whether Cookiebot is referenced on the website"""

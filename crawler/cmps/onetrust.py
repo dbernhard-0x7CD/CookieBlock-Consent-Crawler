@@ -131,8 +131,8 @@ social_media_pattern = re.compile(
 
 class OnetrustCMP(AbstractCMP):
 
-    def __init__(self, logger: Logger) -> None:
-        super().__init__(name="Onetrust", logger=logger)
+    def __init__(self, logger: Logger, browser_id: int) -> None:
+        super().__init__(name="Onetrust", logger=logger, browser_id=browser_id)
 
     def check_presence(self, webdriver: WebDriver) -> bool:
         """Check whether a OneTrust pattern is referenced on the website"""
