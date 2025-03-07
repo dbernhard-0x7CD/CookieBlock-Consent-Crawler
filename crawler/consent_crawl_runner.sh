@@ -164,7 +164,7 @@ if [[ $no_stdout == true ]]; then
 fi
 
 # Run the script in batches
-for ((local i=1; i<=num_batches; i++)); do
+for ((i=1; i<=num_batches; i++)); do
     echo "Running batch $i of $num_batches"
     if [[ $i -eq 1 ]]; then
         if [[ $url_file ]]; then
