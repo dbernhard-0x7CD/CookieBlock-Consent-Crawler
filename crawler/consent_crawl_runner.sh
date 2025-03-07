@@ -9,6 +9,9 @@ kill_chrome_processes() {
     echo "Number of zombie chrome processes: $zombie_count"
 }
 
+# Print all arguments
+echo "Arguments: $@"
+
 # Check if --batch-size argument is provided
 batch_size=0
 for arg in "$@"; do
@@ -55,8 +58,12 @@ else
     num_batches=1
 fi
 
+# Print updated arguments
+echo "Updated arguments: $@"
+
 # Run the script in batches
 for ((i=1; i<=num_batches; i++)); do
+    echo "Running batch $i of $num_batches"
     if [[ $i -eq 1 ]]; then
         python run_consent_crawl_uc.py "$@"
     else
