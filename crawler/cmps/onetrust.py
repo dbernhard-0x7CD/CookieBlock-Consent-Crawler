@@ -840,9 +840,9 @@ class OnetrustCMP(AbstractCMP):
 
                     if len(langproplist) > 0:
                         cat_name = langproplist[0]["GroupName"]["Text"]
-                        cat_id = self.category_lookup_en(self.browser_id, cat_name)
+                        cat_id = self.category_lookup_en(cat_name)
                         if cat_id == CookieCategory.UNRECOGNIZED:
-                            cat_id = self.category_lookup_de(self.browser_id, cat_name)
+                            cat_id = self.category_lookup_de(cat_name)
 
                     else:
                         raise AttributeError("Empty Group")
